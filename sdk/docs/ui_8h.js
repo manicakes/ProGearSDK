@@ -1,0 +1,25 @@
+var ui_8h =
+[
+    [ "NG_MENU_MAX_ITEMS", "ui_8h.html#a6dd09a056d2ed91fcceb6b71acf558e1", null ],
+    [ "NG_MENU_Z_INDEX", "ui_8h.html#aab69c36f62d673edb079d13ced781b41", null ],
+    [ "NGMenuHandle", "ui_8h.html#a79576d3c90d28a5c9c40aba337faf5fc", null ],
+    [ "NGMenuCreate", "ui_8h.html#aca49ef21e8221a7d4582df0a484d8fe4", null ],
+    [ "NGMenuSetTitle", "ui_8h.html#a8be40fd331954539b7b48e0e4bc89df8", null ],
+    [ "NGMenuSetPosition", "ui_8h.html#a28e6eebbb886ba0e39d6213da80dbaf6", null ],
+    [ "NGMenuSetTextPalette", "ui_8h.html#a78c87db8be4964210e1cb82bc76ff668", null ],
+    [ "NGMenuAddItem", "ui_8h.html#aa8fe9a9da74ee2084aa40cd2284a700a", null ],
+    [ "NGMenuAddSeparator", "ui_8h.html#aab28dd9f059b3c28910609d0de029aa4", null ],
+    [ "NGMenuSetItemText", "ui_8h.html#aa0d95d8e0b7c90f20bf54e4fd572cc1f", null ],
+    [ "NGMenuSetSounds", "ui_8h.html#a9099b9a4c9b515d6a7bce986f0df569c", null ],
+    [ "NGMenuShow", "ui_8h.html#a3e9f486ebcdd9c8fdab1c267a4821378", null ],
+    [ "NGMenuHide", "ui_8h.html#ac82598d131c1a225140978c6995bf478", null ],
+    [ "NGMenuUpdate", "ui_8h.html#a9254a7955235eea8ca5ba6a32977b238", null ],
+    [ "NGMenuDraw", "ui_8h.html#aea09b39b9ecda838eae2d83b9a39f772", null ],
+    [ "NGMenuIsVisible", "ui_8h.html#a50468696d1632440cccec3a73edfe26f", null ],
+    [ "NGMenuIsAnimating", "ui_8h.html#a7d086e09f1b9335a2255e7ab8f8bfc67", null ],
+    [ "NGMenuGetSelection", "ui_8h.html#a7bc01bf07ed8d4397a78dec8abd1b134", null ],
+    [ "NGMenuSetSelection", "ui_8h.html#a67ffd03beacc64afbdabfc10d85ddf3b", null ],
+    [ "NGMenuConfirmed", "ui_8h.html#a6a77f5b648bf36dfbad0e5fb602a77bd", null ],
+    [ "NGMenuCancelled", "ui_8h.html#a7df9cc7a283735072b36bb6c48e1f3b7", null ],
+    [ "NGMenuDestroy", "ui_8h.html#a2977e40e98778c5bc3ef18f944027faa", null ]
+];

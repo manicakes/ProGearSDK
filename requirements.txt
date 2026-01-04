@@ -1,0 +1,3 @@
+# Python dependencies for ProGearSDK tools
+pillow>=9.0.0
+pyyaml>=6.0

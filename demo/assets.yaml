@@ -1,0 +1,104 @@
+# Template game assets
+# Uses the unified visual_assets format
+
+# Ball color palettes - 8 variations for multi-colored balls
+# Color 0 = transparent, Colors 1-3 = ball shading (highlight, mid, shadow)
+palettes:
+  ball_default:
+    source: assets/ball.png    # Extract original orange palette
+
+  ball_red:
+    colors: [0x8000, 0x4F00, 0x2D00, 0x0A00, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_green:
+    colors: [0x8000, 0x20F0, 0x00D0, 0x00A0, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_blue:
+    colors: [0x8000, 0x100F, 0x000D, 0x000A, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_yellow:
+    colors: [0x8000, 0x6FF0, 0x4DD0, 0x2AA0, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_cyan:
+    colors: [0x8000, 0x30FF, 0x00DD, 0x00AA, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_magenta:
+    colors: [0x8000, 0x5F0F, 0x3D0D, 0x1A0A, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  ball_white:
+    colors: [0x8000, 0x7FFF, 0x5DDD, 0x3AAA, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  # Dark red palette for menu cursor (index 1 = cursor, index 2 = shadow)
+  cursor_red:
+    colors: [0x8000, 0x0A33, 0x0111, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+  # Dithered shadow palette - index 0 transparent, index 1 black
+  dithered_shadow:
+    colors: [0x8000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+visual_assets:
+  # Animated ball sprite (uses default orange palette) - 32x32 size
+  - name: ball
+    source: assets/ball.png
+    frame_size: [32, 32]
+    palette: ball_default
+    animations:
+      spin: { frames: [0-15], speed: 1, loop: true }
+
+  # Brick wall
+  - name: brick
+    source: assets/brick.png
+
+  # Brick shadow (dithered checkerboard for fake alpha)
+  - name: brick_shadow
+    source: assets/brick_shadow.png
+    palette: dithered_shadow
+
+  # UI elements
+  - name: ui_panel
+    source: assets/ui_panel.png
+
+  - name: ui_cursor
+    source: assets/ui_cursor.png
+    palette: cursor_red
+
+  - name: ui_overlay
+    source: assets/ui_overlay.png
+
+  # Brick pattern (tiling background for ball demo)
+  - name: brick_pattern
+    source: assets/brick_pattern.png
+
+  # Parallax scrolling layers (for scroll demo)
+  - name: back_layer
+    source: assets/back.png
+
+  - name: middle_layer
+    source: assets/middle.png
+
+  - name: front_layer
+    source: assets/front.png
+
+# Sound effects (ADPCM-A)
+sound_effects:
+  - name: ball_hit
+    source: assets/ball_hit.wav
+  - name: ui_click
+    source: assets/ui_click.wav
+  - name: ui_select
+    source: assets/ui_select.wav
+
+# Background music (ADPCM-B)
+music:
+  - name: ball_scene_music
+    source: assets/ball_scene_music.wav
+    loop: true

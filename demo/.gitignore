@@ -1,0 +1,17 @@
+# Build output
+build/
+
+# MAME save data
+nvram/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*~

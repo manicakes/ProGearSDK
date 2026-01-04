@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['s16_0',['s16',['../group__types.html#gaa980e2c02ba2305e0f489d5650655425',1,'types.h']]],
+  ['s32_1',['s32',['../group__types.html#gae9b1af5c037e57a98884758875d3a7c4',1,'types.h']]],
+  ['s8_2',['s8',['../group__types.html#ga9e382f207c65ca13ab4ae98363aeda80',1,'types.h']]],
+  ['scene_20constants_3',['Scene Constants',['../group__sceneconst.html',1,'']]],
+  ['scene_20functions_4',['Scene Functions',['../group__scenefunc.html',1,'']]],
+  ['scene_20h_5',['Scene (scene.h)',['../index.html#autotoc_md6',1,'']]],
+  ['scene_20scene_20h_6',['Scene (scene.h)',['../index.html#autotoc_md6',1,'']]],
+  ['scene_2eh_7',['scene.h',['../scene_8h.html',1,'']]],
+  ['screen_20layout_8',['Screen Layout',['../fix_8h.html#fixlayout',1,'']]],
+  ['sdk_20modules_9',['SDK Modules',['../index.html#autotoc_md1',1,'']]],
+  ['shape_10',['shape',['../struct_n_g_body.html#a1dde2ad269acee1f6f1c33c7a54b6463',1,'NGBody']]],
+  ['shapes_11',['Collision Shapes',['../group__physshape.html',1,'']]],
+  ['single_20color_20operations_12',['Single Color Operations',['../group__palcolor.html',1,'']]],
+  ['sound_20effects_20and_20music_13',['Sound Effects and Music',['../index.html#autotoc_md16',1,'']]],
+  ['speed_14',['speed',['../struct_n_g_anim_def.html#aa08f208b83a18a3ca9f9a02a91e09914',1,'NGAnimDef']]],
+  ['spring_2eh_15',['spring.h',['../spring_8h.html',1,'']]],
+  ['start_16',['Quick Start',['../index.html#autotoc_md0',1,'']]],
+  ['state_20queries_17',['State Queries',['../group__inputstate.html',1,'']]],
+  ['stiffness_18',['stiffness',['../struct_n_g_spring.html#a150fb6189783a37b45addbf0e7b2ab8a',1,'NGSpring']]],
+  ['structure_19',['Main Loop Structure',['../index.html#autotoc_md17',1,'']]],
+  ['system_20',['System',['../group__camsys.html',1,'Camera System'],['../camera_8h.html#camcoord',1,'Coordinate System'],['../group__fixlayout.html',1,'Text Layout System']]],
+  ['system_20button_20masks_21',['System Button Masks',['../group__sysbtn.html',1,'']]],
+  ['system_20camera_20h_22',['Camera System (camera.h)',['../index.html#autotoc_md7',1,'']]],
+  ['system_20functions_23',['System Functions',['../group__inputsys.html',1,'Input System Functions'],['../group__sysfunc.html',1,'System Functions']]],
+  ['system_20input_20queries_24',['System Input Queries',['../group__sysquery.html',1,'']]]
+];
