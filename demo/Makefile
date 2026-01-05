@@ -43,9 +43,10 @@ GAME_SOURCES = src/main.c \
                src/ball/ball.c \
                src/ball/ball_demo.c \
                src/scroll/scroll_demo.c \
-               src/blank_scene/blank_scene.c
+               src/blank_scene/blank_scene.c \
+               src/tilemap_demo/tilemap_demo.c
 
-SDK_C_SOURCES = $(SDK_PATH)/src/fix.c $(SDK_PATH)/src/color.c $(SDK_PATH)/src/palette.c $(SDK_PATH)/src/scene.c $(SDK_PATH)/src/actor.c $(SDK_PATH)/src/parallax.c $(SDK_PATH)/src/input.c $(SDK_PATH)/src/ngmath.c $(SDK_PATH)/src/physics.c $(SDK_PATH)/src/camera.c $(SDK_PATH)/src/arena.c $(SDK_PATH)/src/spring.c $(SDK_PATH)/src/ui.c $(SDK_PATH)/src/audio.c $(SDK_PATH)/src/engine.c
+SDK_C_SOURCES = $(SDK_PATH)/src/fix.c $(SDK_PATH)/src/color.c $(SDK_PATH)/src/palette.c $(SDK_PATH)/src/scene.c $(SDK_PATH)/src/actor.c $(SDK_PATH)/src/parallax.c $(SDK_PATH)/src/input.c $(SDK_PATH)/src/ngmath.c $(SDK_PATH)/src/physics.c $(SDK_PATH)/src/camera.c $(SDK_PATH)/src/arena.c $(SDK_PATH)/src/spring.c $(SDK_PATH)/src/ui.c $(SDK_PATH)/src/audio.c $(SDK_PATH)/src/engine.c $(SDK_PATH)/src/tilemap.c
 ASM_SOURCES = $(SDK_PATH)/src/crt0.s
 
 # Object files go in build directory
@@ -54,6 +55,7 @@ OBJECTS = $(BUILD_DIR)/main.o \
           $(BUILD_DIR)/ball_demo.o \
           $(BUILD_DIR)/scroll_demo.o \
           $(BUILD_DIR)/blank_scene.o \
+          $(BUILD_DIR)/tilemap_demo.o \
           $(BUILD_DIR)/fix.o \
           $(BUILD_DIR)/color.o \
           $(BUILD_DIR)/palette.o \
@@ -69,6 +71,7 @@ OBJECTS = $(BUILD_DIR)/main.o \
           $(BUILD_DIR)/ui.o \
           $(BUILD_DIR)/audio.o \
           $(BUILD_DIR)/engine.o \
+          $(BUILD_DIR)/tilemap.o \
           $(BUILD_DIR)/crt0.o
 
 # === ROM Output Files (in build directory) ===
@@ -136,6 +139,9 @@ $(BUILD_DIR)/scroll_demo.o: src/scroll/scroll_demo.c src/scroll/scroll_demo.h $(
 $(BUILD_DIR)/blank_scene.o: src/blank_scene/blank_scene.c src/blank_scene/blank_scene.h $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Isrc -Isrc/blank_scene -c $< -o $@
 
+$(BUILD_DIR)/tilemap_demo.o: src/tilemap_demo/tilemap_demo.c src/tilemap_demo/tilemap_demo.h $(GEN_ASSETS_H) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Isrc -Isrc/tilemap_demo -c $< -o $@
+
 # Compile SDK C files
 $(BUILD_DIR)/fix.o: $(SDK_PATH)/src/fix.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -180,6 +186,9 @@ $(BUILD_DIR)/audio.o: $(SDK_PATH)/src/audio.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/engine.o: $(SDK_PATH)/src/engine.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/tilemap.o: $(SDK_PATH)/src/tilemap.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble crt0

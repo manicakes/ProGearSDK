@@ -246,4 +246,64 @@ void NGCameraScreenToWorld(s16 screen_x, s16 screen_y,
 
 /** @} */
 
+/** @defgroup camtrack Actor Tracking
+ *  @brief Metal Slug-style camera following with deadzone.
+ *
+ *  The camera can track an actor with a deadzone - a region in the center
+ *  of the screen where the actor can move freely without the camera following.
+ *  When the actor moves outside the deadzone, the camera smoothly follows.
+ *  @{
+ */
+
+#include <actor.h>
+
+/**
+ * Set an actor for the camera to track.
+ * The camera will follow this actor with smooth interpolation.
+ * @param actor Actor handle to track, or NG_ACTOR_INVALID to stop tracking
+ */
+void NGCameraTrackActor(NGActorHandle actor);
+
+/**
+ * Stop tracking any actor.
+ */
+void NGCameraStopTracking(void);
+
+/**
+ * Set the tracking deadzone size.
+ * The deadzone is centered on the screen. The actor can move freely
+ * within this zone without the camera following.
+ * Default is 64x32 pixels (Metal Slug-style).
+ * @param width Deadzone width in pixels (0 = always follow)
+ * @param height Deadzone height in pixels (0 = always follow)
+ */
+void NGCameraSetDeadzone(u16 width, u16 height);
+
+/**
+ * Set the camera follow speed.
+ * Higher values make the camera catch up faster.
+ * @param speed Follow speed as fixed-point (0.1 = slow, 0.3 = medium, 0.5 = fast)
+ *              Default is ~0.15 for smooth Metal Slug-style following.
+ */
+void NGCameraSetFollowSpeed(fixed speed);
+
+/**
+ * Set world bounds for camera clamping during tracking.
+ * Camera will not scroll past these bounds.
+ * @param world_width World width in pixels (0 = no X clamping)
+ * @param world_height World height in pixels (0 = no Y clamping)
+ */
+void NGCameraSetBounds(u16 world_width, u16 world_height);
+
+/**
+ * Set tracking offset from actor center.
+ * Use to position the actor ahead of center (e.g., for run-and-gun games).
+ * Positive X = actor appears left of center, camera shows more to the right.
+ * @param offset_x Horizontal offset in pixels
+ * @param offset_y Vertical offset in pixels
+ */
+void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y);
+
+/** @} */
+
 #endif // _CAMERA_H_

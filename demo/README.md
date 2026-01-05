@@ -34,7 +34,7 @@ The `neogeo.zip` BIOS is required by MAME to run NeoGeo games and is not include
 
 ## Demo Scenes
 
-The demo includes three scenes that can be switched between using the in-game menu.
+The demo includes four scenes that can be switched between using the in-game menu.
 
 ### Ball Demo
 
@@ -79,6 +79,26 @@ A minimal scene template showing the basic structure for a ProGearSDK applicatio
 
 This scene serves as a starting point for new development.
 
+### Tilemap Demo
+
+A platformer-style demo showcasing the tilemap system with collision detection.
+
+**Features demonstrated:**
+- `tilemap.h` - Tile-based world rendering with viewport windowing
+- `tilemap.h` - AABB collision resolution with solid tiles
+- `camera.h` - Camera following the player with bounds clamping
+- `input.h` - Platformer controls (move, jump)
+
+**Controls:**
+- **Left/Right** - Move player
+- **A** - Jump (hold for higher jump)
+
+**Gameplay features:**
+- Variable jump height (tap for short hop, hold for full jump)
+- Smooth collision resolution against tilemap
+- Camera tracks player position
+- World bounds from tilemap dimensions
+
 ## Project Structure
 
 ```
@@ -90,8 +110,10 @@ demo/
 │   │   └── ball_demo.c/h      # Ball demo scene
 │   ├── scroll/
 │   │   └── scroll_demo.c/h    # Parallax scroll demo scene
-│   └── blank_scene/
-│       └── blank_scene.c/h    # Minimal blank scene
+│   ├── blank_scene/
+│   │   └── blank_scene.c/h    # Minimal blank scene
+│   └── tilemap_demo/
+│       └── tilemap_demo.c/h   # Tilemap collision demo scene
 ├── assets/                    # Graphics and audio assets
 ├── assets.yaml                # Asset definitions for ngres
 └── Makefile

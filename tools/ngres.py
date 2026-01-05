@@ -55,6 +55,7 @@ import sys
 import re
 import struct
 import wave
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 try:
@@ -984,6 +985,241 @@ def process_music(music_def, yaml_dir, index, current_offset):
     return adpcm_data, music_info
 
 
+# ============================================================================
+# Tilemap Asset Processing (TMX format from Tiled editor)
+# ============================================================================
+
+def parse_tmx_file(tmx_path, layer_name=None):
+    """
+    Parse a TMX file from Tiled editor.
+    Returns: (width, height, tile_data, collision_data, tileset_firstgid)
+
+    TMX format is XML with structure:
+    <map>
+      <tileset firstgid="1" source="tileset.tsx"/>
+      <layer name="Ground" width="100" height="14">
+        <data encoding="csv">1,2,3,...</data>
+      </layer>
+    </map>
+    """
+    try:
+        tree = ET.parse(tmx_path)
+        root = tree.getroot()
+    except ET.ParseError as e:
+        raise NGResError(f"Failed to parse TMX file {tmx_path}: {e}")
+
+    # Get map dimensions
+    map_width = int(root.get('width', 0))
+    map_height = int(root.get('height', 0))
+    tile_width = int(root.get('tilewidth', 16))
+    tile_height = int(root.get('tileheight', 16))
+
+    if tile_width != 16 or tile_height != 16:
+        raise NGResError(f"TMX file {tmx_path}: tile size must be 16x16 (got {tile_width}x{tile_height})")
+
+    # Find tileset and get firstgid (the ID offset for this tileset)
+    tileset_firstgid = 1
+    tileset_elem = root.find('tileset')
+    if tileset_elem is not None:
+        tileset_firstgid = int(tileset_elem.get('firstgid', 1))
+
+    # Find the requested layer (or first layer if none specified)
+    layer = None
+    for elem in root.findall('layer'):
+        if layer_name is None or elem.get('name') == layer_name:
+            layer = elem
+            break
+
+    if layer is None:
+        if layer_name:
+            raise NGResError(f"TMX file {tmx_path}: layer '{layer_name}' not found")
+        else:
+            raise NGResError(f"TMX file {tmx_path}: no tile layers found")
+
+    # Get layer dimensions (may differ from map)
+    layer_width = int(layer.get('width', map_width))
+    layer_height = int(layer.get('height', map_height))
+
+    # Parse tile data
+    data_elem = layer.find('data')
+    if data_elem is None:
+        raise NGResError(f"TMX file {tmx_path}: layer has no data element")
+
+    encoding = data_elem.get('encoding', 'csv')
+    if encoding != 'csv':
+        raise NGResError(f"TMX file {tmx_path}: only CSV encoding supported (got '{encoding}')")
+
+    # Parse CSV data - tile IDs are 1-based in Tiled, 0 means empty
+    csv_text = data_elem.text.strip()
+    tile_ids = []
+    for val in csv_text.replace('\n', ',').split(','):
+        val = val.strip()
+        if val:
+            tile_id = int(val)
+            # Subtract firstgid to get 0-based tile index
+            # 0 in TMX means empty/transparent
+            if tile_id == 0:
+                tile_ids.append(0)
+            else:
+                tile_ids.append(tile_id - tileset_firstgid)
+
+    if len(tile_ids) != layer_width * layer_height:
+        raise NGResError(
+            f"TMX file {tmx_path}: expected {layer_width * layer_height} tiles, got {len(tile_ids)}"
+        )
+
+    # Convert to bytes (tile indices as u8)
+    tile_data = bytes([min(255, max(0, t)) for t in tile_ids])
+
+    # Extract collision data from tile properties (if present)
+    # Look for tileset with tile properties
+    collision_data = None
+    collision_map = {}  # tile_id -> collision flags
+
+    for tileset in root.findall('tileset'):
+        for tile in tileset.findall('tile'):
+            tile_id = int(tile.get('id', 0))
+            props = tile.find('properties')
+            if props is not None:
+                flags = 0
+                for prop in props.findall('property'):
+                    prop_name = prop.get('name', '').lower()
+                    prop_value = prop.get('value', 'false').lower()
+                    if prop_value in ('true', '1', 'yes'):
+                        if prop_name == 'solid':
+                            flags |= 0x01
+                        elif prop_name == 'platform':
+                            flags |= 0x02
+                        elif prop_name == 'slope_l':
+                            flags |= 0x04
+                        elif prop_name == 'slope_r':
+                            flags |= 0x08
+                        elif prop_name == 'hazard':
+                            flags |= 0x10
+                        elif prop_name == 'trigger':
+                            flags |= 0x20
+                        elif prop_name == 'ladder':
+                            flags |= 0x40
+                if flags:
+                    collision_map[tile_id] = flags
+
+    # Build collision data array if we have any collision properties
+    if collision_map:
+        collision_bytes = []
+        for tile_id in tile_ids:
+            collision_bytes.append(collision_map.get(tile_id, 0))
+        collision_data = bytes(collision_bytes)
+
+    return layer_width, layer_height, tile_data, collision_data, tileset_firstgid
+
+
+def process_tilemap_asset(tilemap_def, yaml_dir, visual_assets_info):
+    """
+    Process a tilemap asset definition.
+    Returns: tilemap_info dict
+
+    tilemap_def format:
+      - name: level1_ground
+        source: assets/levels/level1.tmx
+        layer: "Ground"  # optional, uses first layer if omitted
+        tileset: level_tileset  # reference to visual asset for tileset
+        tileset_palettes:
+          - tiles: [0, 31]
+            palette: 5
+        default_palette: 5
+        collision:  # optional, override TMX tile properties
+          solid: [1, 2, 3]
+    """
+    name = tilemap_def.get('name')
+    if not name:
+        raise NGResError("Tilemap missing 'name' field")
+
+    source = tilemap_def.get('source')
+    if not source:
+        raise NGResError(f"Tilemap '{name}' missing 'source' field")
+
+    # Resolve path
+    if not os.path.isabs(source):
+        source = os.path.join(yaml_dir, source)
+
+    if not os.path.exists(source):
+        raise NGResError(f"Tilemap '{name}' source not found: {source}")
+
+    # Parse TMX file
+    layer_name = tilemap_def.get('layer')
+    width, height, tile_data, collision_data, firstgid = parse_tmx_file(source, layer_name)
+
+    # Find tileset visual asset to get base_tile
+    tileset_ref = tilemap_def.get('tileset')
+    base_tile = 0
+    if tileset_ref:
+        for asset in visual_assets_info:
+            if asset['name'] == tileset_ref:
+                base_tile = asset['base_tile']
+                break
+        else:
+            raise NGResError(f"Tilemap '{name}' references unknown tileset '{tileset_ref}'")
+
+    # Process tileset_palettes to build lookup table
+    tileset_palettes = tilemap_def.get('tileset_palettes', [])
+    default_palette = tilemap_def.get('default_palette', 0)
+
+    # Build tile_to_palette lookup table (256 entries)
+    tile_to_palette = [default_palette] * 256
+    for pal_range in tileset_palettes:
+        tiles_range = pal_range.get('tiles', [0, 0])
+        palette = pal_range.get('palette', default_palette)
+        if len(tiles_range) == 2:
+            start, end = tiles_range
+            for i in range(start, min(end + 1, 256)):
+                tile_to_palette[i] = palette
+
+    # Process collision overrides from YAML (if no TMX collision or to override)
+    collision_config = tilemap_def.get('collision')
+    if collision_config:
+        # Build collision data from YAML config
+        collision_map = {}
+        for coll_type, tile_indices in collision_config.items():
+            flag = 0
+            if coll_type == 'solid':
+                flag = 0x01
+            elif coll_type == 'platform':
+                flag = 0x02
+            elif coll_type == 'slope_l':
+                flag = 0x04
+            elif coll_type == 'slope_r':
+                flag = 0x08
+            elif coll_type == 'hazard':
+                flag = 0x10
+            elif coll_type == 'trigger':
+                flag = 0x20
+            elif coll_type == 'ladder':
+                flag = 0x40
+
+            if flag and tile_indices:
+                for idx in tile_indices:
+                    collision_map[idx] = collision_map.get(idx, 0) | flag
+
+        if collision_map:
+            collision_bytes = []
+            for tile_id in tile_data:
+                collision_bytes.append(collision_map.get(tile_id, 0))
+            collision_data = bytes(collision_bytes)
+
+    tilemap_info = {
+        'name': name,
+        'width_tiles': width,
+        'height_tiles': height,
+        'base_tile': base_tile,
+        'tile_data': tile_data,
+        'collision_data': collision_data,
+        'tile_to_palette': bytes(tile_to_palette),
+        'default_palette': default_palette,
+    }
+
+    return tilemap_info
+
+
 def generate_z80_sample_tables(sfx_info_list, music_info_list):
     """
     Generate binary sample tables for Z80 driver.
@@ -1022,7 +1258,7 @@ def generate_z80_sample_tables(sfx_info_list, music_info_list):
     return bytes(sfx_table + music_table)
 
 
-def generate_header(assets_info, palette_registry, sfx_info, music_info, output_path):
+def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap_info, output_path):
     """Generate C header file with asset definitions."""
     lines = [
         "// ngres_generated_assets.h - Generated by ngres",
@@ -1034,6 +1270,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, output_
         "#include <visual.h>",
         "#include <palette.h>",
         "#include <audio.h>",
+        "#include <tilemap.h>",
         "",
     ]
 
@@ -1184,6 +1421,61 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, output_
             lines.append("};")
             lines.append("")
 
+    # === Tilemap Assets ===
+    if tilemap_info:
+        lines.append("// === Tilemaps ===")
+        lines.append("")
+
+        for tm in tilemap_info:
+            name = tm['name']
+
+            # Tile data array
+            tile_data = tm['tile_data']
+            lines.append(f"static const u8 _{name}_tile_data[] = {{")
+            for i in range(0, len(tile_data), 32):
+                chunk = tile_data[i:i+32]
+                line = "    " + ", ".join(f"0x{b:02X}" for b in chunk) + ","
+                lines.append(line)
+            lines.append("};")
+            lines.append("")
+
+            # Collision data array (if present)
+            collision_data = tm['collision_data']
+            if collision_data:
+                lines.append(f"static const u8 _{name}_collision_data[] = {{")
+                for i in range(0, len(collision_data), 32):
+                    chunk = collision_data[i:i+32]
+                    line = "    " + ", ".join(f"0x{b:02X}" for b in chunk) + ","
+                    lines.append(line)
+                lines.append("};")
+                lines.append("")
+
+            # Tile to palette lookup table
+            tile_to_palette = tm['tile_to_palette']
+            lines.append(f"static const u8 _{name}_tile_to_palette[] = {{")
+            for i in range(0, len(tile_to_palette), 32):
+                chunk = tile_to_palette[i:i+32]
+                line = "    " + ", ".join(f"{b}" for b in chunk) + ","
+                lines.append(line)
+            lines.append("};")
+            lines.append("")
+
+            # NGTilemapAsset struct
+            lines.append(f"static const NGTilemapAsset NGTilemapAsset_{name} = {{")
+            lines.append(f"    .name = \"{name}\",")
+            lines.append(f"    .width_tiles = {tm['width_tiles']},")
+            lines.append(f"    .height_tiles = {tm['height_tiles']},")
+            lines.append(f"    .base_tile = {tm['base_tile']},")
+            lines.append(f"    .tile_data = _{name}_tile_data,")
+            if collision_data:
+                lines.append(f"    .collision_data = _{name}_collision_data,")
+            else:
+                lines.append("    .collision_data = 0,")
+            lines.append(f"    .tile_to_palette = _{name}_tile_to_palette,")
+            lines.append(f"    .default_palette = {tm['default_palette']},")
+            lines.append("};")
+            lines.append("")
+
     lines.append("#endif // _NGRES_GENERATED_ASSETS_H_")
     lines.append("")
 
@@ -1231,6 +1523,7 @@ def main():
     palettes_config = config.get('palettes', {})
     sound_effects_config = config.get('sound_effects', [])
     music_config = config.get('music', [])
+    tilemaps_config = config.get('tilemaps', [])
 
     # Initialize palette registry
     # Indices 0-1 reserved for system, start auto-assignment at 2
@@ -1351,6 +1644,24 @@ def main():
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
+    # =========================================================================
+    # Process Tilemap Assets
+    # =========================================================================
+    tilemap_info_list = []
+
+    for tilemap_def in tilemaps_config:
+        try:
+            tilemap_info = process_tilemap_asset(tilemap_def, yaml_dir, assets_info)
+            tilemap_info_list.append(tilemap_info)
+
+            if args.verbose:
+                print(f"Processed Tilemap '{tilemap_info['name']}': "
+                      f"{tilemap_info['width_tiles']}x{tilemap_info['height_tiles']} tiles")
+
+        except NGResError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
     # Create output directory
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1391,7 +1702,7 @@ def main():
 
     # Generate header
     header_path = output_dir / args.header
-    generate_header(assets_info, palette_registry, sfx_info_list, music_info_list, header_path)
+    generate_header(assets_info, palette_registry, sfx_info_list, music_info_list, tilemap_info_list, header_path)
 
     # Count palettes (excluding internal keys)
     palette_count = len([k for k in palette_registry.keys() if not k.startswith('_')])
@@ -1407,6 +1718,8 @@ def main():
         print(f"       {len(sfx_info_list)} sound effects")
     if music_info_list:
         print(f"       {len(music_info_list)} music tracks")
+    if tilemap_info_list:
+        print(f"       {len(tilemap_info_list)} tilemaps")
 
 
 if __name__ == '__main__':

@@ -48,7 +48,8 @@ static fixed cam_circle_radius;     // Circle radius in pixels (fixed-point)
 #define MENU_TOGGLE_MUSIC  4
 // Index 5 is separator
 #define MENU_SCROLL_DEMO   6
-#define MENU_BLANK_SCENE 7
+#define MENU_BLANK_SCENE   7
+#define MENU_TILEMAP_DEMO  8
 
 void BallDemoInit(void) {
     switch_target = 0;
@@ -99,6 +100,7 @@ void BallDemoInit(void) {
     NGMenuAddSeparator(menu, "--------");
     NGMenuAddItem(menu, "Scroll Demo");
     NGMenuAddItem(menu, "Blank Scene");
+    NGMenuAddItem(menu, "Tilemap Demo");
     NGMenuSetSounds(menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
     NGEngineSetActiveMenu(menu);
 
@@ -170,6 +172,11 @@ u8 BallDemoUpdate(void) {
                     NGMenuHide(menu);
                     menu_open = 0;
                     switch_target = DEMO_ID_BLANK_SCENE;
+                    break;
+                case MENU_TILEMAP_DEMO:
+                    NGMenuHide(menu);
+                    menu_open = 0;
+                    switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }

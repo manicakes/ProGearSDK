@@ -218,6 +218,7 @@ Beyond scenes, actors, and cameras, ProGearSDK provides:
 
 | Module | Purpose |
 |--------|---------|
+| `tilemap.h` | Tile-based world rendering with collision |
 | `parallax.h` | Scrolling background layers with depth |
 | `physics.h` | 2D rigid body simulation and collision |
 | `input.h` | Controller input with edge detection |
@@ -227,6 +228,58 @@ Beyond scenes, actors, and cameras, ProGearSDK provides:
 | `audio.h` | Sound effects (ADPCM-A) and music (ADPCM-B) |
 | `ngmath.h` | Fixed-point math and trigonometry |
 | `arena.h` | Fast zero-fragmentation memory allocation |
+
+## Tilemaps
+
+ProGearSDK supports tile-based world rendering for platformers, RPGs, and other games with large scrolling levels. The tilemap system efficiently renders only visible tiles and provides built-in collision detection.
+
+### Creating a Tilemap
+
+Design levels in [Tiled](https://www.mapeditor.org/) (the industry-standard tilemap editor), then reference them in `assets.yaml`:
+
+```yaml
+tilemaps:
+  - name: level1
+    source: assets/level1.tmx
+    layer: "Ground"
+    tileset: tiles_simple
+```
+
+### Using Tilemaps in Code
+
+```c
+#include <tilemap.h>
+#include <ngres_generated_assets.h>
+
+// Create tilemap from asset
+NGTilemapHandle level = NGTilemapCreate(&NGTilemapAsset_level1);
+
+// Add to scene at world origin
+NGTilemapAddToScene(level, FIX(0), FIX(0), 0);
+
+// In game loop - collision detection
+fixed player_x, player_y, vel_x, vel_y;
+
+// Resolve collision and get collision flags
+u8 hit = NGTilemapResolveAABB(level,
+    &player_x, &player_y,    // Position (modified on collision)
+    FIX(8), FIX(8),          // Half-size of player hitbox
+    &vel_x, &vel_y);         // Velocity (zeroed on collision)
+
+// Check what we hit
+if (hit & NG_COLL_BOTTOM) {
+    // Landed on ground
+    on_ground = 1;
+}
+```
+
+### Collision Flags
+
+Set tile properties in Tiled using Custom Properties:
+- `solid` - Blocks movement (walls, floors)
+- `platform` - One-way platform (pass through from below)
+- `hazard` - Damages player on contact
+- `ladder` - Climbable tile
 
 ## Hardware Reference
 

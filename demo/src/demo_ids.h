@@ -12,5 +12,6 @@
 #define DEMO_ID_BALL        1
 #define DEMO_ID_SCROLL      2
 #define DEMO_ID_BLANK_SCENE 3
+#define DEMO_ID_TILEMAP     4
 
 #endif // DEMO_IDS_H

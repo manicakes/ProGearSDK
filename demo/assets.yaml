@@ -78,6 +78,10 @@ visual_assets:
   - name: brick_pattern
     source: assets/brick_pattern.png
 
+  # Simple tileset for tilemap demo (2 tiles: empty, solid)
+  - name: tiles_simple
+    source: assets/tiles_simple.png
+
   # Parallax scrolling layers (for scroll demo)
   - name: back_layer
     source: assets/back.png

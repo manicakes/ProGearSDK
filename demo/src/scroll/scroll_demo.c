@@ -42,7 +42,8 @@ static u8 bob_phase;           // Phase for vertical bobbing (0-255)
 #define MENU_RESET_CAMERA  2
 // Index 3 is separator
 #define MENU_BALL_DEMO     4
-#define MENU_BLANK_SCENE 5
+#define MENU_BLANK_SCENE   5
+#define MENU_TILEMAP_DEMO  6
 
 void ScrollDemoInit(void) {
     switch_target = 0;
@@ -101,6 +102,7 @@ void ScrollDemoInit(void) {
     NGMenuAddSeparator(menu, "--------");
     NGMenuAddItem(menu, "Ball Demo");
     NGMenuAddItem(menu, "Blank Scene");
+    NGMenuAddItem(menu, "Tilemap Demo");
     NGMenuSetSounds(menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
     NGEngineSetActiveMenu(menu);
 
@@ -157,6 +159,11 @@ u8 ScrollDemoUpdate(void) {
                     NGMenuHide(menu);
                     menu_open = 0;
                     switch_target = DEMO_ID_BLANK_SCENE;
+                    break;
+                case MENU_TILEMAP_DEMO:
+                    NGMenuHide(menu);
+                    menu_open = 0;
+                    switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }

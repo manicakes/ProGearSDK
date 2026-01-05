@@ -9,6 +9,7 @@
 #include <scene.h>
 #include <actor.h>
 #include <parallax.h>
+#include <tilemap.h>
 #include <camera.h>
 #include <neogeo.h>
 
@@ -23,9 +24,10 @@ typedef struct {
 
 #define RENDER_TYPE_ACTOR    0
 #define RENDER_TYPE_PARALLAX 1
+#define RENDER_TYPE_TILEMAP  2
 
 // Maximum total objects in scene
-#define MAX_RENDER_ENTRIES  (NG_ACTOR_MAX + NG_PARALLAX_MAX)
+#define MAX_RENDER_ENTRIES  (NG_ACTOR_MAX + NG_PARALLAX_MAX + NG_TILEMAP_MAX)
 
 // === Private State ===
 
@@ -65,6 +67,12 @@ extern void NGParallaxDraw(NGParallaxHandle handle, u16 first_sprite);
 extern u8 NGParallaxGetSpriteCount(NGParallaxHandle handle);
 extern void NGParallaxDestroy(NGParallaxHandle handle);
 extern void NGActorDestroy(NGActorHandle handle);
+
+extern void _NGTilemapSystemInit(void);
+extern u8 _NGTilemapIsInScene(NGTilemapHandle handle);
+extern u8 _NGTilemapGetZ(NGTilemapHandle handle);
+extern void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite);
+extern u8 NGTilemapGetSpriteCount(NGTilemapHandle handle);
 
 // === Internal API for actor.c and parallax.c to mark scene dirty ===
 
@@ -123,6 +131,18 @@ static void build_render_queue(void) {
         }
     }
 
+    // Add all tilemaps that are in the scene
+    for (s8 i = 0; i < NG_TILEMAP_MAX; i++) {
+        if (_NGTilemapIsInScene(i)) {
+            if (render_count < MAX_RENDER_ENTRIES) {
+                render_queue[render_count].type = RENDER_TYPE_TILEMAP;
+                render_queue[render_count].handle = i;
+                render_queue[render_count].z = _NGTilemapGetZ(i);
+                render_count++;
+            }
+        }
+    }
+
     // Sort by Z (lower Z = rendered first = behind)
     sort_render_queue();
 }
@@ -133,6 +153,7 @@ void NGSceneInit(void) {
     // Initialize subsystems
     _NGActorSystemInit();
     _NGParallaxSystemInit();
+    _NGTilemapSystemInit();
 
     // Reset render queue
     render_count = 0;
@@ -208,9 +229,13 @@ void NGSceneDraw(void) {
                 NGActorDraw(entry->handle, hw_sprite_next);
                 hw_sprite_next += sprite_count;
             }
-        } else {
+        } else if (entry->type == RENDER_TYPE_PARALLAX) {
             u8 sprite_count = NGParallaxGetSpriteCount(entry->handle);
             NGParallaxDraw(entry->handle, hw_sprite_next);
+            hw_sprite_next += sprite_count;
+        } else if (entry->type == RENDER_TYPE_TILEMAP) {
+            u8 sprite_count = NGTilemapGetSpriteCount(entry->handle);
+            NGTilemapDraw(entry->handle, hw_sprite_next);
             hw_sprite_next += sprite_count;
         }
     }
@@ -266,6 +291,11 @@ void NGSceneReset(void) {
     // Destroy all parallax effects (including those not in scene)
     for (s8 i = 0; i < NG_PARALLAX_MAX; i++) {
         NGParallaxDestroy(i);
+    }
+
+    // Destroy all tilemaps (including those not in scene)
+    for (s8 i = 0; i < NG_TILEMAP_MAX; i++) {
+        NGTilemapDestroy(i);
     }
 
     // Clear all hardware sprites

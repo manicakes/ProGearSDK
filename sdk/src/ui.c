@@ -13,6 +13,7 @@
 #include <scene.h>
 #include <palette.h>
 #include <audio.h>
+#include <neogeo.h>
 
 // === Internal Constants ===
 
@@ -22,6 +23,14 @@
 #define MENU_TITLE_OFFSET_Y   3    // Title Y offset from panel top (in tiles)
 #define MENU_CURSOR_OFFSET_X -14   // Cursor X offset from text
 #define MENU_CURSOR_OFFSET_Y -4    // Cursor Y offset to center on text
+
+// Panel 9-slice constants
+#define PANEL_MIN_ROWS        7    // Minimum panel height (original asset size)
+#define PANEL_COLS           11    // Panel width in tiles (fixed)
+#define PANEL_TOP_ROWS        1    // Top border rows
+#define PANEL_BOTTOM_ROWS     1    // Bottom border rows
+#define PANEL_MIDDLE_ROW      3    // Which row to repeat for expansion (middle of original)
+#define PANEL_SPRITE_BASE   320    // Fixed sprite range for panel (320-330, 11 sprites)
 
 // Off-screen position for hidden menu (slides in from top)
 #define MENU_HIDDEN_OFFSET_FIX   FIX_FROM_FLOAT(-120.0)
@@ -45,8 +54,12 @@ typedef struct NGMenu {
     const NGVisualAsset *panel_asset;
     const NGVisualAsset *cursor_asset;
 
-    // Actors
-    NGActorHandle panel_actor;
+    // Panel rendering (manual 9-slice)
+    u16 panel_first_sprite;      // First hardware sprite for panel
+    u8 panel_height_tiles;       // Current panel height in tiles
+    u8 panel_sprites_allocated;  // 1 if sprites are allocated
+
+    // Cursor actor
     NGActorHandle cursor_actor;
 
     // Position (viewport coordinates)
@@ -227,6 +240,149 @@ static void restore_palettes(NGMenu *menu) {
     }
 }
 
+// SCB base addresses
+#define SCB1_BASE  0x0000
+#define SCB2_BASE  0x8000
+#define SCB3_BASE  0x8200
+#define SCB4_BASE  0x8400
+
+// Calculate required panel height based on item count
+static u8 calc_panel_height(u8 item_count) {
+    // Fix layer uses 8px tiles, sprite layer uses 16px tiles
+    // Calculate text extent in fix layer rows (8px each)
+    u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
+
+    // Convert to pixels and add bottom padding for border
+    u16 content_height_px = (text_fix_rows * 8) + 8;  // 8px bottom padding
+
+    // Convert to sprite tiles (16px each), rounding up
+    u8 sprite_tiles = (content_height_px + 15) / 16;
+
+    // Minimum is the original asset size
+    if (sprite_tiles < PANEL_MIN_ROWS) sprite_tiles = PANEL_MIN_ROWS;
+    return sprite_tiles;
+}
+
+// Get tile index from panel asset tilemap (row-major order)
+static u16 get_panel_tile(const NGVisualAsset *asset, u8 col, u8 row) {
+    // Tilemap is row-major: entries go left-to-right across each row
+    u16 idx = row * asset->width_tiles + col;
+    // Tilemap entry format: high bit + tile_offset
+    u16 entry = asset->tilemap[idx];
+    u16 tile_offset = entry & 0x7FFF;  // Mask off high bit marker
+    return asset->base_tile + tile_offset;
+}
+
+// Render panel with 9-slice vertical expansion
+static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
+    const NGVisualAsset *asset = menu->panel_asset;
+    u8 target_height = calc_panel_height(menu->item_count);
+    u8 orig_height = asset->height_tiles;  // 7 for ui_panel
+    u8 extra_rows = (target_height > orig_height) ? (target_height - orig_height) : 0;
+    u8 actual_height = orig_height + extra_rows;
+
+    // Cap at max sprite height (NeoGeo max is 32 tiles)
+    if (actual_height > 32) actual_height = 32;
+
+    menu->panel_height_tiles = actual_height;
+
+    u16 first_sprite = menu->panel_first_sprite;
+    u8 palette = asset->palette;
+    u8 num_cols = asset->width_tiles;  // Use actual asset width
+
+    // Calculate Y position once (same for all columns)
+    // NeoGeo Y: 496 is top of screen, decreasing goes down
+    s16 y_val = 496 - screen_y;
+    if (y_val < 0) y_val += 512;
+    y_val &= 0x1FF;
+
+    // SCB3 value: Y position in bits 7-15, height in bits 0-5
+    // Don't use chain/sticky bit - each sprite needs independent X positioning
+    u16 scb3_val = ((u16)y_val << 7) | (actual_height & 0x3F);
+
+    // Render each column
+    for (u8 col = 0; col < num_cols; col++) {
+        u16 spr = first_sprite + col;
+
+        // Write tile data to SCB1
+        NG_REG_VRAMADDR = SCB1_BASE + (spr * 64);
+        NG_REG_VRAMMOD = 1;
+
+        u8 row_out = 0;
+
+        // Attribute word: palette in bits 8-15, h_flip in bit 0
+        u16 attr = ((u16)palette << 8) | 0x01;
+
+        // Top rows (rows 0 to PANEL_TOP_ROWS-1)
+        for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
+            u16 tile = get_panel_tile(asset, col, r);
+            NG_REG_VRAMDATA = tile;
+            NG_REG_VRAMDATA = attr;
+            row_out++;
+        }
+
+        // Middle rows (original rows 1 to orig_height-2, with one row repeated)
+        u8 orig_middle_start = PANEL_TOP_ROWS;
+        u8 orig_middle_end = orig_height - PANEL_BOTTOM_ROWS;
+
+        for (u8 r = orig_middle_start; r < orig_middle_end; r++) {
+            u16 tile = get_panel_tile(asset, col, r);
+            NG_REG_VRAMDATA = tile;
+            NG_REG_VRAMDATA = attr;
+            row_out++;
+
+            // After the designated repeat row, insert extra copies
+            if (r == PANEL_MIDDLE_ROW) {
+                u16 repeat_tile = get_panel_tile(asset, col, PANEL_MIDDLE_ROW);
+                for (u8 e = 0; e < extra_rows; e++) {
+                    NG_REG_VRAMDATA = repeat_tile;
+                    NG_REG_VRAMDATA = attr;
+                    row_out++;
+                }
+            }
+        }
+
+        // Bottom rows (last PANEL_BOTTOM_ROWS of original)
+        for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
+            u16 tile = get_panel_tile(asset, col, r);
+            NG_REG_VRAMDATA = tile;
+            NG_REG_VRAMDATA = attr;
+            row_out++;
+        }
+
+        // Clear remaining tile slots (up to 32)
+        while (row_out < 32) {
+            NG_REG_VRAMDATA = 0;
+            NG_REG_VRAMDATA = 0;
+            row_out++;
+        }
+
+        // Write shrink value to SCB2 (no shrink = 0x0FFF)
+        NG_REG_VRAMADDR = SCB2_BASE + spr;
+        NG_REG_VRAMDATA = 0x0FFF;
+
+        // Write Y position and height to SCB3
+        NG_REG_VRAMADDR = SCB3_BASE + spr;
+        NG_REG_VRAMDATA = scb3_val;
+
+        // Write X position to SCB4
+        s16 x_pos = screen_x + (col * 16);
+        NG_REG_VRAMADDR = SCB4_BASE + spr;
+        NG_REG_VRAMDATA = (x_pos & 0x1FF) << 7;
+    }
+}
+
+// Hide panel sprites (set height to 0)
+static void hide_panel_sprites(NGMenu *menu) {
+    if (!menu->panel_sprites_allocated) return;
+
+    for (u8 col = 0; col < PANEL_COLS; col++) {
+        u16 spr = menu->panel_first_sprite + col;
+        NG_REG_VRAMADDR = SCB3_BASE + spr;
+        NG_REG_VRAMDATA = 0;  // Height 0 = invisible
+    }
+}
+
 // === Public API ===
 
 NGMenuHandle NGMenuCreate(NGArena *arena,
@@ -242,17 +398,19 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     menu->panel_asset = panel_asset;
     menu->cursor_asset = cursor_asset;
 
-    // Create actors (but don't add to scene yet)
-    menu->panel_actor = NGActorCreate(panel_asset, 0, 0);
+    // Panel uses manual sprite rendering (9-slice expansion)
+    menu->panel_first_sprite = 0;
+    menu->panel_height_tiles = 0;
+    menu->panel_sprites_allocated = 0;
+
+    // Create cursor actor (but don't add to scene yet)
     menu->cursor_actor = NGActorCreate(cursor_asset, 0, 0);
 
-    if (menu->panel_actor == NG_ACTOR_INVALID ||
-        menu->cursor_actor == NG_ACTOR_INVALID) {
+    if (menu->cursor_actor == NG_ACTOR_INVALID) {
         return 0;
     }
 
-    // Set as screen-space (ignore camera position and zoom)
-    NGActorSetScreenSpace(menu->panel_actor, 1);
+    // Set cursor as screen-space (ignore camera position and zoom)
     NGActorSetScreenSpace(menu->cursor_actor, 1);
 
     // Default position (centered horizontally)
@@ -402,10 +560,15 @@ void NGMenuShow(NGMenuHandle menu) {
         menu->dim_current = 0;  // Will animate toward dim_target
     }
 
-    // Add actors to scene at high Z-index (screen-space, so use screen coords directly)
-    s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
-    NGActorAddToScene(menu->panel_actor, FIX(menu->viewport_x), FIX(panel_y), NG_MENU_Z_INDEX);
+    // Allocate panel sprites (fixed range)
+    menu->panel_first_sprite = PANEL_SPRITE_BASE;
+    menu->panel_sprites_allocated = 1;
 
+    // Render panel with 9-slice expansion based on item count
+    s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
+    render_panel_9slice(menu, menu->viewport_x, panel_y);
+
+    // Add cursor actor to scene
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;
     s16 cursor_y = panel_y + NGSpringGetInt(&menu->cursor_y_spring);
     NGActorAddToScene(menu->cursor_actor, FIX(cursor_x), FIX(cursor_y), NG_MENU_Z_INDEX + 1);
@@ -463,8 +626,9 @@ void NGMenuUpdate(NGMenuHandle menu) {
         if (menu->showing) {
             // Restore original palettes
             restore_palettes(menu);
-            // Remove panel and cursor
-            NGActorRemoveFromScene(menu->panel_actor);
+            // Hide panel sprites and remove cursor
+            hide_panel_sprites(menu);
+            menu->panel_sprites_allocated = 0;
             NGActorRemoveFromScene(menu->cursor_actor);
             menu->showing = 0;
         }
@@ -536,9 +700,11 @@ void NGMenuUpdate(NGMenuHandle menu) {
         }
     }
 
-    // Update actor positions (screen-space, so use screen coords directly)
+    // Update panel position (re-render at new Y during animation)
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
-    NGActorSetPos(menu->panel_actor, FIX(menu->viewport_x), FIX(panel_y));
+    if (menu->panel_sprites_allocated) {
+        render_panel_9slice(menu, menu->viewport_x, panel_y);
+    }
 
     // Cursor position
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;
@@ -632,10 +798,11 @@ void NGMenuDestroy(NGMenuHandle menu) {
         clear_menu_text(menu);
     }
 
-    // Destroy actors
-    if (menu->panel_actor != NG_ACTOR_INVALID) {
-        NGActorDestroy(menu->panel_actor);
-    }
+    // Hide panel sprites
+    hide_panel_sprites(menu);
+    menu->panel_sprites_allocated = 0;
+
+    // Destroy cursor actor
     if (menu->cursor_actor != NG_ACTOR_INVALID) {
         NGActorDestroy(menu->cursor_actor);
     }

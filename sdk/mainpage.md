@@ -290,6 +290,71 @@ NGCameraScreenToWorld(screen_x, screen_y, &world_x, &world_y);
 
 See @ref camsys and @ref camutil for all functions.
 
+### Tilemaps (tilemap.h)
+
+Tile-based world rendering with built-in collision detection. Ideal for platformers, RPGs, and any game with large scrolling levels.
+
+```c
+#include <tilemap.h>
+#include <ngres_generated_assets.h>
+
+// Create tilemap from asset (generated from Tiled TMX file)
+NGTilemapHandle level = NGTilemapCreate(&NGTilemapAsset_level1);
+
+// Add to scene at world position with Z-index
+NGTilemapAddToScene(level, FIX(0), FIX(0), 0);
+
+// In game loop - query collision at a point
+u8 flags = NGTilemapGetCollision(level, player_x, player_y);
+if (flags & NG_TILE_HAZARD) {
+    // Player touched a hazard tile
+    take_damage();
+}
+
+// Test AABB overlap with tiles
+u8 tile_flags;
+if (NGTilemapTestAABB(level, x, y, half_w, half_h, &tile_flags)) {
+    // Overlapping solid tiles
+}
+
+// Full collision resolution with position correction
+u8 hit = NGTilemapResolveAABB(level,
+    &player_x, &player_y,    // Position (modified on collision)
+    FIX(8), FIX(8),          // Half-size of hitbox
+    &vel_x, &vel_y);         // Velocity (zeroed on collision)
+
+// Check collision directions
+if (hit & NG_COLL_BOTTOM) {
+    on_ground = 1;           // Landed on floor
+}
+if (hit & NG_COLL_LEFT || hit & NG_COLL_RIGHT) {
+    // Hit a wall
+}
+
+// Get tilemap dimensions
+u16 world_width, world_height;
+NGTilemapGetDimensions(level, &world_width, &world_height);
+
+// Cleanup
+NGTilemapRemoveFromScene(level);
+NGTilemapDestroy(level);
+```
+
+**Collision Flags** (set in Tiled as custom tile properties):
+- `NG_TILE_SOLID` - Blocks movement (walls, floors)
+- `NG_TILE_PLATFORM` - One-way platform (pass through from below)
+- `NG_TILE_HAZARD` - Damages on contact
+- `NG_TILE_LADDER` - Climbable tile
+- `NG_TILE_TRIGGER` - Triggers callback
+
+**Resolution Flags** (returned by NGTilemapResolveAABB):
+- `NG_COLL_LEFT` - Hit tile on left
+- `NG_COLL_RIGHT` - Hit tile on right
+- `NG_COLL_TOP` - Hit tile above (head bump)
+- `NG_COLL_BOTTOM` - Hit tile below (landed)
+
+See @ref tilemaplife and @ref tilemapcoll for all functions.
+
 ### Parallax Layers (parallax.h)
 
 Hardware-accelerated tilemap scrolling using NeoGeo's sprite system. Parallax layers automatically follow the camera with configurable scroll rates.

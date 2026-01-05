@@ -26,7 +26,7 @@
 
 // === Configuration ===
 
-#define NG_MENU_MAX_ITEMS    8    // Maximum items per menu
+#define NG_MENU_MAX_ITEMS    12   // Maximum items per menu
 #define NG_MENU_Z_INDEX    250    // High Z to render on top of game
 
 // === Menu Handle ===

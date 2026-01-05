@@ -23,9 +23,10 @@ static u8 menu_open;
 static u8 switch_target;  // 0 = none, 1 = ball, 2 = scroll
 
 // Menu item indices
-#define MENU_RESUME      0
-#define MENU_BALL_DEMO   1
-#define MENU_SCROLL_DEMO 2
+#define MENU_RESUME       0
+#define MENU_BALL_DEMO    1
+#define MENU_SCROLL_DEMO  2
+#define MENU_TILEMAP_DEMO 3
 
 void BlankSceneInit(void) {
     switch_target = 0;
@@ -45,6 +46,7 @@ void BlankSceneInit(void) {
     NGMenuAddItem(menu, "Resume");
     NGMenuAddItem(menu, "Ball Demo");
     NGMenuAddItem(menu, "Scroll Demo");
+    NGMenuAddItem(menu, "Tilemap Demo");
     NGMenuSetSounds(menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
     NGEngineSetActiveMenu(menu);
 
@@ -84,6 +86,11 @@ u8 BlankSceneUpdate(void) {
                     NGMenuHide(menu);
                     menu_open = 0;
                     switch_target = DEMO_ID_SCROLL;
+                    break;
+                case MENU_TILEMAP_DEMO:
+                    NGMenuHide(menu);
+                    menu_open = 0;
+                    switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }

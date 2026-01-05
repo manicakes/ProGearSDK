@@ -13,11 +13,13 @@
 #include "ball/ball_demo.h"
 #include "scroll/scroll_demo.h"
 #include "blank_scene/blank_scene.h"
+#include "tilemap_demo/tilemap_demo.h"
 
 typedef enum {
     DEMO_BALL,
     DEMO_SCROLL,
-    DEMO_BLANK_SCENE
+    DEMO_BLANK_SCENE,
+    DEMO_TILEMAP
 } DemoMode;
 
 int main(void) {
@@ -43,6 +45,9 @@ int main(void) {
             case DEMO_BLANK_SCENE:
                 switch_to = BlankSceneUpdate();
                 break;
+            case DEMO_TILEMAP:
+                switch_to = TilemapDemoUpdate();
+                break;
         }
 
         // Handle demo switch
@@ -57,6 +62,9 @@ int main(void) {
                     break;
                 case DEMO_BLANK_SCENE:
                     BlankSceneCleanup();
+                    break;
+                case DEMO_TILEMAP:
+                    TilemapDemoCleanup();
                     break;
             }
 
@@ -73,6 +81,10 @@ int main(void) {
                 case DEMO_ID_BLANK_SCENE:
                     current_demo = DEMO_BLANK_SCENE;
                     BlankSceneInit();
+                    break;
+                case DEMO_ID_TILEMAP:
+                    current_demo = DEMO_TILEMAP;
+                    TilemapDemoInit();
                     break;
             }
         }

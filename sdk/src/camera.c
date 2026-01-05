@@ -7,6 +7,7 @@
 // camera.c - World camera system
 
 #include <camera.h>
+#include <actor.h>
 
 // Screen dimensions
 #define SCREEN_WIDTH   320
@@ -69,6 +70,16 @@ static u8 shake_timer;
 static s8 shake_offset_x;
 static s8 shake_offset_y;
 static u16 shake_rand_state = 0x1234;
+
+// Actor tracking state
+static NGActorHandle track_actor = NG_ACTOR_INVALID;
+static u16 track_deadzone_w = 64;   // Default Metal Slug-style deadzone
+static u16 track_deadzone_h = 32;
+static fixed track_follow_speed = FIX_FROM_FLOAT(0.15);  // Smooth follow
+static u16 track_bounds_w = 0;      // World bounds (0 = no clamping)
+static u16 track_bounds_h = 0;
+static s16 track_offset_x = 0;      // Offset from actor center
+static s16 track_offset_y = 0;
 
 // === Helper: Convert zoom level (8-16) to index (0-128) ===
 static inline u8 zoom_to_index(u8 zoom) {
@@ -163,8 +174,9 @@ u16 NGCameraGetShrink(void) {
     return zoom_shrink_table[camera_zoom_index];
 }
 
-// Forward declaration
+// Forward declarations
 static void update_shake(void);
+static void update_tracking(void);
 
 void NGCameraUpdate(void) {
     // Linear interpolation towards target (no fixed-point math!)
@@ -187,6 +199,9 @@ void NGCameraUpdate(void) {
             }
         }
     }
+
+    // Update actor tracking
+    update_tracking();
 
     // Update shake effect
     update_shake();
@@ -330,4 +345,86 @@ fixed NGCameraGetRenderX(void) {
 
 fixed NGCameraGetRenderY(void) {
     return camera_y + FIX(shake_offset_y);
+}
+
+// === Actor Tracking ===
+
+// Metal Slug-style tracking with deadzone
+static void update_tracking(void) {
+    if (track_actor == NG_ACTOR_INVALID) return;
+
+    // Get actor position
+    fixed actor_x = NGActorGetX(track_actor);
+    fixed actor_y = NGActorGetY(track_actor);
+
+    // Get viewport size for center calculation
+    u16 vis_w = NGCameraGetVisibleWidth();
+    u16 vis_h = NGCameraGetVisibleHeight();
+
+    // Calculate actor's position relative to current camera center
+    fixed cam_center_x = camera_x + FIX(vis_w / 2);
+    fixed cam_center_y = camera_y + FIX(vis_h / 2);
+
+    // Distance from actor to camera center (in world coords)
+    fixed dist_x = actor_x + FIX(track_offset_x) - cam_center_x;
+    fixed dist_y = actor_y + FIX(track_offset_y) - cam_center_y;
+
+    // Only move camera if actor is outside deadzone
+    fixed deadzone_half_w = FIX(track_deadzone_w / 2);
+    fixed deadzone_half_h = FIX(track_deadzone_h / 2);
+
+    fixed move_x = 0;
+    fixed move_y = 0;
+
+    // Horizontal: if actor is outside deadzone, calculate how much to move
+    if (dist_x > deadzone_half_w) {
+        // Actor is right of deadzone - move camera right
+        move_x = dist_x - deadzone_half_w;
+    } else if (dist_x < -deadzone_half_w) {
+        // Actor is left of deadzone - move camera left
+        move_x = dist_x + deadzone_half_w;
+    }
+
+    // Vertical: same logic
+    if (dist_y > deadzone_half_h) {
+        move_y = dist_y - deadzone_half_h;
+    } else if (dist_y < -deadzone_half_h) {
+        move_y = dist_y + deadzone_half_h;
+    }
+
+    // Apply smooth interpolation to the movement
+    camera_x += FIX_MUL(move_x, track_follow_speed);
+    camera_y += FIX_MUL(move_y, track_follow_speed);
+
+    // Clamp to world bounds if set
+    if (track_bounds_w > 0 || track_bounds_h > 0) {
+        NGCameraClampToBounds(track_bounds_w, track_bounds_h);
+    }
+}
+
+void NGCameraTrackActor(NGActorHandle actor) {
+    track_actor = actor;
+}
+
+void NGCameraStopTracking(void) {
+    track_actor = NG_ACTOR_INVALID;
+}
+
+void NGCameraSetDeadzone(u16 width, u16 height) {
+    track_deadzone_w = width;
+    track_deadzone_h = height;
+}
+
+void NGCameraSetFollowSpeed(fixed speed) {
+    track_follow_speed = speed;
+}
+
+void NGCameraSetBounds(u16 world_width, u16 world_height) {
+    track_bounds_w = world_width;
+    track_bounds_h = world_height;
+}
+
+void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y) {
+    track_offset_x = offset_x;
+    track_offset_y = offset_y;
 }

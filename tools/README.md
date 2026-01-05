@@ -81,7 +81,28 @@ music:
     source: assets/level1.wav
     sample_rate: 22050  # Optional, default 22050
     loop: true          # Optional, default false
+
+# Tilemaps (from Tiled TMX files)
+tilemaps:
+  - name: level1
+    source: assets/level1.tmx    # Tiled TMX file
+    layer: "Ground"              # Layer name in Tiled
+    tileset: tiles_simple        # Visual asset for tileset graphics
+    collision_layer: "Collision" # Optional: separate collision layer
 ```
+
+### Tilemap Workflow
+
+1. **Create tileset**: Design 16x16 tiles in your image editor, define as a visual asset
+2. **Create map in Tiled**: Import tileset, paint your level
+3. **Set collision properties**: In Tiled, add Custom Properties to tiles:
+   - `solid` (bool) - Blocks movement
+   - `platform` (bool) - One-way platform
+   - `hazard` (bool) - Damages player
+   - `ladder` (bool) - Climbable
+4. **Export TMX**: Save in Tiled's native format
+5. **Reference in assets.yaml**: Add to `tilemaps` section
+6. **Use in code**: `NGTilemapCreate(&NGTilemapAsset_level1)`
 
 ## NeoGeo ROM Formats
 
