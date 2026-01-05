@@ -22,6 +22,7 @@ Tiles 0x00-0x5F map to ASCII 0x20-0x7F (space through ~).
 """
 
 import sys
+from srom_utils import pixels_to_srom_tile, bitmap_to_pixels
 
 # 8x8 font bitmap data for ASCII 0x20-0x7F (96 characters)
 # Each character is 8 bytes (1 byte per row, MSB is leftmost pixel)
@@ -221,43 +222,6 @@ FONT_8X8 = [
 ]
 
 
-def get_pixel(bitmap, x, y):
-    """Get pixel value (0 or 1) from bitmap at (x, y)."""
-    # bitmap[y] is a byte where MSB is leftmost pixel (x=0)
-    return 1 if (bitmap[y] & (0x80 >> x)) else 0
-
-
-def bitmap_to_srom_tile(bitmap):
-    """
-    Convert 8x8 bitmap to 32-byte S-ROM tile format.
-
-    S-ROM format stores pixels in columns, with specific ordering:
-    - Bytes 0-7:   columns 4,5, rows 0-7
-    - Bytes 8-15:  columns 6,7, rows 0-7
-    - Bytes 16-23: columns 0,1, rows 0-7
-    - Bytes 24-31: columns 2,3, rows 0-7
-
-    Each byte: left pixel (even col) in bits 0-3, right pixel (odd col) in bits 4-7
-    """
-    tile = bytearray(32)
-
-    # Column pairs in storage order: (4,5), (6,7), (0,1), (2,3)
-    col_pairs = [(4, 5), (6, 7), (0, 1), (2, 3)]
-
-    for pair_idx, (col_left, col_right) in enumerate(col_pairs):
-        for row in range(8):
-            byte_idx = pair_idx * 8 + row
-
-            # Get pixel values (0 or 1 for our 1-bit font, using color index 1)
-            left_pixel = get_pixel(bitmap, col_left, row)
-            right_pixel = get_pixel(bitmap, col_right, row)
-
-            # Pack into byte: left pixel in bits 0-3, right pixel in bits 4-7
-            tile[byte_idx] = left_pixel | (right_pixel << 4)
-
-    return bytes(tile)
-
-
 def main():
     output_path = 'sfix.bin'
     if len(sys.argv) > 1:
@@ -268,7 +232,8 @@ def main():
 
     # Generate tiles for ASCII 0x20-0x7F (96 characters)
     for char_bitmap in FONT_8X8:
-        tile = bitmap_to_srom_tile(char_bitmap)
+        pixels = bitmap_to_pixels(char_bitmap)
+        tile = pixels_to_srom_tile(pixels)
         srom.extend(tile)
 
     # Pad to 64KB minimum

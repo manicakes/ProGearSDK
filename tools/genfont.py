@@ -26,6 +26,7 @@ So for each tile, the 32 bytes are arranged as:
 """
 
 import sys
+from srom_utils import pixels_to_srom_tile
 
 # Simple 8x8 font definition using '#' for foreground, ' ' for background
 FONT = {
@@ -1001,38 +1002,6 @@ def char_to_pixels(char):
     return pixels
 
 
-def pixels_to_tile(pixels):
-    """
-    Convert 8x8 pixel array to 32-byte NeoGeo S-ROM tile format.
-
-    Address bits: nHCLLL
-      H = half (0=right cols 4-7, 1=left cols 0-3)
-      C = column pair within half (0=outer, 1=inner)
-      L = line (0-7)
-
-    Each byte: left pixel in bits 0-3, right pixel in bits 4-7
-
-    Byte order:
-      0-7:   H=0,C=0 -> cols 4,5, lines 0-7
-      8-15:  H=0,C=1 -> cols 6,7, lines 0-7
-      16-23: H=1,C=0 -> cols 0,1, lines 0-7
-      24-31: H=1,C=1 -> cols 2,3, lines 0-7
-    """
-    tile = bytearray(32)
-
-    for line in range(8):
-        # Right half, outer (cols 4,5)
-        tile[0 + line] = (pixels[line][4] & 0xF) | ((pixels[line][5] & 0xF) << 4)
-        # Right half, inner (cols 6,7)
-        tile[8 + line] = (pixels[line][6] & 0xF) | ((pixels[line][7] & 0xF) << 4)
-        # Left half, outer (cols 0,1)
-        tile[16 + line] = (pixels[line][0] & 0xF) | ((pixels[line][1] & 0xF) << 4)
-        # Left half, inner (cols 2,3)
-        tile[24 + line] = (pixels[line][2] & 0xF) | ((pixels[line][3] & 0xF) << 4)
-
-    return bytes(tile)
-
-
 def generate_srom(output_file, size_kb=128, bios_sfix=None):
     """Generate a complete S-ROM with font tiles
 
@@ -1060,7 +1029,7 @@ def generate_srom(output_file, size_kb=128, bios_sfix=None):
     for i in range(32, 128):
         char = chr(i)
         pixels = char_to_pixels(char)
-        tile = pixels_to_tile(pixels)
+        tile = pixels_to_srom_tile(pixels)
         offset = i * 32
         rom[offset:offset + 32] = tile
 
