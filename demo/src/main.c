@@ -9,15 +9,10 @@
 
 #include <engine.h>
 
+#include "demo_ids.h"
 #include "ball/ball_demo.h"
 #include "scroll/scroll_demo.h"
 #include "blank_scene/blank_scene.h"
-
-// Demo IDs (used for switching)
-// 0 = no switch, 1+ = switch to that demo
-#define DEMO_ID_BALL        1
-#define DEMO_ID_SCROLL      2
-#define DEMO_ID_BLANK_SCENE 3
 
 typedef enum {
     DEMO_BALL,

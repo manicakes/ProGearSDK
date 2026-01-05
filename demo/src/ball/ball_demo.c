@@ -8,6 +8,7 @@
 
 #include "ball_demo.h"
 #include "ball.h"
+#include "../demo_ids.h"
 #include <neogeo.h>
 #include <fix.h>
 #include <scene.h>
@@ -163,12 +164,12 @@ u8 BallDemoUpdate(void) {
                 case MENU_SCROLL_DEMO:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 2;  // DEMO_ID_SCROLL
+                    switch_target = DEMO_ID_SCROLL;
                     break;
                 case MENU_BLANK_SCENE:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 3;  // DEMO_ID_BLANK_SCENE
+                    switch_target = DEMO_ID_BLANK_SCENE;
                     break;
             }
         }

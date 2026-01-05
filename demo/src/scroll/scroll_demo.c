@@ -7,6 +7,7 @@
 // scroll_demo.c - Parallax scrolling demo implementation
 
 #include "scroll_demo.h"
+#include "../demo_ids.h"
 #include <neogeo.h>
 #include <fix.h>
 #include <scene.h>
@@ -150,12 +151,12 @@ u8 ScrollDemoUpdate(void) {
                 case MENU_BALL_DEMO:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 1;  // DEMO_ID_BALL
+                    switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_BLANK_SCENE:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 3;  // DEMO_ID_BLANK_SCENE
+                    switch_target = DEMO_ID_BLANK_SCENE;
                     break;
             }
         }

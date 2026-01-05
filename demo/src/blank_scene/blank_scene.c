@@ -7,6 +7,7 @@
 // blank_scene.c - Blank scene demo implementation
 
 #include "blank_scene.h"
+#include "../demo_ids.h"
 #include <neogeo.h>
 #include <fix.h>
 #include <input.h>
@@ -77,12 +78,12 @@ u8 BlankSceneUpdate(void) {
                 case MENU_BALL_DEMO:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 1;  // Switch to ball demo
+                    switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_SCROLL_DEMO:
                     NGMenuHide(menu);
                     menu_open = 0;
-                    switch_target = 2;  // Switch to scroll demo
+                    switch_target = DEMO_ID_SCROLL;
                     break;
             }
         }

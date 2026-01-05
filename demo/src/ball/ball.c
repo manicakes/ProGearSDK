@@ -137,8 +137,9 @@ void BallSystemUpdate(BallSystemHandle sys) {
         if (!ball->active) continue;
 
         NGVec2 pos = NGPhysBodyGetPos(ball->body);
-        fixed x = pos.x - FIX(16);  // offset to top-left (32x32 sprite)
-        fixed y = pos.y - FIX(16);
+        // Convert physics center position to actor top-left position
+        fixed x = pos.x - BALL_HALF_SIZE;
+        fixed y = pos.y - BALL_HALF_SIZE;
         NGActorSetPos(ball->actor, x, y);
     }
 }
@@ -168,8 +169,9 @@ u8 BallSpawn(BallSystemHandle sys) {
             NGPhysBodySetUserData(ball->body, ball);
 
             // Create actor with unique palette per ball (cycling through available colors)
+            // Actor uses top-left position, so offset from physics center position
             ball->actor = NGActorCreate(&NGVisualAsset_ball, 0, 0);
-            NGActorAddToScene(ball->actor, x - FIX(16), y - FIX(16), 100);  // Z=100, in front of backgrounds
+            NGActorAddToScene(ball->actor, x - BALL_HALF_SIZE, y - BALL_HALF_SIZE, 100);
             NGActorSetPalette(ball->actor, ball_palettes[i % NUM_PALETTES]);
             NGActorSetAnimByName(ball->actor, "spin");
             ball->active = 1;
