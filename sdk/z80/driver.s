@@ -118,7 +118,7 @@ nmi_exit:
 
 ;;; === Driver ID (0x00C0) ===
     .org    0x00C0
-    .ascii  "NGDEVKIT"
+    .ascii  "PROGEARSDK"
 
 ;;; === Main Code (0x0100) ===
     .org    0x0100
