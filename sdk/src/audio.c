@@ -39,24 +39,17 @@
 #define SCREEN_WIDTH        320
 #define SCREEN_HALF_WIDTH   160
 
-/* Module state */
-static u8 current_music_index = 0xFF;   /* 0xFF = no music */
-static u8 music_paused = 0;             /* 1 if paused */
-static u8 master_volume = 15;           /* 0-15 */
-
-
-/* ============================================================================
- * Low-Level Z80 Communication
- * ========================================================================== */
+static u8 current_music_index = 0xFF;
+static u8 music_paused = 0;
+static u8 master_volume = 15;
 
 void NGAudioSendCommand(u8 cmd) {
     u8 reply;
     u16 timeout;
 
-    /* Send command to Z80 */
     REG_SOUND = cmd;
 
-    /* Wait for acknowledgment (command echoed with bit 7 set) */
+    // Wait for Z80 acknowledgment (echoes command with bit 7 set)
     timeout = 0xFFFF;
     do {
         reply = REG_SOUND;
@@ -68,27 +61,12 @@ void NGAudioSendCommandAsync(u8 cmd) {
     REG_SOUND = cmd;
 }
 
-
-/* ============================================================================
- * Initialization
- * ========================================================================== */
-
 void NGAudioInit(void) {
-    /* Reset Z80 driver */
     NGAudioSendCommand(CMD_RESET);
-
-    /* Set default volume */
     master_volume = 15;
     NGAudioSetVolume(master_volume);
-
-    /* Clear state */
     current_music_index = 0xFF;
 }
-
-
-/* ============================================================================
- * Sound Effects (ADPCM-A)
- * ========================================================================== */
 
 void NGSfxPlay(u8 sfx_index) {
     if (sfx_index >= NG_AUDIO_MAX_SFX) return;
@@ -101,8 +79,7 @@ void NGSfxPlay(u8 sfx_index) {
 }
 
 void NGSfxPlayPan(u8 sfx_index, NGPan pan) {
-    /* For now, play without pan - full pan support would need extended commands */
-    (void)pan;  /* TODO: Implement pan in Z80 driver */
+    (void)pan;  // TODO: Implement pan in Z80 driver
     NGSfxPlay(sfx_index);
 }
 
@@ -118,16 +95,11 @@ void NGSfxStopAll(void) {
     }
 }
 
-
-/* ============================================================================
- * Music (ADPCM-B)
- * ========================================================================== */
-
 void NGMusicPlay(u8 music_index) {
     if (music_index >= NG_AUDIO_MAX_MUSIC) return;
 
     current_music_index = music_index;
-    music_paused = 0;  // Clear paused state when starting new music
+    music_paused = 0;
 
     if (music_index < 16) {
         NGAudioSendCommand(CMD_MUSIC_BASE + music_index);
@@ -164,11 +136,6 @@ u8 NGMusicIsPaused(void) {
     return music_paused;
 }
 
-
-/* ============================================================================
- * Volume Control
- * ========================================================================== */
-
 void NGAudioSetVolume(u8 volume) {
     if (volume > 15) volume = 15;
     master_volume = volume;
@@ -180,23 +147,10 @@ void NGAudioStopAll(void) {
     current_music_index = 0xFF;
 }
 
-
-/* ============================================================================
- * Actor-Based Spatial Audio
- * ========================================================================== */
-
 static NGPan calculate_pan(fixed actor_x, fixed camera_x) {
-    s32 screen_x;
-    s32 center_offset;
+    s32 screen_x = (actor_x - camera_x) >> 16;
+    s32 center_offset = screen_x - SCREEN_HALF_WIDTH;
 
-    /* Calculate actor's screen X position */
-    /* actor_x and camera_x are in fixed-point (16.16) */
-    screen_x = (actor_x - camera_x) >> 16;
-
-    /* Calculate offset from screen center */
-    center_offset = screen_x - SCREEN_HALF_WIDTH;
-
-    /* Determine pan based on position */
     if (center_offset < -80) {
         return NG_PAN_LEFT;
     } else if (center_offset > 80) {
@@ -207,23 +161,11 @@ static NGPan calculate_pan(fixed actor_x, fixed camera_x) {
 }
 
 void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index) {
-    fixed actor_x;
-    fixed camera_x;
-    NGPan pan;
-
-    /* Get positions */
-    actor_x = NGActorGetX(actor);
-    camera_x = NGCameraGetX();
-
-    /* Calculate pan and play */
-    pan = calculate_pan(actor_x, camera_x);
+    fixed actor_x = NGActorGetX(actor);
+    fixed camera_x = NGCameraGetX();
+    NGPan pan = calculate_pan(actor_x, camera_x);
     NGSfxPlayPan(sfx_index, pan);
 }
-
-
-/* ============================================================================
- * Audio State
- * ========================================================================== */
 
 u8 NGAudioGetCurrentMusic(void) {
     return current_music_index;

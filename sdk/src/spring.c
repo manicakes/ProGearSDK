@@ -4,15 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-// spring.c - Spring physics animation implementation
-
 #include <spring.h>
 
-// Threshold for considering spring "settled"
 #define SETTLE_VELOCITY_THRESHOLD  FIX_FROM_FLOAT(0.1)
 #define SETTLE_POSITION_THRESHOLD  FIX_FROM_FLOAT(0.5)
-
-// === 1D Spring ===
 
 void NGSpringInit(NGSpring *spring, fixed initial) {
     spring->value = initial;
@@ -45,17 +40,12 @@ void NGSpringImpulse(NGSpring *spring, fixed impulse) {
 }
 
 void NGSpringUpdate(NGSpring *spring) {
-    // Calculate spring force: F = -k * displacement
+    // F = -k * displacement - d * velocity
     fixed displacement = spring->value - spring->target;
     fixed spring_force = -FIX_MUL(spring->stiffness, displacement);
-
-    // Calculate damping force: F = -d * velocity
     fixed damping_force = -FIX_MUL(spring->damping, spring->velocity);
-
-    // Total acceleration (assuming mass = 1)
     fixed acceleration = spring_force + damping_force;
 
-    // Integrate velocity and position
     spring->velocity += acceleration;
     spring->value += spring->velocity;
 }
@@ -70,8 +60,6 @@ u8 NGSpringSettled(NGSpring *spring) {
     return (displacement < SETTLE_POSITION_THRESHOLD) &&
            (vel < SETTLE_VELOCITY_THRESHOLD);
 }
-
-// === 2D Spring ===
 
 void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y) {
     NGSpringInit(&spring->x, x);

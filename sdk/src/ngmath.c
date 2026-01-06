@@ -4,15 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-// ngmath.c - Fixed-point math implementation
-
 #include <ngmath.h>
 
-// === Sine Lookup Table ===
-// 256 entries covering 0-360 degrees
-// Values are in 16.16 fixed point (range -65536 to +65536 = -1.0 to +1.0)
-// Generated with: sin(i * 2 * PI / 256) * 65536
-
+// sin(i * 2 * PI / 256) * 32767, 256 entries covering 0-360 degrees
 static const fixed sin_table[256] = {
          0,    804,   1607,   2410,   3211,   4011,   4807,   5601,
       6392,   7179,   7961,   8739,   9511,  10278,  11038,  11792,
@@ -48,22 +42,13 @@ static const fixed sin_table[256] = {
      -6392,  -5601,  -4807,  -4011,  -3211,  -2410,  -1607,   -804,
 };
 
-// Table: sin(i * 2 * PI / 256) * 32767
-// [0]=0, [64]=32767, [128]=0, [192]=-32767
-
 fixed NGSin(angle_t angle) {
-    // Table values are 16-bit, shift up to 16.16
     return ((fixed)sin_table[angle]) << 1;
 }
 
 fixed NGCos(angle_t angle) {
-    // Cosine is sine shifted by 90 degrees (64 in our 256-unit system)
     return ((fixed)sin_table[(u8)(angle + 64)]) << 1;
 }
-
-// === Atan2 Approximation ===
-// Uses octant decomposition and linear approximation
-// Returns angle_t (0-255)
 
 angle_t NGAtan2(fixed y, fixed x) {
     if (x == 0 && y == 0) return 0;
@@ -71,7 +56,6 @@ angle_t NGAtan2(fixed y, fixed x) {
     fixed abs_x = FIX_ABS(x);
     fixed abs_y = FIX_ABS(y);
 
-    // Determine octant and compute ratio
     u8 octant = 0;
     fixed ratio;
 
@@ -82,31 +66,22 @@ angle_t NGAtan2(fixed y, fixed x) {
         octant = 1;
     }
 
-    // Linear approximation for arctan in first octant
-    // atan(x) ≈ x * 32 / PI ≈ x * 10.19 for small x
-    // Simplified: angle ≈ ratio * 32 / 65536
+    // Linear approximation: atan(x) ≈ x * 32 / PI
     angle_t angle = (angle_t)((ratio * 32) >> FIX_SHIFT);
 
-    // Adjust for octant
     if (octant) angle = 64 - angle;
-
-    // Adjust for quadrant
     if (x < 0) angle = 128 - angle;
-    if (y < 0) angle = -angle;  // Wraps correctly for u8
+    if (y < 0) angle = -angle;
 
     return angle;
 }
-
-// === Square Root ===
-// Integer square root using binary search
 
 u16 NGSqrt(u32 x) {
     if (x == 0) return 0;
 
     u32 result = 0;
-    u32 bit = 1UL << 30;  // Start with highest bit
+    u32 bit = 1UL << 30;
 
-    // Find highest bit that fits
     while (bit > x) bit >>= 2;
 
     while (bit != 0) {
@@ -125,17 +100,11 @@ u16 NGSqrt(u32 x) {
 fixed NGSqrtFix(fixed x) {
     if (x <= 0) return 0;
 
-    // For 16.16 fixed point, we need to adjust
-    // sqrt(x * 65536) = sqrt(x) * 256
-    // So: result = sqrt(x as integer) << 8
+    // For 16.16 fixed point: sqrt(x * 65536) = sqrt(x) * 256
     u32 val = (u32)x;
     u16 root = NGSqrt(val);
-
-    // Shift to maintain fixed point precision
     return ((fixed)root) << (FIX_SHIFT / 2);
 }
-
-// === Utility Functions ===
 
 fixed NGLerp(fixed a, fixed b, fixed t) {
     return a + FIX_MUL(b - a, t);
@@ -146,8 +115,6 @@ fixed NGClamp(fixed x, fixed min, fixed max) {
     if (x > max) return max;
     return x;
 }
-
-// === Vector Functions ===
 
 fixed NGVec2Length(NGVec2 v) {
     fixed len_sq = NGVec2LengthSq(v);

@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// blank_scene.c - Blank scene demo implementation
-
 #include "blank_scene.h"
 #include "../demo_ids.h"
 #include <neogeo.h>
@@ -17,12 +15,10 @@
 #include <engine.h>
 #include <ngres_generated_assets.h>
 
-// Demo state
 static NGMenuHandle menu;
 static u8 menu_open;
-static u8 switch_target;  // 0 = none, 1 = ball, 2 = scroll
+static u8 switch_target;
 
-// Menu item indices
 #define MENU_RESUME       0
 #define MENU_BALL_DEMO    1
 #define MENU_SCROLL_DEMO  2
@@ -32,10 +28,8 @@ void BlankSceneInit(void) {
     switch_target = 0;
     menu_open = 0;
 
-    // Set background color to black
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
-    // Create menu
     menu = NGMenuCreate(
         &ng_arena_state,
         &NGVisualAsset_ui_panel,
@@ -50,12 +44,10 @@ void BlankSceneInit(void) {
     NGMenuSetSounds(menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
     NGEngineSetActiveMenu(menu);
 
-    // Display title
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
 }
 
 u8 BlankSceneUpdate(void) {
-    // Toggle menu with START button
     if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
         if (menu_open) {
             NGMenuHide(menu);
@@ -66,10 +58,8 @@ u8 BlankSceneUpdate(void) {
         }
     }
 
-    // Always update menu (for animations)
     NGMenuUpdate(menu);
 
-    // Handle menu input
     if (menu_open) {
         if (NGMenuConfirmed(menu)) {
             switch (NGMenuGetSelection(menu)) {
@@ -105,11 +95,9 @@ u8 BlankSceneUpdate(void) {
 }
 
 void BlankSceneCleanup(void) {
-    // Clear fix layer title
     NGFixClear(0, 3, 40, 1);
 
     NGMenuDestroy(menu);
 
-    // Reset backdrop color to black
     NGPalSetBackdrop(NG_COLOR_BLACK);
 }

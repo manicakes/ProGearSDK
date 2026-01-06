@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// ui.c - UI system implementation
-
 #include <ui.h>
 #include <actor.h>
 #include <input.h>
@@ -15,116 +13,88 @@
 #include <audio.h>
 #include <neogeo.h>
 
-// === Internal Constants ===
+#define MENU_ITEM_HEIGHT      8
+#define MENU_TEXT_OFFSET_X    3
+#define MENU_TEXT_OFFSET_Y    2
+#define MENU_TITLE_OFFSET_Y   3
+#define MENU_CURSOR_OFFSET_X -14
+#define MENU_CURSOR_OFFSET_Y -4
 
-#define MENU_ITEM_HEIGHT      8    // Pixels between menu items (must match tile size)
-#define MENU_TEXT_OFFSET_X    3    // Text X offset from panel left (in tiles)
-#define MENU_TEXT_OFFSET_Y    2    // Text Y offset from title (in tiles)
-#define MENU_TITLE_OFFSET_Y   3    // Title Y offset from panel top (in tiles)
-#define MENU_CURSOR_OFFSET_X -14   // Cursor X offset from text
-#define MENU_CURSOR_OFFSET_Y -4    // Cursor Y offset to center on text
+#define PANEL_MIN_ROWS        7
+#define PANEL_COLS           11
+#define PANEL_TOP_ROWS        1
+#define PANEL_BOTTOM_ROWS     1
+#define PANEL_MIDDLE_ROW      3
+#define PANEL_SPRITE_BASE   320
 
-// Panel 9-slice constants
-#define PANEL_MIN_ROWS        7    // Minimum panel height (original asset size)
-#define PANEL_COLS           11    // Panel width in tiles (fixed)
-#define PANEL_TOP_ROWS        1    // Top border rows
-#define PANEL_BOTTOM_ROWS     1    // Bottom border rows
-#define PANEL_MIDDLE_ROW      3    // Which row to repeat for expansion (middle of original)
-#define PANEL_SPRITE_BASE   320    // Fixed sprite range for panel (320-330, 11 sprites)
-
-// Off-screen position for hidden menu (slides in from top)
 #define MENU_HIDDEN_OFFSET_FIX   FIX_FROM_FLOAT(-120.0)
 
-// Confirmation blink animation
-#define MENU_BLINK_COUNT         3    // Number of blinks
-#define MENU_BLINK_FRAMES        4    // Frames per blink state (on/off)
+#define MENU_BLINK_COUNT         3
+#define MENU_BLINK_FRAMES        4
 
-// Cursor bounce animation
-#define CURSOR_BOUNCE_SPEED      3    // Phase increment per frame (slower = subtler)
-#define CURSOR_BOUNCE_AMPLITUDE  2    // Max pixels of horizontal movement
+#define CURSOR_BOUNCE_SPEED      3
+#define CURSOR_BOUNCE_AMPLITUDE  2
 
-// Palette dimming animation
-#define DIM_ANIM_SPEED           2    // Fade amount change per frame (higher = faster)
-#define DIM_BACKUP_MAX_PALETTES 32    // Max palettes to backup (32 * 16 * 2 = 1KB)
-
-// === Internal Types ===
+#define DIM_ANIM_SPEED           2
+#define DIM_BACKUP_MAX_PALETTES 32
 
 typedef struct NGMenu {
-    // Assets
     const NGVisualAsset *panel_asset;
     const NGVisualAsset *cursor_asset;
 
-    // Panel rendering (manual 9-slice)
-    u16 panel_first_sprite;      // First hardware sprite for panel
-    u8 panel_height_tiles;       // Current panel height in tiles
-    u8 panel_sprites_allocated;  // 1 if sprites are allocated
+    u16 panel_first_sprite;
+    u8 panel_height_tiles;
+    u8 panel_sprites_allocated;
 
-    // Cursor actor
     NGActorHandle cursor_actor;
 
-    // Position (viewport coordinates)
     s16 viewport_x;
     s16 viewport_y;
 
-    // Animation
-    NGSpring panel_y_spring;    // Panel entrance/exit animation
-    NGSpring cursor_y_spring;   // Cursor movement animation
+    NGSpring panel_y_spring;
+    NGSpring cursor_y_spring;
 
-    // Items
     const char *title;
     const char *items[NG_MENU_MAX_ITEMS];
-    u8 item_selectable[NG_MENU_MAX_ITEMS];  // 1 = selectable, 0 = separator
+    u8 item_selectable[NG_MENU_MAX_ITEMS];
     u8 item_count;
 
-    // Selection
     u8 selection;
     u8 confirmed;
     u8 cancelled;
 
-    // State
-    u8 visible;          // Target visibility
-    u8 showing;          // Currently visible (for rendering)
-    u8 text_visible;     // Text is currently drawn on fix layer
-    u8 text_dirty;       // Need to redraw fix layer text
+    u8 visible;
+    u8 showing;
+    u8 text_visible;
+    u8 text_dirty;
 
-    // Confirmation blink animation
-    u8 blink_count;      // Blinks remaining (0 = not blinking)
-    u8 blink_timer;      // Frames until next toggle
-    u8 blink_on;         // Current blink state
+    u8 blink_count;
+    u8 blink_timer;
+    u8 blink_on;
 
-    // Cursor bounce animation
-    u8 bounce_phase;     // Phase of bounce wave (0-255)
+    u8 bounce_phase;
 
-    // Text palettes (fix layer)
     u8 normal_pal;
     u8 selected_pal;
 
-    // Palette dimming (replaces sprite overlay)
-    u8 dim_target;       // Target dimming amount (0-31, 0 = no dimming)
-    u8 dim_current;      // Current dimming (animated toward target)
-    u8 dim_start_pal;    // First palette to dim
-    u8 dim_end_pal;      // Last palette to dim (inclusive)
-    u8 panel_pal;        // Panel palette (excluded from dimming)
-    u8 cursor_pal;       // Cursor palette (excluded from dimming)
-    NGColor *pal_backup; // Backup of original palette colors (arena-allocated)
-    u8 backup_count;     // Number of palettes backed up
+    u8 dim_target;
+    u8 dim_current;
+    u8 dim_start_pal;
+    u8 dim_end_pal;
+    u8 panel_pal;
+    u8 cursor_pal;
+    NGColor *pal_backup;
+    u8 backup_count;
 
-    // Sound effects
-    u8 sfx_move;         // SFX index for cursor movement (0xFF = none)
-    u8 sfx_select;       // SFX index for selection (0xFF = none)
+    u8 sfx_move;
+    u8 sfx_select;
 } NGMenu;
 
-// === Helper Functions ===
-
-// Get Y position for a menu item (relative to panel top, in pixels)
-// Fix layer row N appears at screen pixel (N - NG_FIX_VISIBLE_TOP) * 8
-// Text is at fix row (viewport_y/8 + TITLE + TEXT + index)
-// So cursor offset must subtract 16 pixels (2 tiles) to match fix layer visible offset
+// Get Y position for a menu item, accounting for fix layer's 2-tile visible offset
 static s16 get_item_y_offset(u8 index) {
     return (MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + index) * 8 - (NG_FIX_VISIBLE_TOP * 8);
 }
 
-// Find first selectable item (returns 0 if none found)
 static u8 find_first_selectable(NGMenu *menu) {
     for (u8 i = 0; i < menu->item_count; i++) {
         if (menu->item_selectable[i]) return i;
@@ -132,25 +102,22 @@ static u8 find_first_selectable(NGMenu *menu) {
     return 0;
 }
 
-// Find next selectable item going down (returns current if none found)
 static u8 find_next_selectable(NGMenu *menu, u8 current) {
     for (u8 i = current + 1; i < menu->item_count; i++) {
         if (menu->item_selectable[i]) return i;
     }
-    return current;  // No selectable item found, stay put
+    return current;
 }
 
-// Find previous selectable item going up (returns current if none found)
 static u8 find_prev_selectable(NGMenu *menu, u8 current) {
     if (current == 0) return current;
     for (u8 i = current - 1; ; i--) {
         if (menu->item_selectable[i]) return i;
         if (i == 0) break;
     }
-    return current;  // No selectable item found, stay put
+    return current;
 }
 
-// Clear menu text area on fix layer (always at final position)
 static void clear_menu_text(NGMenu *menu) {
     s16 fix_x = menu->viewport_x / 8 + MENU_TEXT_OFFSET_X - 1;
     s16 fix_y = menu->viewport_y / 8 + MENU_TITLE_OFFSET_Y;
@@ -163,26 +130,20 @@ static void clear_menu_text(NGMenu *menu) {
     }
 }
 
-// Draw menu text on fix layer (at final position, no animation)
 static void draw_menu_text(NGMenu *menu) {
     s16 fix_x = menu->viewport_x / 8 + MENU_TEXT_OFFSET_X;
     s16 fix_y = menu->viewport_y / 8 + MENU_TITLE_OFFSET_Y;
 
-    // Draw title if set
     if (menu->title && fix_y >= 0 && fix_y < 28) {
         NGTextPrint(NGFixLayoutXY(fix_x, fix_y), menu->normal_pal, menu->title);
     }
 
-    // Draw items
     for (u8 i = 0; i < menu->item_count; i++) {
         s16 item_y = fix_y + MENU_TEXT_OFFSET_Y + i;
         if (item_y >= 0 && item_y < 28) {
-            // During blink animation: hide selected item when blink_on is false
             if (i == menu->selection && menu->blink_count > 0 && !menu->blink_on) {
-                // Clear the item text (will be redrawn next blink cycle)
                 NGFixClear(fix_x, item_y, 12, 1);
             } else {
-                // Only highlight selectable items, separators always use normal palette
                 u8 pal = (i == menu->selection && menu->item_selectable[i])
                          ? menu->selected_pal : menu->normal_pal;
                 NGTextPrint(NGFixLayoutXY(fix_x, item_y), pal, menu->items[i]);
@@ -191,7 +152,6 @@ static void draw_menu_text(NGMenu *menu) {
     }
 }
 
-// Backup palettes that will be dimmed
 static void backup_palettes(NGMenu *menu) {
     if (!menu->pal_backup || menu->backup_count == 0) return;
 
@@ -205,19 +165,15 @@ static void backup_palettes(NGMenu *menu) {
     }
 }
 
-// Apply current dimming level from backed-up palettes
 static void apply_dimming(NGMenu *menu) {
     if (!menu->pal_backup || menu->backup_count == 0) return;
 
     u8 backup_idx = 0;
     for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        // Skip menu's own palettes
         if (pal == menu->panel_pal || pal == menu->cursor_pal) continue;
 
-        // Restore from backup first
         NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
 
-        // Then apply current dimming
         if (menu->dim_current > 0) {
             NGPalFadeToBlack(pal, menu->dim_current);
         }
@@ -226,7 +182,6 @@ static void apply_dimming(NGMenu *menu) {
     }
 }
 
-// Restore original palettes from backup
 static void restore_palettes(NGMenu *menu) {
     if (!menu->pal_backup || menu->backup_count == 0) return;
 
@@ -240,40 +195,26 @@ static void restore_palettes(NGMenu *menu) {
     }
 }
 
-// SCB base addresses
 #define SCB1_BASE  0x0000
 #define SCB2_BASE  0x8000
 #define SCB3_BASE  0x8200
 #define SCB4_BASE  0x8400
 
-// Calculate required panel height based on item count
 static u8 calc_panel_height(u8 item_count) {
-    // Fix layer uses 8px tiles, sprite layer uses 16px tiles
-    // Calculate text extent in fix layer rows (8px each)
     u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
-
-    // Convert to pixels and add bottom padding for border
-    u16 content_height_px = (text_fix_rows * 8) + 8;  // 8px bottom padding
-
-    // Convert to sprite tiles (16px each), rounding up
+    u16 content_height_px = (text_fix_rows * 8) + 8;
     u8 sprite_tiles = (content_height_px + 15) / 16;
-
-    // Minimum is the original asset size
     if (sprite_tiles < PANEL_MIN_ROWS) sprite_tiles = PANEL_MIN_ROWS;
     return sprite_tiles;
 }
 
-// Get tile index from panel asset tilemap (row-major order)
 static u16 get_panel_tile(const NGVisualAsset *asset, u8 col, u8 row) {
-    // Tilemap is row-major: entries go left-to-right across each row
     u16 idx = row * asset->width_tiles + col;
-    // Tilemap entry format: high bit + tile_offset
     u16 entry = asset->tilemap[idx];
-    u16 tile_offset = entry & 0x7FFF;  // Mask off high bit marker
+    u16 tile_offset = entry & 0x7FFF;
     return asset->base_tile + tile_offset;
 }
 
-// Render panel with 9-slice vertical expansion
 static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     const NGVisualAsset *asset = menu->panel_asset;
     u8 target_height = calc_panel_height(menu->item_count);
@@ -281,39 +222,29 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     u8 extra_rows = (target_height > orig_height) ? (target_height - orig_height) : 0;
     u8 actual_height = orig_height + extra_rows;
 
-    // Cap at max sprite height (NeoGeo max is 32 tiles)
     if (actual_height > 32) actual_height = 32;
 
     menu->panel_height_tiles = actual_height;
 
     u16 first_sprite = menu->panel_first_sprite;
     u8 palette = asset->palette;
-    u8 num_cols = asset->width_tiles;  // Use actual asset width
+    u8 num_cols = asset->width_tiles;
 
-    // Calculate Y position once (same for all columns)
-    // NeoGeo Y: 496 is top of screen, decreasing goes down
     s16 y_val = 496 - screen_y;
     if (y_val < 0) y_val += 512;
     y_val &= 0x1FF;
 
-    // SCB3 value: Y position in bits 7-15, height in bits 0-5
-    // Don't use chain/sticky bit - each sprite needs independent X positioning
     u16 scb3_val = ((u16)y_val << 7) | (actual_height & 0x3F);
 
-    // Render each column
     for (u8 col = 0; col < num_cols; col++) {
         u16 spr = first_sprite + col;
 
-        // Write tile data to SCB1
         NG_REG_VRAMADDR = SCB1_BASE + (spr * 64);
         NG_REG_VRAMMOD = 1;
 
         u8 row_out = 0;
-
-        // Attribute word: palette in bits 8-15, h_flip in bit 0
         u16 attr = ((u16)palette << 8) | 0x01;
 
-        // Top rows (rows 0 to PANEL_TOP_ROWS-1)
         for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
             u16 tile = get_panel_tile(asset, col, r);
             NG_REG_VRAMDATA = tile;
@@ -321,7 +252,6 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
             row_out++;
         }
 
-        // Middle rows (original rows 1 to orig_height-2, with one row repeated)
         u8 orig_middle_start = PANEL_TOP_ROWS;
         u8 orig_middle_end = orig_height - PANEL_BOTTOM_ROWS;
 
@@ -331,7 +261,6 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
             NG_REG_VRAMDATA = attr;
             row_out++;
 
-            // After the designated repeat row, insert extra copies
             if (r == PANEL_MIDDLE_ROW) {
                 u16 repeat_tile = get_panel_tile(asset, col, PANEL_MIDDLE_ROW);
                 for (u8 e = 0; e < extra_rows; e++) {
@@ -342,7 +271,6 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
             }
         }
 
-        // Bottom rows (last PANEL_BOTTOM_ROWS of original)
         for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
             u16 tile = get_panel_tile(asset, col, r);
             NG_REG_VRAMDATA = tile;
@@ -372,18 +300,15 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     }
 }
 
-// Hide panel sprites (set height to 0)
 static void hide_panel_sprites(NGMenu *menu) {
     if (!menu->panel_sprites_allocated) return;
 
     for (u8 col = 0; col < PANEL_COLS; col++) {
         u16 spr = menu->panel_first_sprite + col;
         NG_REG_VRAMADDR = SCB3_BASE + spr;
-        NG_REG_VRAMDATA = 0;  // Height 0 = invisible
+        NG_REG_VRAMDATA = 0;
     }
 }
-
-// === Public API ===
 
 NGMenuHandle NGMenuCreate(NGArena *arena,
                           const NGVisualAsset *panel_asset,
@@ -394,30 +319,24 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     NGMenu *menu = NG_ARENA_ALLOC(arena, NGMenu);
     if (!menu) return 0;
 
-    // Store assets
     menu->panel_asset = panel_asset;
     menu->cursor_asset = cursor_asset;
 
-    // Panel uses manual sprite rendering (9-slice expansion)
     menu->panel_first_sprite = 0;
     menu->panel_height_tiles = 0;
     menu->panel_sprites_allocated = 0;
 
-    // Create cursor actor (but don't add to scene yet)
     menu->cursor_actor = NGActorCreate(cursor_asset, 0, 0);
 
     if (menu->cursor_actor == NG_ACTOR_INVALID) {
         return 0;
     }
 
-    // Set cursor as screen-space (ignore camera position and zoom)
     NGActorSetScreenSpace(menu->cursor_actor, 1);
 
-    // Default position (centered horizontally)
     menu->viewport_x = (320 - panel_asset->width_pixels) / 2;
     menu->viewport_y = 40;
 
-    // Initialize springs (start hidden)
     NGSpringInit(&menu->panel_y_spring, MENU_HIDDEN_OFFSET_FIX);
     NGSpringInit(&menu->cursor_y_spring, FIX(0));
 
@@ -426,7 +345,6 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     menu->cursor_y_spring.stiffness = NG_SPRING_SNAPPY_STIFFNESS;
     menu->cursor_y_spring.damping = NG_SPRING_SNAPPY_DAMPING;
 
-    // Initialize state
     menu->title = 0;
     menu->item_count = 0;
     menu->selection = 0;
@@ -441,23 +359,19 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     menu->blink_on = 1;
     menu->bounce_phase = 0;
 
-    // Default palettes
     menu->normal_pal = 0;
     menu->selected_pal = 0;
 
-    // Initialize palette dimming
     menu->dim_target = dim_amount;
     menu->dim_current = 0;
-    menu->dim_start_pal = 1;    // Start at palette 1 (skip 0 which is used for menu text)
-    menu->dim_end_pal = 63;     // End at palette 63 (enough for most games, avoids u8 overflow)
+    menu->dim_start_pal = 1;
+    menu->dim_end_pal = 63;
     menu->panel_pal = panel_asset->palette;
     menu->cursor_pal = cursor_asset->palette;
     menu->pal_backup = 0;
     menu->backup_count = 0;
 
-    // Allocate palette backup if dimming is enabled
     if (dim_amount > 0) {
-        // Count palettes to backup (excluding menu's own palettes)
         u8 count = 0;
         for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal; pal++) {
             if (pal != menu->panel_pal && pal != menu->cursor_pal) {
@@ -472,7 +386,6 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
         }
     }
 
-    // No sound effects by default
     menu->sfx_move = 0xFF;
     menu->sfx_select = 0xFF;
 
@@ -543,32 +456,25 @@ void NGMenuShow(NGMenuHandle menu) {
     menu->confirmed = 0;
     menu->cancelled = 0;
 
-    // Start on first selectable item
     menu->selection = find_first_selectable(menu);
 
-    // Set spring target to visible position
     NGSpringSetTarget(&menu->panel_y_spring, FIX(menu->viewport_y));
 
-    // Set cursor offset relative to panel top (not absolute Y)
     s16 cursor_offset = get_item_y_offset(menu->selection) + MENU_CURSOR_OFFSET_Y;
     NGSpringSnap(&menu->cursor_y_spring, FIX(cursor_offset));
     NGSpringSetTarget(&menu->cursor_y_spring, FIX(cursor_offset));
 
-    // Backup palettes and start dimming animation
     if (menu->dim_target > 0) {
         backup_palettes(menu);
-        menu->dim_current = 0;  // Will animate toward dim_target
+        menu->dim_current = 0;
     }
 
-    // Allocate panel sprites (fixed range)
     menu->panel_first_sprite = PANEL_SPRITE_BASE;
     menu->panel_sprites_allocated = 1;
 
-    // Render panel with 9-slice expansion based on item count
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
     render_panel_9slice(menu, menu->viewport_x, panel_y);
 
-    // Add cursor actor to scene
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;
     s16 cursor_y = panel_y + NGSpringGetInt(&menu->cursor_y_spring);
     NGActorAddToScene(menu->cursor_actor, FIX(cursor_x), FIX(cursor_y), NG_MENU_Z_INDEX + 1);
@@ -582,12 +488,8 @@ void NGMenuHide(NGMenuHandle menu) {
 
     menu->visible = 0;
 
-    // Set spring target to hidden position
     NGSpringSetTarget(&menu->panel_y_spring, MENU_HIDDEN_OFFSET_FIX);
 
-    // Dimming will animate back to 0 in NGMenuUpdate
-
-    // Clear text immediately
     if (menu->text_visible) {
         clear_menu_text(menu);
         menu->text_visible = 0;
@@ -597,21 +499,17 @@ void NGMenuHide(NGMenuHandle menu) {
 void NGMenuUpdate(NGMenuHandle menu) {
     if (!menu) return;
 
-    // Update springs
     NGSpringUpdate(&menu->panel_y_spring);
     NGSpringUpdate(&menu->cursor_y_spring);
 
-    // Animate palette dimming
     if (menu->dim_target > 0) {
         u8 target = menu->visible ? menu->dim_target : 0;
 
         if (menu->dim_current < target) {
-            // Fade in (darken)
             menu->dim_current += DIM_ANIM_SPEED;
             if (menu->dim_current > target) menu->dim_current = target;
             apply_dimming(menu);
         } else if (menu->dim_current > target) {
-            // Fade out (restore brightness)
             if (menu->dim_current >= DIM_ANIM_SPEED) {
                 menu->dim_current -= DIM_ANIM_SPEED;
             } else {
@@ -621,12 +519,9 @@ void NGMenuUpdate(NGMenuHandle menu) {
         }
     }
 
-    // Check if fully hidden
     if (!menu->visible && NGSpringSettled(&menu->panel_y_spring) && menu->dim_current == 0) {
         if (menu->showing) {
-            // Restore original palettes
             restore_palettes(menu);
-            // Hide panel sprites and remove cursor
             hide_panel_sprites(menu);
             menu->panel_sprites_allocated = 0;
             NGActorRemoveFromScene(menu->cursor_actor);
@@ -635,9 +530,7 @@ void NGMenuUpdate(NGMenuHandle menu) {
         return;
     }
 
-    // Handle input only when visible and not animating out
     if (menu->visible) {
-        // Handle blink animation
         if (menu->blink_count > 0) {
             menu->blink_timer--;
             if (menu->blink_timer == 0) {
@@ -654,9 +547,6 @@ void NGMenuUpdate(NGMenuHandle menu) {
                 menu->blink_timer = MENU_BLINK_FRAMES;
             }
         } else {
-            // Normal input (only when not blinking)
-
-            // Navigation - skip non-selectable items
             if (NGInputPressed(NG_PLAYER_1, NG_BTN_UP)) {
                 u8 prev = find_prev_selectable(menu, menu->selection);
                 if (prev != menu->selection) {
@@ -682,39 +572,32 @@ void NGMenuUpdate(NGMenuHandle menu) {
                 }
             }
 
-            // Confirmation - start blink animation
             if (NGInputPressed(NG_PLAYER_1, NG_BTN_A)) {
                 menu->blink_count = MENU_BLINK_COUNT;
                 menu->blink_timer = MENU_BLINK_FRAMES;
-                menu->blink_on = 0;  // Start with text off
+                menu->blink_on = 0;
                 menu->text_dirty = 1;
                 if (menu->sfx_select != 0xFF) {
                     NGSfxPlay(menu->sfx_select);
                 }
             }
 
-            // Cancellation
             if (NGInputPressed(NG_PLAYER_1, NG_BTN_B)) {
                 menu->cancelled = 1;
             }
         }
     }
 
-    // Update panel position (re-render at new Y during animation)
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
     if (menu->panel_sprites_allocated) {
         render_panel_9slice(menu, menu->viewport_x, panel_y);
     }
 
-    // Cursor position
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;
     s16 cursor_y = panel_y + NGSpringGetInt(&menu->cursor_y_spring);
 
-    // Bounce animation: only when cursor is settled and menu is visible
     if (menu->visible && NGSpringSettled(&menu->cursor_y_spring) && menu->blink_count == 0) {
         menu->bounce_phase += CURSOR_BOUNCE_SPEED;
-
-        // Simple toggle: 0 pixels for first half, 2 pixels for second half
         if (menu->bounce_phase >= 128) {
             cursor_x += CURSOR_BOUNCE_AMPLITUDE;
         }
@@ -726,17 +609,13 @@ void NGMenuUpdate(NGMenuHandle menu) {
 void NGMenuDraw(NGMenuHandle menu) {
     if (!menu || !menu->showing) return;
 
-    // Show text only when panel has arrived (spring settled)
     u8 panel_arrived = menu->visible && NGSpringSettled(&menu->panel_y_spring);
 
     if (panel_arrived && !menu->text_visible) {
-        // Panel just arrived - show text
         draw_menu_text(menu);
         menu->text_visible = 1;
         menu->text_dirty = 0;
     } else if (menu->text_visible && menu->text_dirty) {
-        // Text visible and needs redraw (selection changed)
-        // No need to clear - just overdraw with new palettes
         draw_menu_text(menu);
         menu->text_dirty = 0;
     }
@@ -751,7 +630,7 @@ u8 NGMenuIsAnimating(NGMenuHandle menu) {
     if (!menu) return 0;
     // Animating if spring not settled OR dimming is still transitioning
     u8 target = menu->visible ? menu->dim_target : 0;
-    return !NGSpringSettled(&menu->panel_y_spring) || (menu->dim_current != target);
+    return !NGSpringSettled(&menu->panel_y_spring) || menu->dim_current != target;
 }
 
 u8 NGMenuGetSelection(NGMenuHandle menu) {
@@ -788,24 +667,18 @@ u8 NGMenuCancelled(NGMenuHandle menu) {
 void NGMenuDestroy(NGMenuHandle menu) {
     if (!menu) return;
 
-    // Restore palettes if dimmed
     if (menu->dim_current > 0) {
         restore_palettes(menu);
     }
 
-    // Clear text if visible
     if (menu->text_visible) {
         clear_menu_text(menu);
     }
 
-    // Hide panel sprites
     hide_panel_sprites(menu);
     menu->panel_sprites_allocated = 0;
 
-    // Destroy cursor actor
     if (menu->cursor_actor != NG_ACTOR_INVALID) {
         NGActorDestroy(menu->cursor_actor);
     }
-
-    // Note: pal_backup is arena-allocated, will be freed with arena
 }

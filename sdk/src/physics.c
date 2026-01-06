@@ -4,40 +4,29 @@
  * SPDX-License-Identifier: MIT
  */
 
-// physics.c - Simple 2D physics engine implementation
-
 #include <physics.h>
 
 #define MAX_WORLDS 1
 
-// === Axis-Aligned Normal Optimization ===
-// AABB collisions always produce axis-aligned normals (±1,0) or (0,±1)
-// This avoids expensive FIX_MUL when multiplying by these normals
-
+// Fast path for axis-aligned normals (AABB collisions produce ±1,0 or 0,±1)
 static inline fixed mul_by_normal_component(fixed value, fixed normal_comp) {
-    // Fast path for axis-aligned normals (very common with AABB)
     if (normal_comp == FIX_ONE) return value;
     if (normal_comp == -FIX_ONE) return -value;
     if (normal_comp == 0) return 0;
-    // General case (circle collisions, etc.)
     return FIX_MUL(value, normal_comp);
 }
 
-// Apply scalar to 2D normal vector, returns result in out_x/out_y
 static inline void scale_normal(fixed scalar, NGVec2 *normal, fixed *out_x, fixed *out_y) {
     *out_x = mul_by_normal_component(scalar, normal->x);
     *out_y = mul_by_normal_component(scalar, normal->y);
 }
 
-// Dot product with potentially axis-aligned normal
 static inline fixed dot_with_normal(fixed vx, fixed vy, NGVec2 *normal) {
     return mul_by_normal_component(vx, normal->x) +
            mul_by_normal_component(vy, normal->y);
 }
 
 static NGPhysWorld world_pool[MAX_WORLDS];
-
-// === World Management ===
 
 NGPhysWorldHandle NGPhysWorldCreate(void) {
     for (int i = 0; i < MAX_WORLDS; i++) {
@@ -48,7 +37,6 @@ NGPhysWorldHandle NGPhysWorldCreate(void) {
             world->gravity.y = 0;
             world->bounds_enabled = 0;
 
-            // Clear body pool
             for (int j = 0; j < NG_PHYS_MAX_BODIES; j++) {
                 world->bodies[j].active = 0;
             }
@@ -90,13 +78,10 @@ void NGPhysWorldDisableBounds(NGPhysWorldHandle world) {
 void NGPhysWorldReset(NGPhysWorldHandle world) {
     if (!world) return;
 
-    // Destroy all bodies but keep world settings
     for (int i = 0; i < NG_PHYS_MAX_BODIES; i++) {
         world->bodies[i].active = 0;
     }
 }
-
-// === Collision Detection ===
 
 static u8 test_circle_circle(NGBody *a, NGBody *b, NGCollision *out) {
     NGVec2 delta = NGVec2Sub(b->pos, a->pos);
@@ -104,11 +89,10 @@ static u8 test_circle_circle(NGBody *a, NGBody *b, NGCollision *out) {
     fixed radii = a->shape.circle.radius + b->shape.circle.radius;
     fixed radii_sq = FIX_MUL(radii, radii);
 
-    if (dist_sq >= radii_sq) return 0;  // No collision
+    if (dist_sq >= radii_sq) return 0;
 
     fixed dist = NGSqrtFix(dist_sq);
     if (dist == 0) {
-        // Bodies at same position - push apart arbitrarily
         out->normal = (NGVec2){ FIX_ONE, 0 };
         out->penetration = radii;
     } else {
@@ -139,7 +123,6 @@ static u8 test_aabb_aabb(NGBody *a, NGBody *b, NGCollision *out) {
     out->body_a = a;
     out->body_b = b;
 
-    // Use smallest overlap axis
     if (overlap_x < overlap_y) {
         out->penetration = overlap_x;
         if (dx > 0) {
@@ -168,13 +151,11 @@ u8 NGPhysTestCollision(NGBodyHandle a, NGBodyHandle b, NGCollision *out) {
     if (!a || !b) return 0;
     if (!a->active || !b->active) return 0;
 
-    // Check collision layer/mask
     if (!(a->collision_mask & b->collision_layer) &&
         !(b->collision_mask & a->collision_layer)) {
         return 0;
     }
 
-    // Dispatch based on shape types
     if (a->shape.type == NG_SHAPE_CIRCLE && b->shape.type == NG_SHAPE_CIRCLE) {
         return test_circle_circle(a, b, out);
     }
@@ -182,30 +163,24 @@ u8 NGPhysTestCollision(NGBodyHandle a, NGBodyHandle b, NGCollision *out) {
         return test_aabb_aabb(a, b, out);
     }
 
-    // TODO: Circle-AABB collision
     return 0;
 }
-
-// === Collision Response ===
 
 static void resolve_collision(NGCollision *col) {
     NGBody *a = col->body_a;
     NGBody *b = col->body_b;
 
-    // Skip if both static or triggers
     u8 a_movable = !(a->flags & (NG_BODY_STATIC | NG_BODY_TRIGGER));
     u8 b_movable = !(b->flags & (NG_BODY_STATIC | NG_BODY_TRIGGER));
 
     if (!a_movable && !b_movable) return;
     if ((a->flags & NG_BODY_TRIGGER) || (b->flags & NG_BODY_TRIGGER)) return;
 
-    // Fast path: equal mass, both movable (any restitution)
-    // Avoids all FIX_DIV calls - very common case (enemies, projectiles, etc.)
+    // Fast path: equal mass, both movable (avoids FIX_DIV)
     if (a_movable && b_movable && a->mass == b->mass) {
-        // Positional correction: each body moves half (no division needed)
         fixed slop = FIX(1) / 16;
         fixed correction = NG_MAX(col->penetration - slop, 0);
-        fixed half_corr = correction >> 1;  // Fast divide by 2
+        fixed half_corr = correction >> 1;
 
         fixed corr_x, corr_y;
         scale_normal(half_corr, &col->normal, &corr_x, &corr_y);
@@ -214,19 +189,15 @@ static void resolve_collision(NGCollision *col) {
         b->pos.x += corr_x;
         b->pos.y += corr_y;
 
-        // Relative velocity along normal (optimized for axis-aligned)
         fixed rel_vx = b->vel.x - a->vel.x;
         fixed rel_vy = b->vel.y - a->vel.y;
         fixed vel_along_normal = dot_with_normal(rel_vx, rel_vy, &col->normal);
 
-        if (vel_along_normal >= 0) return;  // Separating
+        if (vel_along_normal >= 0) return;
 
-        // For equal mass: j = -(1+e) * v_rel / (inv_m + inv_m) = -(1+e) * v_rel / 2
-        // Each body gets same impulse magnitude (just opposite direction)
         fixed e = NG_MIN(a->restitution, b->restitution);
-        fixed j = FIX_MUL(-(FIX_ONE + e), vel_along_normal) >> 1;  // Divide by 2
+        fixed j = FIX_MUL(-(FIX_ONE + e), vel_along_normal) >> 1;
 
-        // Scale by inv_mass and apply to normal
         fixed scaled_j = FIX_MUL(j, a->inv_mass);
         fixed impulse_x, impulse_y;
         scale_normal(scaled_j, &col->normal, &impulse_x, &impulse_y);
@@ -238,7 +209,6 @@ static void resolve_collision(NGCollision *col) {
         return;
     }
 
-    // General case (different masses - requires division)
     fixed total_mass = a->mass + b->mass;
     if (total_mass == 0) total_mass = FIX_ONE;
 
@@ -248,7 +218,6 @@ static void resolve_collision(NGCollision *col) {
     if (!a_movable) b_ratio = FIX_ONE;
     if (!b_movable) a_ratio = FIX_ONE;
 
-    // Positional correction (optimized for axis-aligned normals)
     fixed slop = FIX(1) / 16;
     fixed correction = NG_MAX(col->penetration - slop, 0);
 
@@ -267,7 +236,6 @@ static void resolve_collision(NGCollision *col) {
         b->pos.y += cy;
     }
 
-    // Relative velocity along normal (optimized for axis-aligned)
     fixed rel_vx = b->vel.x - a->vel.x;
     fixed rel_vy = b->vel.y - a->vel.y;
     fixed vel_along_normal = dot_with_normal(rel_vx, rel_vy, &col->normal);
@@ -277,7 +245,6 @@ static void resolve_collision(NGCollision *col) {
     fixed e = NG_MIN(a->restitution, b->restitution);
     fixed j = FIX_MUL(-(FIX_ONE + e), vel_along_normal);
 
-    // Use cached inv_mass (no division needed here)
     fixed inv_mass_a = a_movable ? a->inv_mass : 0;
     fixed inv_mass_b = b_movable ? b->inv_mass : 0;
     fixed inv_mass_sum = inv_mass_a + inv_mass_b;
@@ -286,7 +253,6 @@ static void resolve_collision(NGCollision *col) {
         j = FIX_DIV(j, inv_mass_sum);
     }
 
-    // Apply impulse (optimized for axis-aligned normals)
     if (a_movable) {
         fixed imp_a = FIX_MUL(inv_mass_a, j);
         fixed ix, iy;
@@ -302,8 +268,6 @@ static void resolve_collision(NGCollision *col) {
         b->vel.y += iy;
     }
 }
-
-// === Bounds Collision ===
 
 static void handle_bounds(NGPhysWorld *world, NGBody *body) {
     if (!world->bounds_enabled) return;
@@ -327,7 +291,6 @@ static void handle_bounds(NGPhysWorld *world, NGBody *body) {
     if (left < world->bounds_left) {
         body->pos.x += world->bounds_left - left;
         if (body->vel.x < 0) {
-            // Fast path: perfect bounce (restitution = 1.0) is just negation
             if (body->restitution == FIX_ONE) {
                 body->vel.x = -body->vel.x;
             } else {
@@ -373,37 +336,28 @@ static void handle_bounds(NGPhysWorld *world, NGBody *body) {
     }
 }
 
-// === World Update ===
-
 void NGPhysWorldUpdate(NGPhysWorldHandle world,
                        NGCollisionCallback callback,
                        void *callback_data) {
     if (!world) return;
 
-    // Integration: apply acceleration and velocity
     for (int i = 0; i < NG_PHYS_MAX_BODIES; i++) {
         NGBody *body = &world->bodies[i];
         if (!body->active) continue;
         if (body->flags & NG_BODY_STATIC) continue;
 
-        // Apply gravity if enabled
         if (!(body->flags & NG_BODY_NO_GRAVITY)) {
             body->vel.x += world->gravity.x;
             body->vel.y += world->gravity.y;
         }
 
-        // Apply body acceleration
         body->vel.x += body->accel.x;
         body->vel.y += body->accel.y;
 
-        // Update position
         body->pos.x += body->vel.x;
         body->pos.y += body->vel.y;
     }
 
-    // Collision detection and response
-    // Skip entirely if no callback and we can detect no collisions are possible
-    // (This is an optimization - early-out when masks are all zero)
     u8 any_can_collide = 0;
     for (int i = 0; i < NG_PHYS_MAX_BODIES && !any_can_collide; i++) {
         if (world->bodies[i].active && world->bodies[i].collision_mask) {
@@ -430,14 +384,11 @@ void NGPhysWorldUpdate(NGPhysWorldHandle world,
         }
     }
 
-    // Handle bounds
     for (int i = 0; i < NG_PHYS_MAX_BODIES; i++) {
         if (!world->bodies[i].active) continue;
         handle_bounds(world, &world->bodies[i]);
     }
 }
-
-// === Body Management ===
 
 static NGBody *alloc_body(NGPhysWorldHandle world) {
     if (!world) return 0;
@@ -451,8 +402,8 @@ static NGBody *alloc_body(NGPhysWorldHandle world) {
             body->vel = (NGVec2){ 0, 0 };
             body->accel = (NGVec2){ 0, 0 };
             body->mass = FIX_ONE;
-            body->inv_mass = FIX_ONE;     // 1/1 = 1
-            body->restitution = FIX_ONE;  // Perfect bounce by default
+            body->inv_mass = FIX_ONE;
+            body->restitution = FIX_ONE;
             body->friction = 0;
             body->collision_layer = 0x01;
             body->collision_mask = 0xFF;
@@ -498,8 +449,6 @@ void NGPhysBodyDestroy(NGBodyHandle body) {
     }
 }
 
-// === Body Properties ===
-
 void NGPhysBodySetPos(NGBodyHandle body, fixed x, fixed y) {
     if (!body) return;
     body->pos.x = x;
@@ -531,7 +480,6 @@ void NGPhysBodySetAccel(NGBodyHandle body, fixed ax, fixed ay) {
 void NGPhysBodySetMass(NGBodyHandle body, fixed mass) {
     if (!body) return;
     body->mass = mass;
-    // Cache inverse mass (computed once, used many times in collision response)
     body->inv_mass = (mass > 0) ? FIX_DIV(FIX_ONE, mass) : 0;
 }
 
@@ -579,7 +527,6 @@ void NGPhysBodyApplyImpulse(NGBodyHandle body, fixed ix, fixed iy) {
     if (!body) return;
     if (body->flags & NG_BODY_STATIC) return;
 
-    // Use cached inv_mass (no division needed)
     body->vel.x += FIX_MUL(ix, body->inv_mass);
     body->vel.y += FIX_MUL(iy, body->inv_mass);
 }

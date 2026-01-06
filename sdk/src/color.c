@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-// color.c - Color manipulation functions
-
 #include <color.h>
 
-// Blend two colors (ratio: 0=all a, 255=all b)
 NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
-    // Handle edge cases to avoid precision loss
     if (ratio == 0) return a;
     if (ratio == 255) return b;
 
     u8 inv_ratio = 255 - ratio;
 
-    // Extract components from both colors
     u8 ra = NGColorGetRed(a);
     u8 ga = NGColorGetGreen(a);
     u8 ba = NGColorGetBlue(a);
@@ -25,7 +20,6 @@ NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
     u8 gb = NGColorGetGreen(b);
     u8 bb = NGColorGetBlue(b);
 
-    // Blend each component (add 128 for rounding)
     u8 r = ((u16)ra * inv_ratio + (u16)rb * ratio + 128) >> 8;
     u8 g = ((u16)ga * inv_ratio + (u16)gb * ratio + 128) >> 8;
     u8 b_out = ((u16)ba * inv_ratio + (u16)bb * ratio + 128) >> 8;
@@ -33,7 +27,6 @@ NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
     return NG_RGB5(r, g, b_out);
 }
 
-// Darken a color (amount: 0=no change, 31=black)
 NGColor NGColorDarken(NGColor c, u8 amount) {
     if (amount > 31) amount = 31;
 
@@ -48,7 +41,6 @@ NGColor NGColorDarken(NGColor c, u8 amount) {
     return NG_RGB5(r, g, b);
 }
 
-// Lighten a color (amount: 0=no change, 31=white)
 NGColor NGColorLighten(NGColor c, u8 amount) {
     if (amount > 31) amount = 31;
 
@@ -63,7 +55,6 @@ NGColor NGColorLighten(NGColor c, u8 amount) {
     return NG_RGB5(r, g, b);
 }
 
-// Invert a color
 NGColor NGColorInvert(NGColor c) {
     u8 r = 31 - NGColorGetRed(c);
     u8 g = 31 - NGColorGetGreen(c);
@@ -72,22 +63,18 @@ NGColor NGColorInvert(NGColor c) {
     return NG_RGB5(r, g, b);
 }
 
-// Convert to grayscale using luminance weights
-// Approximate: Y = 0.299*R + 0.587*G + 0.114*B
-// Using integer approximation: Y = (77*R + 150*G + 29*B) >> 8
 NGColor NGColorGrayscale(NGColor c) {
     u8 r = NGColorGetRed(c);
     u8 g = NGColorGetGreen(c);
     u8 b = NGColorGetBlue(c);
 
-    // Scale up to get better precision, then scale down
+    // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
     u16 lum = (77 * r + 150 * g + 29 * b) >> 8;
     if (lum > 31) lum = 31;
 
     return NG_RGB5(lum, lum, lum);
 }
 
-// Adjust brightness (-31 to +31)
 NGColor NGColorAdjustBrightness(NGColor c, s8 amount) {
     if (amount >= 0) {
         return NGColorLighten(c, (u8)amount);
@@ -96,16 +83,12 @@ NGColor NGColorAdjustBrightness(NGColor c, s8 amount) {
     }
 }
 
-// Create a color from HSV values
-// h: 0-255 (hue), s: 0-255 (saturation), v: 0-255 (value)
 NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
     if (s == 0) {
-        // Grayscale
-        u8 gray = v >> 3;  // Convert 0-255 to 0-31
+        u8 gray = v >> 3;
         return NG_RGB5(gray, gray, gray);
     }
 
-    // Sector (0-5)
     u8 sector = h / 43;
     u8 remainder = (h - (sector * 43)) * 6;
 
@@ -113,7 +96,6 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
     u8 q = ((u16)v * (255 - ((u16)s * remainder >> 8))) >> 8;
     u8 t = ((u16)v * (255 - ((u16)s * (255 - remainder) >> 8))) >> 8;
 
-    // Convert to 5-bit range
     v = v >> 3;
     p = p >> 3;
     q = q >> 3;

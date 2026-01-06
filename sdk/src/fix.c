@@ -4,16 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-// fix.c - Fix layer and text rendering implementation
-
 #include <fix.h>
 #include <stdarg.h>
 
-// === Private State ===
-
 static u16 font_base = 0;
-
-// === Fix Layer Functions ===
 
 void NGFixPut(u8 x, u8 y, u16 tile, u8 palette) {
     if (x >= NG_FIX_WIDTH || y >= NG_FIX_HEIGHT) return;
@@ -24,10 +18,9 @@ void NGFixPut(u8 x, u8 y, u16 tile, u8 palette) {
 }
 
 void NGFixClear(u8 x, u8 y, u8 w, u8 h) {
-    // Column-major: for each row, write across columns
     for (u8 row = 0; row < h && (y + row) < NG_FIX_HEIGHT; row++) {
         NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + (y + row);
-        NG_REG_VRAMMOD = 32;  // Advance by column
+        NG_REG_VRAMMOD = 32;
         for (u8 col = 0; col < w && (x + col) < NG_FIX_WIDTH; col++) {
             NG_REG_VRAMDATA = 0;
         }
@@ -43,8 +36,6 @@ void NGFixClearAll(void) {
     }
 }
 
-// === Layout Functions ===
-
 NGFixLayout NGFixLayoutAlign(NGFixHAlign h, NGFixVAlign v) {
     NGFixLayout layout = { h, v, 0, 0 };
     return layout;
@@ -55,20 +46,16 @@ NGFixLayout NGFixLayoutOffset(NGFixHAlign h, NGFixVAlign v, s8 offset_x, s8 offs
     return layout;
 }
 
-// === Text Rendering Functions ===
-
 void NGTextSetFont(u16 font_base_tile) {
     font_base = font_base_tile;
 }
 
-// Helper: calculate string length
 static u8 str_len(const char *str) {
     u8 len = 0;
     while (*str++) len++;
     return len;
 }
 
-// Helper: calculate x position from layout and text length (uses safe area)
 static u8 calc_x(NGFixLayout layout, u8 text_len) {
     s16 x;
     switch (layout.h_align) {
@@ -89,7 +76,6 @@ static u8 calc_x(NGFixLayout layout, u8 text_len) {
     return (u8)x;
 }
 
-// Helper: calculate y position from layout (uses safe area)
 static u8 calc_y(NGFixLayout layout) {
     s16 y;
     switch (layout.v_align) {
@@ -117,14 +103,12 @@ void NGTextPrint(NGFixLayout layout, u8 palette, const char *str) {
 
     u16 pal = (u16)palette << 12;
 
-    // Fix layer is column-major: address = base + (x * 32) + y
-    // VRAMMOD = 32 to advance one column (horizontal) per write
+    // Fix layer is column-major, VRAMMOD = 32 advances one column per write
     NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + y;
     NG_REG_VRAMMOD = 32;
 
     while (*str && x < NG_FIX_WIDTH) {
         u8 c = (u8)*str++;
-        // ngdevkit font: ASCII code maps directly to tile number
         u16 tile = font_base + c;
         NG_REG_VRAMDATA = pal | tile;
         x++;
@@ -133,9 +117,6 @@ void NGTextPrint(NGFixLayout layout, u8 palette, const char *str) {
     NG_REG_VRAMMOD = 1;
 }
 
-// === Printf Implementation ===
-
-// Convert integer to string, return length
 static u8 int_to_str(s32 value, char *buf, u8 base, u8 is_signed) {
     char tmp[12];
     u8 i = 0;
@@ -181,9 +162,8 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
             continue;
         }
 
-        fmt++; // skip '%'
+        fmt++;
 
-        // Parse flags and width
         char pad_char = ' ';
         u8 width = 0;
 
@@ -201,7 +181,6 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
             case 'i': {
                 char tmp[12];
                 u8 len = int_to_str(va_arg(args, s32), tmp, 10, 1);
-                // Pad if needed
                 while (len < width && out < end) {
                     *out++ = pad_char;
                     width--;

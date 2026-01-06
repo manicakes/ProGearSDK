@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-// main.c - ProGearSDK combined demo
-// Switches between ball demo, scroll demo, and blank scene demo
-
 #include <engine.h>
 
 #include "demo_ids.h"
@@ -25,15 +22,12 @@ typedef enum {
 int main(void) {
     NGEngineInit();
 
-    // Start with ball demo
     DemoMode current_demo = DEMO_BALL;
     BallDemoInit();
 
-    // Main loop
     for (;;) {
         NGEngineFrameStart();
 
-        // Update current demo (returns target demo ID, or 0 for no switch)
         u8 switch_to = 0;
         switch (current_demo) {
             case DEMO_BALL:
@@ -50,9 +44,7 @@ int main(void) {
                 break;
         }
 
-        // Handle demo switch
         if (switch_to) {
-            // Cleanup current demo
             switch (current_demo) {
                 case DEMO_BALL:
                     BallDemoCleanup();
@@ -68,7 +60,6 @@ int main(void) {
                     break;
             }
 
-            // Initialize target demo
             switch (switch_to) {
                 case DEMO_ID_BALL:
                     current_demo = DEMO_BALL;
