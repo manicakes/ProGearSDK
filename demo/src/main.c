@@ -5,6 +5,7 @@
  */
 
 #include <engine.h>
+#include <arena.h>
 
 #include "demo_ids.h"
 #include "ball/ball_demo.h"
@@ -59,6 +60,8 @@ int main(void) {
                     TilemapDemoCleanup();
                     break;
             }
+
+            NGArenaReset(&ng_arena_state);
 
             switch (switch_to) {
                 case DEMO_ID_BALL:
