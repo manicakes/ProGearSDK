@@ -15,9 +15,13 @@
 #include <engine.h>
 #include <ngres_generated_assets.h>
 
-static NGMenuHandle menu;
-static u8 menu_open;
-static u8 switch_target;
+typedef struct BlankSceneState {
+    NGMenuHandle menu;
+    u8 menu_open;
+    u8 switch_target;
+} BlankSceneState;
+
+static BlankSceneState *state;
 
 #define MENU_RESUME       0
 #define MENU_BALL_DEMO    1
@@ -25,79 +29,80 @@ static u8 switch_target;
 #define MENU_TILEMAP_DEMO 3
 
 void BlankSceneInit(void) {
-    switch_target = 0;
-    menu_open = 0;
+    state = NG_ARENA_ALLOC(&ng_arena_state, BlankSceneState);
+    state->switch_target = 0;
+    state->menu_open = 0;
 
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
-    menu = NGMenuCreate(
+    state->menu = NGMenuCreate(
         &ng_arena_state,
         &NGVisualAsset_ui_panel,
         &NGVisualAsset_ui_cursor,
-        10  // Dim amount
+        10
     );
-    NGMenuSetTitle(menu, "BLANK SCENE");
-    NGMenuAddItem(menu, "Resume");
-    NGMenuAddItem(menu, "Ball Demo");
-    NGMenuAddItem(menu, "Scroll Demo");
-    NGMenuAddItem(menu, "Tilemap Demo");
-    NGMenuSetSounds(menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
-    NGEngineSetActiveMenu(menu);
+    NGMenuSetTitle(state->menu, "BLANK SCENE");
+    NGMenuAddItem(state->menu, "Resume");
+    NGMenuAddItem(state->menu, "Ball Demo");
+    NGMenuAddItem(state->menu, "Scroll Demo");
+    NGMenuAddItem(state->menu, "Tilemap Demo");
+    NGMenuSetSounds(state->menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
+    NGEngineSetActiveMenu(state->menu);
 
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
 }
 
 u8 BlankSceneUpdate(void) {
     if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
-        if (menu_open) {
-            NGMenuHide(menu);
-            menu_open = 0;
+        if (state->menu_open) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
         } else {
-            NGMenuShow(menu);
-            menu_open = 1;
+            NGMenuShow(state->menu);
+            state->menu_open = 1;
         }
     }
 
-    NGMenuUpdate(menu);
+    NGMenuUpdate(state->menu);
 
-    if (menu_open) {
-        if (NGMenuConfirmed(menu)) {
-            switch (NGMenuGetSelection(menu)) {
+    if (state->menu_open) {
+        if (NGMenuConfirmed(state->menu)) {
+            switch (NGMenuGetSelection(state->menu)) {
                 case MENU_RESUME:
-                    NGMenuHide(menu);
-                    menu_open = 0;
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
                     break;
                 case MENU_BALL_DEMO:
-                    NGMenuHide(menu);
-                    menu_open = 0;
-                    switch_target = DEMO_ID_BALL;
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    state->switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_SCROLL_DEMO:
-                    NGMenuHide(menu);
-                    menu_open = 0;
-                    switch_target = DEMO_ID_SCROLL;
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    state->switch_target = DEMO_ID_SCROLL;
                     break;
                 case MENU_TILEMAP_DEMO:
-                    NGMenuHide(menu);
-                    menu_open = 0;
-                    switch_target = DEMO_ID_TILEMAP;
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    state->switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }
 
-        if (NGMenuCancelled(menu)) {
-            NGMenuHide(menu);
-            menu_open = 0;
+        if (NGMenuCancelled(state->menu)) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
         }
     }
 
-    return switch_target;
+    return state->switch_target;
 }
 
 void BlankSceneCleanup(void) {
     NGFixClear(0, 3, 40, 1);
 
-    NGMenuDestroy(menu);
+    NGMenuDestroy(state->menu);
 
     NGPalSetBackdrop(NG_COLOR_BLACK);
 }
