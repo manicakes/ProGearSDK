@@ -1,6 +1,6 @@
-# ProGearSDK Demo
+# ProGearSDK Showcase
 
-A demonstration application showcasing ProGearSDK features for NeoGeo development.
+A comprehensive demonstration application showcasing ProGearSDK features for NeoGeo development.
 
 ## Building
 
@@ -102,7 +102,7 @@ A platformer-style demo showcasing the tilemap system with collision detection.
 ## Project Structure
 
 ```
-demo/
+showcase/
 ├── src/
 │   ├── main.c                 # Entry point and scene switching
 │   ├── ball/

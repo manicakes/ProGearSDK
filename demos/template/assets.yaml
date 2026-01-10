@@ -1,0 +1,5 @@
+# ProGearSDK Template Assets
+
+visual_assets:
+  - name: checkerboard
+    source: assets/checkerboard.png

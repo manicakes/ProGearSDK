@@ -3,6 +3,7 @@ build/
 
 # MAME save data
 nvram/
+cfg/
 
 # macOS
 .DS_Store

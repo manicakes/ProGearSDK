@@ -1,11 +1,11 @@
-# ProGearSDK demo Makefile
+# ProGearSDK template Makefile
 
 # === Configuration ===
-GAME_NAME = mygame
+GAME_NAME = template
 
 # MAME configuration - uses puzzledp driver for homebrew testing
 MAME_DRIVER = puzzledp
-NEOGEO_BIOS_PATH = ../../bios
+NEOGEO_BIOS_PATH = ../../../bios
 
 # Toolchain
 PREFIX = m68k-elf-
@@ -18,15 +18,14 @@ OBJCOPY = $(PREFIX)objcopy
 Z80ASM = sdasz80
 
 # Paths
-SDK_PATH = ../sdk
-TOOLS_PATH = ../tools
+SDK_PATH = ../../sdk
+TOOLS_PATH = ../../tools
 BUILD_DIR = build
 
 # Asset pipeline
 NGRES = python3 $(TOOLS_PATH)/ngres.py
 ASSETS_YAML = assets.yaml
 SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
-ASSETS_DIR = assets
 GEN_DIR = $(BUILD_DIR)/gen
 
 # === Compiler Flags ===
@@ -40,24 +39,12 @@ ASFLAGS = -m68000
 LDFLAGS = -T$(SDK_PATH)/rom/link.ld -nostdlib
 
 # === Source Files ===
-# Game sources organized by demo
-GAME_SOURCES = src/main.c \
-               src/ball/ball.c \
-               src/ball/ball_demo.c \
-               src/scroll/scroll_demo.c \
-               src/blank_scene/blank_scene.c \
-               src/tilemap_demo/tilemap_demo.c
+GAME_SOURCES = src/main.c
 
 SDK_C_SOURCES = $(SDK_PATH)/src/fix.c $(SDK_PATH)/src/color.c $(SDK_PATH)/src/palette.c $(SDK_PATH)/src/scene.c $(SDK_PATH)/src/actor.c $(SDK_PATH)/src/parallax.c $(SDK_PATH)/src/input.c $(SDK_PATH)/src/ngmath.c $(SDK_PATH)/src/physics.c $(SDK_PATH)/src/camera.c $(SDK_PATH)/src/arena.c $(SDK_PATH)/src/spring.c $(SDK_PATH)/src/ui.c $(SDK_PATH)/src/audio.c $(SDK_PATH)/src/engine.c $(SDK_PATH)/src/tilemap.c
-ASM_SOURCES = $(SDK_PATH)/src/crt0.s
 
 # Object files go in build directory
 OBJECTS = $(BUILD_DIR)/main.o \
-          $(BUILD_DIR)/ball.o \
-          $(BUILD_DIR)/ball_demo.o \
-          $(BUILD_DIR)/scroll_demo.o \
-          $(BUILD_DIR)/blank_scene.o \
-          $(BUILD_DIR)/tilemap_demo.o \
           $(BUILD_DIR)/fix.o \
           $(BUILD_DIR)/color.o \
           $(BUILD_DIR)/palette.o \
@@ -127,22 +114,7 @@ $(GEN_ASSETS_H): | $(GEN_DIR)
 
 # Compile game source files (depend on generated headers)
 $(BUILD_DIR)/main.o: src/main.c $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -c $< -o $@
-
-$(BUILD_DIR)/ball.o: src/ball/ball.c src/ball/ball.h $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -Isrc/ball -c $< -o $@
-
-$(BUILD_DIR)/ball_demo.o: src/ball/ball_demo.c src/ball/ball_demo.h $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -Isrc/ball -c $< -o $@
-
-$(BUILD_DIR)/scroll_demo.o: src/scroll/scroll_demo.c src/scroll/scroll_demo.h $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -Isrc/scroll -c $< -o $@
-
-$(BUILD_DIR)/blank_scene.o: src/blank_scene/blank_scene.c src/blank_scene/blank_scene.h $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -Isrc/blank_scene -c $< -o $@
-
-$(BUILD_DIR)/tilemap_demo.o: src/tilemap_demo/tilemap_demo.c src/tilemap_demo/tilemap_demo.h $(GEN_ASSETS_H) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Isrc -Isrc/tilemap_demo -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile SDK C files
 $(BUILD_DIR)/fix.o: $(SDK_PATH)/src/fix.c | $(BUILD_DIR)
@@ -279,38 +251,3 @@ $(BUILD_DIR)/$(MAME_DRIVER).zip: $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) 
 
 clean:
 	rm -rf $(BUILD_DIR)
-
-# === Code Quality Targets ===
-# All C source files (SDK + demo)
-ALL_C_SOURCES = $(SDK_C_SOURCES) $(GAME_SOURCES)
-ALL_H_SOURCES = $(wildcard $(SDK_PATH)/include/*.h) $(wildcard src/**/*.h)
-
-.PHONY: format format-check lint check
-
-# Auto-format all source files
-format:
-	@echo "Formatting source files..."
-	@clang-format -i $(ALL_C_SOURCES) $(ALL_H_SOURCES)
-	@echo "Done."
-
-# Check formatting without modifying (fails if formatting needed)
-format-check:
-	@echo "Checking code formatting..."
-	@clang-format --dry-run --Werror $(ALL_C_SOURCES) $(ALL_H_SOURCES)
-	@echo "Formatting OK."
-
-# Static analysis with cppcheck
-lint:
-	@echo "Running static analysis..."
-	@cppcheck --enable=warning,performance,portability \
-		--suppress=missingIncludeSystem \
-		--suppress=unusedFunction \
-		--error-exitcode=1 \
-		--inline-suppr \
-		-I$(SDK_PATH)/include \
-		$(ALL_C_SOURCES)
-	@echo "Static analysis OK."
-
-# Run all checks (for CI)
-check: format-check lint
-	@echo "All checks passed."
