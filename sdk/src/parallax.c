@@ -101,7 +101,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         if (num_cols > MAX_COLUMNS_PER_PARALLAX)
             num_cols = MAX_COLUMNS_PER_PARALLAX;
     } else {
-        num_cols = (disp_w + TILE_SIZE - 1) / TILE_SIZE;
+        num_cols = (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
         if (num_cols > MAX_COLUMNS_PER_PARALLAX)
             num_cols = MAX_COLUMNS_PER_PARALLAX;
     }
@@ -112,7 +112,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
     u8 num_rows;
     if (!infinite_width && disp_h > asset->height_pixels) {
-        num_rows = (disp_h + TILE_SIZE - 1) / TILE_SIZE;
+        num_rows = (u8)((disp_h + TILE_SIZE - 1) / TILE_SIZE);
     } else {
         num_rows = asset_rows;
     }
@@ -138,7 +138,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
             for (u8 row = 0; row < num_rows; row++) {
                 u8 asset_row = row % asset_rows;
-                u16 tile_idx = asset->base_tile + (asset_col * asset_rows) + asset_row;
+                u16 tile_idx = (u16)(asset->base_tile + (asset_col * asset_rows) + asset_row);
                 NG_REG_VRAMDATA = tile_idx & 0xFFFF;
                 u16 attr = ((u16)plx->palette << 8) | 0x01;
                 NG_REG_VRAMDATA = attr;
@@ -158,12 +158,12 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         }
 
         // Start one tile left of screen for bidirectional scroll buffer
-        s16 tile_w = (TILE_SIZE * zoom) >> 4;
-        NG_REG_VRAMADDR = SCB4_BASE + first_sprite;
+        s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
+        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
         NG_REG_VRAMMOD = 1;
         for (u8 col = 0; col < num_cols; col++) {
-            s16 x = (col * tile_w) - tile_w;
-            NG_REG_VRAMDATA = (x & 0x1FF) << 7;
+            s16 x = (s16)((col * tile_w) - tile_w);
+            NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
         }
 
         plx->hw_sprite_first = first_sprite;
@@ -173,7 +173,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         plx->last_scb3 = 0xFFFF;
 
         plx->leftmost = first_sprite;
-        s16 tile_width_zoomed = (TILE_SIZE * zoom) >> 4;
+        s16 tile_width_zoomed = (s16)((TILE_SIZE * zoom) >> 4);
         // Start scroll_offset mid-range for immediate bidirectional scrolling
         plx->scroll_offset = SCROLL_FIX(tile_width_zoomed);
         plx->last_scroll_px = FIX_INT(parallax_offset_x);
@@ -188,12 +188,12 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         }
 
         if (infinite_width) {
-            s16 tile_w = (TILE_SIZE * zoom) >> 4;
-            NG_REG_VRAMADDR = SCB4_BASE + first_sprite;
+            s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
+            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
             NG_REG_VRAMMOD = 1;
             for (u8 col = 0; col < num_cols; col++) {
-                s16 x = (col * tile_w) - tile_w;
-                NG_REG_VRAMDATA = (x & 0x1FF) << 7;
+                s16 x = (s16)((col * tile_w) - tile_w);
+                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
             }
             plx->leftmost = first_sprite;
             plx->scroll_offset = SCROLL_FIX((TILE_SIZE * zoom) >> 4);
@@ -205,8 +205,8 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
     // Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
     u16 shrink = NGCameraGetShrink();
-    u8 v_shrink = shrink & 0xFF;
-    u16 adjusted_rows = ((u16)num_rows * v_shrink + 254) / 255;
+    u8 v_shrink = (u8)(shrink & 0xFF);
+    u16 adjusted_rows = (u16)(((u16)num_rows * v_shrink + 254) / 255);
     if (adjusted_rows < 1)
         adjusted_rows = 1;
     if (adjusted_rows > 32)
@@ -232,23 +232,23 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
     if (infinite_width) {
         s16 scroll_px = FIX_INT(parallax_offset_x);
-        s16 pixel_diff = scroll_px - plx->last_scroll_px;
+        s16 pixel_diff = (s16)(scroll_px - plx->last_scroll_px);
         plx->last_scroll_px = scroll_px;
 
         if (pixel_diff != 0) {
-            s16 tile_width_zoomed = (TILE_SIZE * zoom) >> 4;
+            s16 tile_width_zoomed = (s16)((TILE_SIZE * zoom) >> 4);
             s16 total_width = num_cols * tile_width_zoomed;
             s16 tile_width_fixed = SCROLL_FIX(tile_width_zoomed);
 
-            plx->scroll_offset -= (pixel_diff << SCROLL_FRAC_BITS);
+            plx->scroll_offset = (s16)(plx->scroll_offset - (pixel_diff << SCROLL_FRAC_BITS));
 
             // Scrolling RIGHT: wrap leftmost sprite to right
             while (plx->scroll_offset <= 0) {
-                NG_REG_VRAMADDR = SCB4_BASE + plx->leftmost;
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
                 s16 x = (s16)(NG_REG_VRAMDATA >> 7);
-                x += total_width;
-                NG_REG_VRAMADDR = SCB4_BASE + plx->leftmost;
-                NG_REG_VRAMDATA = ((x & 0x1FF) << 7);
+                x = (s16)(x + total_width);
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
+                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
                 plx->leftmost++;
                 if (plx->leftmost >= first_sprite + num_cols) {
                     plx->leftmost = first_sprite;
@@ -262,34 +262,34 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
                     plx->leftmost = first_sprite + num_cols;
                 }
                 plx->leftmost--;
-                NG_REG_VRAMADDR = SCB4_BASE + plx->leftmost;
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
                 s16 x = (s16)(NG_REG_VRAMDATA >> 7);
-                x -= total_width;
-                NG_REG_VRAMADDR = SCB4_BASE + plx->leftmost;
-                NG_REG_VRAMDATA = ((x & 0x1FF) << 7);
+                x = (s16)(x - total_width);
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
+                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
                 plx->scroll_offset -= tile_width_fixed;
             }
 
             NG_REG_VRAMMOD = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 u16 spr = first_sprite + col;
-                NG_REG_VRAMADDR = SCB4_BASE + spr;
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
                 s16 x = (s16)(NG_REG_VRAMDATA >> 7);
-                x -= pixel_diff;
-                NG_REG_VRAMADDR = SCB4_BASE + spr;
-                NG_REG_VRAMDATA = ((x & 0x1FF) << 7);
+                x = (s16)(x - pixel_diff);
+                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
+                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
             }
         }
     } else {
-        s16 base_x = plx->viewport_x - FIX_INT(parallax_offset_x);
+        s16 base_x = (s16)(plx->viewport_x - FIX_INT(parallax_offset_x));
 
         if (base_x != plx->last_base_x || zoom_changed) {
-            NG_REG_VRAMADDR = SCB4_BASE + first_sprite;
+            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
             NG_REG_VRAMMOD = 1;
             for (u8 col = 0; col < num_cols; col++) {
-                s16 col_offset = (col * TILE_SIZE * zoom) >> 4;
-                s16 x_pos = base_x + col_offset;
-                NG_REG_VRAMDATA = (x_pos & 0x1FF) << 7;
+                s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
+                s16 x_pos = (s16)(base_x + col_offset);
+                NG_REG_VRAMDATA = (vu16)((x_pos & 0x1FF) << 7);
             }
             plx->last_base_x = base_x;
         }
@@ -371,7 +371,7 @@ void NGParallaxRemoveFromScene(NGParallaxHandle handle) {
 
     if (plx->hw_sprite_count > 0) {
         for (u8 i = 0; i < plx->hw_sprite_count; i++) {
-            NG_REG_VRAMADDR = SCB3_BASE + plx->hw_sprite_first + i;
+            NG_REG_VRAMADDR = (vu16)(SCB3_BASE + plx->hw_sprite_first + i);
             NG_REG_VRAMDATA = 0;
         }
     }
@@ -466,7 +466,7 @@ u8 NGParallaxGetSpriteCount(NGParallaxHandle handle) {
         return cols;
     }
 
-    u8 cols = (disp_w + TILE_SIZE - 1) / TILE_SIZE;
+    u8 cols = (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
     if (cols > MAX_COLUMNS_PER_PARALLAX)
         cols = MAX_COLUMNS_PER_PARALLAX;
     return cols;

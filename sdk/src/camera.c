@@ -69,7 +69,7 @@ static inline u8 zoom_to_index(u8 zoom) {
         zoom = 8;
     if (zoom > 16)
         zoom = 16;
-    return (zoom - 8) << 4;
+    return (u8)((zoom - 8) << 4);
 }
 
 static inline u8 index_to_zoom(u8 index) {
@@ -243,7 +243,7 @@ void NGCameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *wo
 }
 
 static s8 shake_random(void) {
-    camera.shake.rand_state = camera.shake.rand_state * 1103515245 + 12345;
+    camera.shake.rand_state = (u16)(camera.shake.rand_state * 1103515245 + 12345);
     return (s8)((camera.shake.rand_state >> 8) & 0xFF);
 }
 
@@ -272,8 +272,10 @@ static void update_shake(void) {
         if (current_intensity < 1 && camera.shake.timer > 0)
             current_intensity = 1;
 
-        camera.shake.offset_x = (shake_random() % (current_intensity * 2 + 1)) - current_intensity;
-        camera.shake.offset_y = (shake_random() % (current_intensity * 2 + 1)) - current_intensity;
+        camera.shake.offset_x =
+            (s8)((shake_random() % (current_intensity * 2 + 1)) - current_intensity);
+        camera.shake.offset_y =
+            (s8)((shake_random() % (current_intensity * 2 + 1)) - current_intensity);
     } else {
         camera.shake.offset_x = 0;
         camera.shake.offset_y = 0;

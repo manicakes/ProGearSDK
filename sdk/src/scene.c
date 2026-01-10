@@ -81,7 +81,7 @@ static void sort_render_queue(void) {
         s8 temp_handle = render_queue[i].handle;
         u8 temp_z = render_queue[i].z;
 
-        s8 j = i - 1;
+        s8 j = (s8)(i - 1);
         while (j >= 0 && render_queue[j].z > temp_z) {
             render_queue[j + 1].type = render_queue[j].type;
             render_queue[j + 1].handle = render_queue[j].handle;

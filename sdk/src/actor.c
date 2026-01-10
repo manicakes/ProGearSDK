@@ -110,8 +110,8 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
     u16 disp_w = actor->width ? actor->width : asset->width_pixels;
     u16 disp_h = actor->height ? actor->height : asset->height_pixels;
 
-    u8 cols = (disp_w + TILE_SIZE - 1) / TILE_SIZE;
-    u8 rows = (disp_h + TILE_SIZE - 1) / TILE_SIZE;
+    u8 cols = (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
+    u8 rows = (u8)((disp_h + TILE_SIZE - 1) / TILE_SIZE);
     if (rows > 32)
         rows = 32;
 
@@ -156,12 +156,12 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
 
             for (u8 row = 0; row < rows; row++) {
                 u8 src_row = row % asset->height_tiles;
-                u8 tile_col = actor->h_flip ? (asset->width_tiles - 1 - src_col) : src_col;
-                u8 tile_row = actor->v_flip ? (asset->height_tiles - 1 - src_row) : src_row;
+                u8 tile_col = (u8)(actor->h_flip ? (asset->width_tiles - 1 - src_col) : src_col);
+                u8 tile_row = (u8)(actor->v_flip ? (asset->height_tiles - 1 - src_row) : src_row);
 
                 // Column-major layout: each column is height_tiles sequential tiles
-                u16 tile_idx =
-                    asset->base_tile + frame_offset + (tile_col * asset->height_tiles) + tile_row;
+                u16 tile_idx = (u16)(asset->base_tile + frame_offset +
+                                     (tile_col * asset->height_tiles) + tile_row);
 
                 NG_REG_VRAMDATA = tile_idx & 0xFFFF;
 
@@ -198,8 +198,8 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
     if (first_draw || zoom_changed || position_changed) {
         // Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
         // than the display window causing garbage. Reduce proportionally.
-        u8 v_shrink = shrink & 0xFF;
-        u16 adjusted_rows = ((u16)rows * v_shrink + 254) / 255; // Ceiling division
+        u8 v_shrink = (u8)(shrink & 0xFF);
+        u16 adjusted_rows = (u16)(((u16)rows * v_shrink + 254) / 255); // Ceiling division
         if (adjusted_rows < 1)
             adjusted_rows = 1;
         if (adjusted_rows > 32)
@@ -219,12 +219,11 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
             NG_REG_VRAMADDR = SCB3_BASE + spr;
             NG_REG_VRAMDATA = scb3;
 
-            s16 col_offset = (col * TILE_SIZE * zoom) >> 4;
-            s16 x_pos = screen_x + col_offset;
-            x_pos &= 0x1FF;
+            s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
+            s16 x_pos = (s16)((screen_x + col_offset) & 0x1FF);
 
-            NG_REG_VRAMADDR = SCB4_BASE + spr;
-            NG_REG_VRAMDATA = (x_pos << 7);
+            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
+            NG_REG_VRAMDATA = (vu16)(x_pos << 7);
         }
 
         actor->last_screen_x = screen_x;
@@ -334,7 +333,7 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
 
     if (actor->hw_sprite_count > 0) {
         for (u8 i = 0; i < actor->hw_sprite_count; i++) {
-            NG_REG_VRAMADDR = SCB3_BASE + actor->hw_sprite_first + i;
+            NG_REG_VRAMADDR = (vu16)(SCB3_BASE + actor->hw_sprite_first + i);
             NG_REG_VRAMDATA = 0;
         }
     }
@@ -546,5 +545,5 @@ u8 NGActorGetSpriteCount(NGActorHandle handle) {
         return 0;
 
     u16 disp_w = actor->width ? actor->width : actor->asset->width_pixels;
-    return (disp_w + TILE_SIZE - 1) / TILE_SIZE;
+    return (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
 }

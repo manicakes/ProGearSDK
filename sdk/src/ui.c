@@ -92,7 +92,7 @@ typedef struct NGMenu {
 
 // Get Y position for a menu item, accounting for fix layer's 2-tile visible offset
 static s16 get_item_y_offset(u8 index) {
-    return (MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + index) * 8 - (NG_FIX_VISIBLE_TOP * 8);
+    return (s16)((MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + index) * 8 - (NG_FIX_VISIBLE_TOP * 8));
 }
 
 static u8 find_first_selectable(NGMenu *menu) {
@@ -128,10 +128,10 @@ static void clear_menu_text(NGMenu *menu) {
     s16 fix_y = menu->viewport_y / 8 + MENU_TITLE_OFFSET_Y;
 
     s16 width = 16;
-    s16 height = menu->item_count + 2;
+    s16 height = (s16)(menu->item_count + 2);
 
     if (fix_x >= 0 && fix_y >= 0) {
-        NGFixClear(fix_x, fix_y, width, height);
+        NGFixClear((u8)fix_x, (u8)fix_y, (u8)width, (u8)height);
     }
 }
 
@@ -140,18 +140,18 @@ static void draw_menu_text(NGMenu *menu) {
     s16 fix_y = menu->viewport_y / 8 + MENU_TITLE_OFFSET_Y;
 
     if (menu->title && fix_y >= 0 && fix_y < 28) {
-        NGTextPrint(NGFixLayoutXY(fix_x, fix_y), menu->normal_pal, menu->title);
+        NGTextPrint(NGFixLayoutXY((u8)fix_x, (u8)fix_y), menu->normal_pal, menu->title);
     }
 
     for (u8 i = 0; i < menu->item_count; i++) {
-        s16 item_y = fix_y + MENU_TEXT_OFFSET_Y + i;
+        s16 item_y = (s16)(fix_y + MENU_TEXT_OFFSET_Y + i);
         if (item_y >= 0 && item_y < 28) {
             if (i == menu->selection && menu->blink_count > 0 && !menu->blink_on) {
-                NGFixClear(fix_x, item_y, 12, 1);
+                NGFixClear((u8)fix_x, (u8)item_y, 12, 1);
             } else {
                 u8 pal = (i == menu->selection && menu->item_selectable[i]) ? menu->selected_pal
                                                                             : menu->normal_pal;
-                NGTextPrint(NGFixLayoutXY(fix_x, item_y), pal, menu->items[i]);
+                NGTextPrint(NGFixLayoutXY((u8)fix_x, (u8)item_y), pal, menu->items[i]);
             }
         }
     }
@@ -213,15 +213,15 @@ static void restore_palettes(NGMenu *menu) {
 
 static u8 calc_panel_height(u8 item_count) {
     u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
-    u16 content_height_px = (text_fix_rows * 8) + 8;
-    u8 sprite_tiles = (content_height_px + 15) / 16;
+    u16 content_height_px = (u16)((text_fix_rows * 8) + 8);
+    u8 sprite_tiles = (u8)((content_height_px + 15) / 16);
     if (sprite_tiles < PANEL_MIN_ROWS)
         sprite_tiles = PANEL_MIN_ROWS;
     return sprite_tiles;
 }
 
 static u16 get_panel_tile(const NGVisualAsset *asset, u8 col, u8 row) {
-    u16 idx = row * asset->width_tiles + col;
+    u16 idx = (u16)(row * asset->width_tiles + col);
     u16 entry = asset->tilemap[idx];
     u16 tile_offset = entry & 0x7FFF;
     return asset->base_tile + tile_offset;
@@ -308,9 +308,9 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
         NG_REG_VRAMDATA = scb3_val;
 
         // Write X position to SCB4
-        s16 x_pos = screen_x + (col * 16);
-        NG_REG_VRAMADDR = SCB4_BASE + spr;
-        NG_REG_VRAMDATA = (x_pos & 0x1FF) << 7;
+        s16 x_pos = (s16)(screen_x + (col * 16));
+        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
+        NG_REG_VRAMDATA = (vu16)((x_pos & 0x1FF) << 7);
     }
 }
 
@@ -349,7 +349,7 @@ NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
 
     NGActorSetScreenSpace(menu->cursor_actor, 1);
 
-    menu->viewport_x = (320 - panel_asset->width_pixels) / 2;
+    menu->viewport_x = (s16)((320 - panel_asset->width_pixels) / 2);
     menu->viewport_y = 40;
 
     NGSpringInit(&menu->panel_y_spring, MENU_HIDDEN_OFFSET_FIX);

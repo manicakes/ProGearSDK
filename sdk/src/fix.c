@@ -14,13 +14,13 @@ void NGFixPut(u8 x, u8 y, u16 tile, u8 palette) {
         return;
 
     // Fix layer is column-major: address = base + (x * 32) + y
-    NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + y;
+    NG_REG_VRAMADDR = (vu16)(NG_FIX_VRAM + (x << 5) + y);
     NG_REG_VRAMDATA = ((u16)palette << 12) | (tile & 0x0FFF);
 }
 
 void NGFixClear(u8 x, u8 y, u8 w, u8 h) {
     for (u8 row = 0; row < h && (y + row) < NG_FIX_HEIGHT; row++) {
-        NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + (y + row);
+        NG_REG_VRAMADDR = (vu16)(NG_FIX_VRAM + (x << 5) + (y + row));
         NG_REG_VRAMMOD = 32;
         for (u8 col = 0; col < w && (x + col) < NG_FIX_WIDTH; col++) {
             NG_REG_VRAMDATA = 0;
@@ -62,7 +62,7 @@ static u8 calc_x(NGFixLayout layout, u8 text_len) {
     s16 x;
     switch (layout.h_align) {
         case NG_ALIGN_CENTER:
-            x = (NG_FIX_SAFE_LEFT + NG_FIX_SAFE_RIGHT + 1 - text_len) / 2;
+            x = (s16)((NG_FIX_SAFE_LEFT + NG_FIX_SAFE_RIGHT + 1 - text_len) / 2);
             break;
         case NG_ALIGN_RIGHT:
             x = NG_FIX_SAFE_RIGHT + 1 - text_len;
@@ -110,7 +110,7 @@ void NGTextPrint(NGFixLayout layout, u8 palette, const char *str) {
     u16 pal = (u16)palette << 12;
 
     // Fix layer is column-major, VRAMMOD = 32 advances one column per write
-    NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + y;
+    NG_REG_VRAMADDR = (vu16)(NG_FIX_VRAM + (x << 5) + y);
     NG_REG_VRAMMOD = 32;
 
     while (*str && x < NG_FIX_WIDTH) {
@@ -140,8 +140,8 @@ static u8 int_to_str(s32 value, char *buf, u8 base, u8 is_signed) {
         tmp[i++] = '0';
     } else {
         while (uval > 0) {
-            u8 digit = uval % base;
-            tmp[i++] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
+            u8 digit = (u8)(uval % base);
+            tmp[i++] = (char)((digit < 10) ? ('0' + digit) : ('A' + digit - 10));
             uval /= base;
         }
     }
@@ -191,7 +191,7 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
             fmt++;
         }
         while (*fmt >= '0' && *fmt <= '9') {
-            width = width * 10 + (*fmt - '0');
+            width = (u8)(width * 10 + (*fmt - '0'));
             fmt++;
         }
 

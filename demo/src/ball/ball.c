@@ -37,7 +37,7 @@ typedef struct BallSystem {
 
 // Simple pseudo-random number generator
 static u16 random(BallSystemHandle sys) {
-    sys->random_seed = sys->random_seed * 25173 + 13849;
+    sys->random_seed = (u16)(sys->random_seed * 25173 + 13849);
     return sys->random_seed;
 }
 
@@ -48,7 +48,7 @@ static fixed random_range_fix(BallSystemHandle sys, fixed min, fixed max) {
 }
 
 static s16 random_range(BallSystemHandle sys, s16 min, s16 max) {
-    return min + (random(sys) % (max - min + 1));
+    return (s16)(min + (random(sys) % (max - min + 1)));
 }
 
 // Collision callback - shake camera and play sound when balls collide
@@ -165,7 +165,7 @@ u8 BallDestroyLast(BallSystemHandle sys) {
     if (!sys)
         return 0;
 
-    for (s8 i = sys->max_balls - 1; i >= 0; i--) {
+    for (s8 i = (s8)(sys->max_balls - 1); i >= 0; i--) {
         if (sys->balls[i].active) {
             NGActorDestroy(sys->balls[i].actor);
             NGPhysBodyDestroy(sys->balls[i].body);

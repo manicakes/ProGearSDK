@@ -49,7 +49,7 @@ static u8 button_to_index(u16 button) {
 
 void NGInputInit(void) {
     for (int p = 0; p < 2; p++) {
-        u16 initial = read_player_input(p);
+        u16 initial = read_player_input((u8)p);
         g_input[p].current = initial;
         g_input[p].previous = initial;
         g_input[p].pressed = 0;
@@ -131,7 +131,7 @@ void NGInputUpdate(void) {
         InputState *state = &g_input[p];
 
         state->previous = state->current;
-        state->current = read_player_input(p);
+        state->current = read_player_input((u8)p);
         state->pressed = state->current & ~state->previous;
         state->released = ~state->current & state->previous;
 

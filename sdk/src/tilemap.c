@@ -82,7 +82,7 @@ static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 n
             continue;
         }
 
-        u16 tile_array_idx = tilemap_row * asset->width_tiles + tilemap_col;
+        u16 tile_array_idx = (u16)(tilemap_row * asset->width_tiles + tilemap_col);
         u8 tile_idx = asset->tile_data[tile_array_idx];
         u16 crom_tile = asset->base_tile + tile_idx;
 
@@ -119,8 +119,8 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     s16 first_col = view_left / NG_TILE_SIZE;
     s16 first_row = view_top / NG_TILE_SIZE;
 
-    u8 num_cols = (view_width / NG_TILE_SIZE) + 2;
-    u8 num_rows = (view_height / NG_TILE_SIZE) + 2;
+    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
+    u8 num_rows = (u8)((view_height / NG_TILE_SIZE) + 2);
 
     if (num_cols > NG_TILEMAP_MAX_COLS)
         num_cols = NG_TILEMAP_MAX_COLS;
@@ -153,15 +153,15 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
             NG_REG_VRAMDATA = shrink;
         }
 
-        s16 tile_w = (NG_TILE_SIZE * zoom) >> 4;
-        s16 base_screen_x = FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE);
-        base_screen_x = (base_screen_x * zoom) >> 4;
+        s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
+        s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
+        base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
-        NG_REG_VRAMADDR = SCB4_BASE + first_sprite;
+        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
         NG_REG_VRAMMOD = 1;
         for (u8 col = 0; col < num_cols; col++) {
-            s16 x = base_screen_x + (col * tile_w);
-            NG_REG_VRAMDATA = (x & 0x1FF) << 7;
+            s16 x = (s16)(base_screen_x + (col * tile_w));
+            NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
         }
 
         tm->hw_sprite_first = first_sprite;
@@ -189,11 +189,11 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
             for (s16 i = 0; i < col_delta && i < num_cols; i++) {
                 u8 sprite_offset = tm->leftmost_sprite_offset;
                 u16 spr = first_sprite + sprite_offset;
-                s16 new_col = tm->viewport_col + num_cols + i;
+                s16 new_col = (s16)(tm->viewport_col + num_cols + i);
 
                 load_column_tiles(tm, spr, new_col, num_rows);
 
-                tm->leftmost_sprite_offset = (tm->leftmost_sprite_offset + 1) % num_cols;
+                tm->leftmost_sprite_offset = (u8)((tm->leftmost_sprite_offset + 1) % num_cols);
             }
         } else {
             for (s16 i = 0; i > col_delta && i > -num_cols; i--) {
@@ -204,7 +204,7 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
 
                 u8 sprite_offset = tm->leftmost_sprite_offset;
                 u16 spr = first_sprite + sprite_offset;
-                s16 new_col = first_col - i;
+                s16 new_col = (s16)(first_col - i);
                 load_column_tiles(tm, spr, new_col, num_rows);
             }
         }
@@ -216,7 +216,7 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     if (row_delta != 0) {
         tm->viewport_row = first_row;
         for (u8 col = 0; col < num_cols; col++) {
-            u8 sprite_offset = (tm->leftmost_sprite_offset + col) % num_cols;
+            u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
             u16 spr = first_sprite + sprite_offset;
             s16 tilemap_col = first_col + col;
             load_column_tiles(tm, spr, tilemap_col, num_rows);
@@ -225,16 +225,16 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     }
 
     u16 shrink = NGCameraGetShrink();
-    u8 v_shrink = shrink & 0xFF;
-    u16 adjusted_rows = ((u16)num_rows * v_shrink + 254) / 255;
+    u8 v_shrink = (u8)(shrink & 0xFF);
+    u16 adjusted_rows = (u16)(((u16)num_rows * v_shrink + 254) / 255);
     if (adjusted_rows < 1)
         adjusted_rows = 1;
     if (adjusted_rows > 32)
         adjusted_rows = 32;
     u8 height_bits = (u8)adjusted_rows;
 
-    s16 base_screen_y = FIX_INT(tm->world_y - cam_y) + (first_row * NG_TILE_SIZE);
-    base_screen_y = (base_screen_y * zoom) >> 4;
+    s16 base_screen_y = (s16)(FIX_INT(tm->world_y - cam_y) + (first_row * NG_TILE_SIZE));
+    base_screen_y = (s16)((base_screen_y * zoom) >> 4);
 
     s16 y_val = 496 - base_screen_y;
     if (y_val < 0)
@@ -252,18 +252,18 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
         tm->last_scb3 = scb3_val;
     }
 
-    s16 tile_w = (NG_TILE_SIZE * zoom) >> 4;
-    s16 base_screen_x = FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE);
-    base_screen_x = (base_screen_x * zoom) >> 4;
+    s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
+    s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
+    base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
-    NG_REG_VRAMADDR = SCB4_BASE + first_sprite;
+    NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
     NG_REG_VRAMMOD = 1;
     for (u8 col = 0; col < num_cols; col++) {
-        u8 sprite_offset = (tm->leftmost_sprite_offset + col) % num_cols;
-        s16 x = base_screen_x + (col * tile_w);
+        u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
+        s16 x = (s16)(base_screen_x + (col * tile_w));
 
-        NG_REG_VRAMADDR = SCB4_BASE + first_sprite + sprite_offset;
-        NG_REG_VRAMDATA = (x & 0x1FF) << 7;
+        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite + sprite_offset);
+        NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
     }
 }
 
@@ -333,7 +333,7 @@ void NGTilemapRemoveFromScene(NGTilemapHandle handle) {
 
     if (tm->hw_sprite_count > 0) {
         for (u8 i = 0; i < tm->hw_sprite_count; i++) {
-            NG_REG_VRAMADDR = SCB3_BASE + tm->hw_sprite_first + i;
+            NG_REG_VRAMADDR = (vu16)(SCB3_BASE + tm->hw_sprite_first + i);
             NG_REG_VRAMDATA = 0;
         }
     }
@@ -421,7 +421,7 @@ u8 NGTilemapGetCollision(NGTilemapHandle handle, fixed world_x, fixed world_y) {
         return 0;
     }
 
-    u16 idx = tile_y * tm->asset->width_tiles + tile_x;
+    u16 idx = (u16)(tile_y * tm->asset->width_tiles + tile_x);
     return tm->asset->collision_data[idx];
 }
 
@@ -436,7 +436,7 @@ u8 NGTilemapGetTileAt(NGTilemapHandle handle, u16 tile_x, u16 tile_y) {
         return 0;
     }
 
-    u16 idx = tile_y * tm->asset->width_tiles + tile_x;
+    u16 idx = (u16)(tile_y * tm->asset->width_tiles + tile_x);
     return tm->asset->tile_data[idx];
 }
 
@@ -456,16 +456,16 @@ u8 NGTilemapTestAABB(NGTilemapHandle handle, fixed x, fixed y, fixed half_w, fix
     if (left_tile < 0)
         left_tile = 0;
     if (right_tile >= tm->asset->width_tiles)
-        right_tile = tm->asset->width_tiles - 1;
+        right_tile = (s16)(tm->asset->width_tiles - 1);
     if (top_tile < 0)
         top_tile = 0;
     if (bottom_tile >= tm->asset->height_tiles)
-        bottom_tile = tm->asset->height_tiles - 1;
+        bottom_tile = (s16)(tm->asset->height_tiles - 1);
 
     u8 result = 0;
     for (s16 ty = top_tile; ty <= bottom_tile; ty++) {
         for (s16 tx = left_tile; tx <= right_tile; tx++) {
-            u16 idx = ty * tm->asset->width_tiles + tx;
+            u16 idx = (u16)(ty * tm->asset->width_tiles + tx);
             u8 coll = tm->asset->collision_data[idx];
             result |= coll;
         }
@@ -498,16 +498,16 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w
         if (left_tile < 0)
             left_tile = 0;
         if (right_tile >= tm->asset->width_tiles)
-            right_tile = tm->asset->width_tiles - 1;
+            right_tile = (s16)(tm->asset->width_tiles - 1);
         if (top_tile < 0)
             top_tile = 0;
         if (bottom_tile >= tm->asset->height_tiles)
-            bottom_tile = tm->asset->height_tiles - 1;
+            bottom_tile = (s16)(tm->asset->height_tiles - 1);
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
             for (s16 tx = left_tile; tx <= right_tile && !hit; tx++) {
-                u16 idx = ty * tm->asset->width_tiles + tx;
+                u16 idx = (u16)(ty * tm->asset->width_tiles + tx);
                 u8 coll = tm->asset->collision_data[idx];
 
                 if (coll & NG_TILE_SOLID) {
@@ -524,11 +524,11 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w
         if (hit) {
             if (*vel_y > 0) {
                 result |= NG_COLL_BOTTOM;
-                s16 tile_top = (bottom_tile * NG_TILE_SIZE) + FIX_INT(tm->world_y);
+                s16 tile_top = (s16)((bottom_tile * NG_TILE_SIZE) + FIX_INT(tm->world_y));
                 new_y = FIX(tile_top) - half_h - 1;
             } else {
                 result |= NG_COLL_TOP;
-                s16 tile_bottom = ((top_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_y);
+                s16 tile_bottom = (s16)(((top_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_y));
                 new_y = FIX(tile_bottom) + half_h + 1;
             }
             *vel_y = 0;
@@ -548,16 +548,16 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w
         if (left_tile < 0)
             left_tile = 0;
         if (right_tile >= tm->asset->width_tiles)
-            right_tile = tm->asset->width_tiles - 1;
+            right_tile = (s16)(tm->asset->width_tiles - 1);
         if (top_tile < 0)
             top_tile = 0;
         if (bottom_tile >= tm->asset->height_tiles)
-            bottom_tile = tm->asset->height_tiles - 1;
+            bottom_tile = (s16)(tm->asset->height_tiles - 1);
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
             for (s16 tx = left_tile; tx <= right_tile && !hit; tx++) {
-                u16 idx = ty * tm->asset->width_tiles + tx;
+                u16 idx = (u16)(ty * tm->asset->width_tiles + tx);
                 if (tm->asset->collision_data[idx] & NG_TILE_SOLID) {
                     hit = 1;
                 }
@@ -567,11 +567,11 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w
         if (hit) {
             if (*vel_x > 0) {
                 result |= NG_COLL_RIGHT;
-                s16 tile_left = (right_tile * NG_TILE_SIZE) + FIX_INT(tm->world_x);
+                s16 tile_left = (s16)((right_tile * NG_TILE_SIZE) + FIX_INT(tm->world_x));
                 new_x = FIX(tile_left) - half_w - 1;
             } else {
                 result |= NG_COLL_LEFT;
-                s16 tile_right = ((left_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_x);
+                s16 tile_right = (s16)(((left_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_x));
                 new_x = FIX(tile_right) + half_w + 1;
             }
             *vel_x = 0;
@@ -618,7 +618,7 @@ u8 NGTilemapGetSpriteCount(NGTilemapHandle handle) {
 
     u8 zoom = NGCameraGetZoom();
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;
-    u8 num_cols = (view_width / NG_TILE_SIZE) + 2;
+    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
     if (num_cols > NG_TILEMAP_MAX_COLS)
         num_cols = NG_TILEMAP_MAX_COLS;
 

@@ -22,9 +22,9 @@ NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
     u8 gb = NGColorGetGreen(b);
     u8 bb = NGColorGetBlue(b);
 
-    u8 r = ((u16)ra * inv_ratio + (u16)rb * ratio + 128) >> 8;
-    u8 g = ((u16)ga * inv_ratio + (u16)gb * ratio + 128) >> 8;
-    u8 b_out = ((u16)ba * inv_ratio + (u16)bb * ratio + 128) >> 8;
+    u8 r = (u8)(((u16)ra * inv_ratio + (u16)rb * ratio + 128) >> 8);
+    u8 g = (u8)(((u16)ga * inv_ratio + (u16)gb * ratio + 128) >> 8);
+    u8 b_out = (u8)(((u16)ba * inv_ratio + (u16)bb * ratio + 128) >> 8);
 
     return NG_RGB5(r, g, b_out);
 }
@@ -52,9 +52,9 @@ NGColor NGColorLighten(NGColor c, u8 amount) {
     u8 g = NGColorGetGreen(c);
     u8 b = NGColorGetBlue(c);
 
-    r = (r + amount > 31) ? 31 : r + amount;
-    g = (g + amount > 31) ? 31 : g + amount;
-    b = (b + amount > 31) ? 31 : b + amount;
+    r = (u8)((r + amount > 31) ? 31 : r + amount);
+    g = (u8)((g + amount > 31) ? 31 : g + amount);
+    b = (u8)((b + amount > 31) ? 31 : b + amount);
 
     return NG_RGB5(r, g, b);
 }
@@ -73,7 +73,7 @@ NGColor NGColorGrayscale(NGColor c) {
     u8 b = NGColorGetBlue(c);
 
     // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
-    u16 lum = (77 * r + 150 * g + 29 * b) >> 8;
+    u16 lum = (u16)((77 * r + 150 * g + 29 * b) >> 8);
     if (lum > 31)
         lum = 31;
 
@@ -95,11 +95,11 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
     }
 
     u8 sector = h / 43;
-    u8 remainder = (h - (sector * 43)) * 6;
+    u8 remainder = (u8)((h - (sector * 43)) * 6);
 
-    u8 p = ((u16)v * (255 - s)) >> 8;
-    u8 q = ((u16)v * (255 - ((u16)s * remainder >> 8))) >> 8;
-    u8 t = ((u16)v * (255 - ((u16)s * (255 - remainder) >> 8))) >> 8;
+    u8 p = (u8)(((u16)v * (255 - s)) >> 8);
+    u8 q = (u8)(((u16)v * (255 - ((u16)s * remainder >> 8))) >> 8);
+    u8 t = (u8)(((u16)v * (255 - ((u16)s * (255 - remainder) >> 8))) >> 8);
 
     v = v >> 3;
     p = p >> 3;

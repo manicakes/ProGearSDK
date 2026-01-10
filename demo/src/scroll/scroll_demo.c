@@ -57,12 +57,12 @@ void ScrollDemoInit(void) {
 
     state->middle = NGParallaxCreate(&NGVisualAsset_middle_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
                                      FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
-    s16 middle_y = NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20;
+    s16 middle_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20);
     NGParallaxAddToScene(state->middle, 0, middle_y, 1);
 
     state->front = NGParallaxCreate(&NGVisualAsset_front_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
                                     FIX_ONE, FIX_ONE);
-    s16 front_y = NG_SCENE_VIEWPORT_H - NGVisualAsset_front_layer.height_pixels;
+    s16 front_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_front_layer.height_pixels);
     NGParallaxAddToScene(state->front, 0, front_y, 2);
 
     // Menu uses palette fade, no sprite limit issues
@@ -140,7 +140,7 @@ u8 ScrollDemoUpdate(void) {
             state->menu_open = 0;
         }
     } else {
-        state->scroll_x += state->scroll_dir * SCROLL_SPEED;
+        state->scroll_x = (s16)(state->scroll_x + state->scroll_dir * SCROLL_SPEED);
 
         if (state->scroll_x >= SCREEN_WIDTH) {
             state->scroll_x = SCREEN_WIDTH;
@@ -154,9 +154,9 @@ u8 ScrollDemoUpdate(void) {
         state->bob_phase += 2;
         s8 bob_y;
         if (state->bob_phase < 128) {
-            bob_y = -BOB_AMPLITUDE + ((state->bob_phase * BOB_AMPLITUDE * 2) >> 7);
+            bob_y = (s8)(-BOB_AMPLITUDE + ((state->bob_phase * BOB_AMPLITUDE * 2) >> 7));
         } else {
-            bob_y = BOB_AMPLITUDE - (((state->bob_phase - 128) * BOB_AMPLITUDE * 2) >> 7);
+            bob_y = (s8)(BOB_AMPLITUDE - (((state->bob_phase - 128) * BOB_AMPLITUDE * 2) >> 7));
         }
 
         NGCameraSetPos(FIX(state->scroll_x), FIX(bob_y));

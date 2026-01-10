@@ -67,7 +67,7 @@ void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx, NGColor start_color, NG
     }
 
     for (u8 i = 0; i <= steps; i++) {
-        u8 ratio = (i * 255) / steps;
+        u8 ratio = (u8)((i * 255) / steps);
         pal[start_idx + i] = NGColorBlend(start_color, end_color, ratio);
     }
 }
@@ -125,7 +125,7 @@ void NGPalSetupShaded(u8 palette, NGColor base_color) {
     pal[1] = base_color;
 
     for (u8 i = 2; i < NG_PAL_SIZE; i++) {
-        u8 darken_amount = (i - 1) * 2;
+        u8 darken_amount = (u8)((i - 1) * 2);
         pal[i] = NGColorDarken(base_color, darken_amount);
     }
 }
@@ -136,7 +136,7 @@ void NGPalSetupGrayscale(u8 palette) {
     pal[0] = NG_COLOR_REFERENCE;
 
     for (u8 i = 1; i < NG_PAL_SIZE; i++) {
-        u8 level = 31 - ((i - 1) * 2);
+        u8 level = (u8)(31 - ((i - 1) * 2));
         pal[i] = NGColorGray(level);
     }
 }
