@@ -74,11 +74,8 @@ visual_assets:
 ### src/main.c
 
 ```c
-#include <engine.h>
-#include <scene.h>
-#include <actor.h>
-#include <input.h>
-#include <ngres_generated_assets.h>
+#include <progearsdk.h>             // All SDK headers
+#include <ngres_generated_assets.h> // Generated asset definitions
 
 int main(void) {
     // Initialize all engine subsystems

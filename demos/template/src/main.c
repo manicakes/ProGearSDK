@@ -3,12 +3,7 @@
  * A minimal starting point for NeoGeo game development.
  */
 
-#include <engine.h>
-#include <scene.h>
-#include <actor.h>
-#include <input.h>
-#include <fix.h>
-#include <palette.h>
+#include <progearsdk.h>
 #include <ngres_generated_assets.h>
 
 int main(void) {
