@@ -22,6 +22,7 @@
 /* Color and palette management */
 #include <color.h>
 #include <palette.h>
+#include <lighting.h>
 
 /* Memory allocation */
 #include <arena.h>

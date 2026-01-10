@@ -547,3 +547,14 @@ u8 NGActorGetSpriteCount(NGActorHandle handle) {
     u16 disp_w = actor->width ? actor->width : actor->asset->width_pixels;
     return (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
 }
+
+/* Internal: collect palettes from all actors in scene into bitmask */
+void _NGActorCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
+        Actor *actor = &actors[i];
+        if (actor->active && actor->in_scene && actor->visible) {
+            u8 pal = actor->palette;
+            palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+        }
+    }
+}

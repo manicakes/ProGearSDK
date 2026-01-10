@@ -14,6 +14,7 @@
 #include <input.h>
 #include <audio.h>
 #include <ui.h>
+#include <lighting.h>
 
 static NGMenuHandle g_active_menu = 0;
 
@@ -28,6 +29,7 @@ void NGEngineInit(void) {
     NGCameraInit();
     NGInputInit();
     NGAudioInit();
+    NGLightingInit();
     NGPalInitAssets();
     NGPalSetBackdrop(NG_COLOR_BLACK);
     g_active_menu = 0;
@@ -41,6 +43,7 @@ void NGEngineFrameStart(void) {
 }
 
 void NGEngineFrameEnd(void) {
+    NGLightingUpdate();
     NGSceneUpdate();
     NGSceneDraw();
 

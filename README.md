@@ -261,6 +261,7 @@ Beyond scenes, actors, and cameras, ProGearSDK provides:
 | `fix.h` | Text rendering on the 40x32 tile overlay |
 | `ui.h` | Sprite-based menus with spring animations |
 | `palette.h` | Color management and fade effects |
+| `lighting.h` | Global lighting effects (day/night, flashes, weather) |
 | `audio.h` | Sound effects (ADPCM-A) and music (ADPCM-B) |
 | `ngmath.h` | Fixed-point math and trigonometry |
 | `arena.h` | Fast zero-fragmentation memory allocation |

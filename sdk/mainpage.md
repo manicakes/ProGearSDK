@@ -391,6 +391,61 @@ NGParallaxDestroy(bg);
 
 See @ref parallaxlife for all functions.
 
+### Lighting Effects (lighting.h)
+
+The lighting system provides stackable visual effects through palette manipulation. Effects are composited using a priority-based layer stack, with all palette updates batched into a single VRAM write per frame.
+
+```c
+#include <lighting.h>
+
+// Apply night mode (persists until removed)
+NGLightingLayerHandle night = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
+NGLightingSetTint(night, -10, -10, 20);    // Blue tint
+NGLightingSetBrightness(night, FIX(0.7));  // Dim
+
+// Lightning flash (auto-expires after 6 frames)
+NGLightingFlash(80, 80, 60, 6);
+
+// Use presets for common scenarios
+NGLightingLayerHandle preset = NGLightingApplyPreset(NG_LIGHTING_PRESET_SUNSET);
+
+// Remove effect when done
+NGLightingPop(night);
+```
+
+**Layer Priorities** (lower = applied first):
+- `NG_LIGHTING_PRIORITY_AMBIENT` (50) - Day/night, weather, global mood
+- `NG_LIGHTING_PRIORITY_OVERLAY` (100) - Menu dimming, pause effects
+- `NG_LIGHTING_PRIORITY_TRANSIENT` (200) - Flashes, pulses
+
+**Composition Rules**:
+- **Tints**: Additive (clamped to valid range)
+- **Brightness**: Multiplicative
+- **Saturation**: Multiplicative
+
+**Available Presets**:
+- `NG_LIGHTING_PRESET_DAY` - Normal daylight
+- `NG_LIGHTING_PRESET_NIGHT` - Blue tint, dimmed
+- `NG_LIGHTING_PRESET_SUNSET` - Warm orange tint
+- `NG_LIGHTING_PRESET_DAWN` - Cool pink/purple tint
+- `NG_LIGHTING_PRESET_SANDSTORM` - Tan tint, desaturated
+- `NG_LIGHTING_PRESET_FOG` - Gray tint, heavily desaturated
+- `NG_LIGHTING_PRESET_UNDERWATER` - Blue-green tint
+- `NG_LIGHTING_PRESET_SEPIA` - Warm brown, desaturated
+- `NG_LIGHTING_PRESET_MENU_DIM` - Darkened for menu overlay
+
+**Animated Transitions**:
+
+```c
+// Fade brightness over 60 frames (1 second)
+NGLightingFadeBrightness(layer, FIX(0.5), 60);
+
+// Fade tint over time
+NGLightingFadeTint(layer, 20, 10, -5, 60);
+```
+
+See @ref lightinglayer and @ref lightingconvenience for all functions.
+
 ### Palettes (palette.h)
 
 The NeoGeo has 256 palettes of 16 colors each. Palettes 0-15 are typically for the fix layer, 16-255 for sprites.

@@ -55,6 +55,13 @@ The default scene demonstrating multiple SDK features working together.
 - `audio.h` - Background music (ADPCM-B) and sound effects (ADPCM-A)
 - `ui.h` - Spring-animated menu system
 - `palette.h` - Multiple ball color palettes
+- `lighting.h` - Day/night cycle with lightning flashes
+
+**Day/Night Cycle:**
+Every 10 seconds the scene transitions between day and night mode. During night mode:
+- The scene takes on a blue tint with reduced brightness
+- Random lightning flashes occur, with varying intensity patterns
+- Lightning effects demonstrate the lighting system's layer stacking (flash on top of night mode)
 
 **Menu options:**
 - Add Ball - Spawn a new bouncing ball
