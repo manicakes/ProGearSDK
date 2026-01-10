@@ -41,8 +41,8 @@
  *  @{
  */
 
-#define NG_CAM_VIEWPORT_WIDTH   320  /**< Screen width in pixels */
-#define NG_CAM_VIEWPORT_HEIGHT  224  /**< Screen height in pixels */
+#define NG_CAM_VIEWPORT_WIDTH  320 /**< Screen width in pixels */
+#define NG_CAM_VIEWPORT_HEIGHT 224 /**< Screen height in pixels */
 
 /** @} */
 
@@ -58,7 +58,7 @@
  * and using hardware Y positioning for flicker-free scrolling.
  * X scrolling has no such limit since tiles can be dynamically cycled.
  */
-#define NG_CAM_MAX_WORLD_HEIGHT  512
+#define NG_CAM_MAX_WORLD_HEIGHT 512
 
 /** @} */
 
@@ -67,11 +67,11 @@
  *  @{
  */
 
-#define NG_CAM_ZOOM_100    16  /**< 100% - Full size */
-#define NG_CAM_ZOOM_87     14  /**< 87.5% */
-#define NG_CAM_ZOOM_75     12  /**< 75% */
-#define NG_CAM_ZOOM_62     10  /**< 62.5% */
-#define NG_CAM_ZOOM_50     8   /**< 50% - Half size */
+#define NG_CAM_ZOOM_100 16 /**< 100% - Full size */
+#define NG_CAM_ZOOM_87  14 /**< 87.5% */
+#define NG_CAM_ZOOM_75  12 /**< 75% */
+#define NG_CAM_ZOOM_62  10 /**< 62.5% */
+#define NG_CAM_ZOOM_50  8  /**< 50% - Half size */
 
 /** @} */
 
@@ -230,8 +230,7 @@ void NGCameraClampToBounds(u16 world_width, u16 world_height);
  * @param screen_x Output screen X
  * @param screen_y Output screen Y
  */
-void NGCameraWorldToScreen(fixed world_x, fixed world_y,
-                           s16 *screen_x, s16 *screen_y);
+void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *screen_y);
 
 /**
  * Transform screen coordinates to world coordinates.
@@ -241,8 +240,7 @@ void NGCameraWorldToScreen(fixed world_x, fixed world_y,
  * @param world_x Output world X
  * @param world_y Output world Y
  */
-void NGCameraScreenToWorld(s16 screen_x, s16 screen_y,
-                           fixed *world_x, fixed *world_y);
+void NGCameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *world_y);
 
 /** @} */
 

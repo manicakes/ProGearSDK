@@ -21,7 +21,7 @@ void NGArenaInit(NGArena *arena, void *buffer, u32 size) {
 }
 
 void *NGArenaAlloc(NGArena *arena, u32 size) {
-    u8 *aligned = (u8 *)(((u32)arena->current + 3) & ~3);  // 4-byte alignment for m68k
+    u8 *aligned = (u8 *)(((u32)arena->current + 3) & ~3); // 4-byte alignment for m68k
     u8 *next = aligned + size;
 
     if (next > arena->end) {

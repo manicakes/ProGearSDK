@@ -31,7 +31,7 @@
  *  @{
  */
 
-#define NG_PHYS_MAX_BODIES 32  /**< Maximum bodies per world */
+#define NG_PHYS_MAX_BODIES 32 /**< Maximum bodies per world */
 
 /** @} */
 
@@ -41,20 +41,20 @@
 
 /** Shape type enumeration */
 typedef enum {
-    NG_SHAPE_CIRCLE,  /**< Circle shape */
-    NG_SHAPE_AABB,    /**< Axis-aligned bounding box */
+    NG_SHAPE_CIRCLE, /**< Circle shape */
+    NG_SHAPE_AABB,   /**< Axis-aligned bounding box */
 } NGShapeType;
 
 /** Collision shape */
 typedef struct {
-    NGShapeType type;  /**< Shape type */
+    NGShapeType type; /**< Shape type */
     union {
         struct {
-            fixed radius;  /**< Circle radius */
+            fixed radius; /**< Circle radius */
         } circle;
         struct {
-            fixed half_width;   /**< AABB half-width */
-            fixed half_height;  /**< AABB half-height */
+            fixed half_width;  /**< AABB half-width */
+            fixed half_height; /**< AABB half-height */
         } aabb;
     };
 } NGShape;
@@ -67,33 +67,33 @@ typedef struct {
 
 /** Physics body */
 typedef struct NGBody {
-    u8 active;            /**< Body is active */
-    u8 flags;             /**< Body flags */
+    u8 active; /**< Body is active */
+    u8 flags;  /**< Body flags */
 
-    NGVec2 pos;           /**< Center position */
-    NGVec2 vel;           /**< Velocity */
-    NGVec2 accel;         /**< Acceleration */
+    NGVec2 pos;   /**< Center position */
+    NGVec2 vel;   /**< Velocity */
+    NGVec2 accel; /**< Acceleration */
 
-    fixed mass;           /**< Mass (FIX_ONE = 1.0) */
-    fixed inv_mass;       /**< Cached 1/mass */
-    fixed restitution;    /**< Bounciness (FIX_ONE = perfect) */
-    fixed friction;       /**< Friction coefficient */
+    fixed mass;        /**< Mass (FIX_ONE = 1.0) */
+    fixed inv_mass;    /**< Cached 1/mass */
+    fixed restitution; /**< Bounciness (FIX_ONE = perfect) */
+    fixed friction;    /**< Friction coefficient */
 
-    NGShape shape;        /**< Collision shape */
-    u8 collision_mask;    /**< Layers this body collides with */
-    u8 collision_layer;   /**< Layer this body is on */
+    NGShape shape;      /**< Collision shape */
+    u8 collision_mask;  /**< Layers this body collides with */
+    u8 collision_layer; /**< Layer this body is on */
 
-    void *user_data;      /**< User-defined data */
+    void *user_data; /**< User-defined data */
 } NGBody;
 
 /** Body does not move */
-#define NG_BODY_STATIC     0x01
+#define NG_BODY_STATIC 0x01
 
 /** Body ignores world gravity */
 #define NG_BODY_NO_GRAVITY 0x02
 
 /** Body detects collision but doesn't respond */
-#define NG_BODY_TRIGGER    0x04
+#define NG_BODY_TRIGGER 0x04
 
 /** Body handle */
 typedef NGBody *NGBodyHandle;
@@ -106,16 +106,16 @@ typedef NGBody *NGBodyHandle;
 
 /** Physics world */
 typedef struct NGPhysWorld {
-    u8 active;            /**< World is active */
-    NGVec2 gravity;       /**< World gravity */
+    u8 active;      /**< World is active */
+    NGVec2 gravity; /**< World gravity */
 
-    fixed bounds_left;    /**< Left boundary */
-    fixed bounds_right;   /**< Right boundary */
-    fixed bounds_top;     /**< Top boundary */
-    fixed bounds_bottom;  /**< Bottom boundary */
-    u8 bounds_enabled;    /**< Bounds checking enabled */
+    fixed bounds_left;   /**< Left boundary */
+    fixed bounds_right;  /**< Right boundary */
+    fixed bounds_top;    /**< Top boundary */
+    fixed bounds_bottom; /**< Bottom boundary */
+    u8 bounds_enabled;   /**< Bounds checking enabled */
 
-    NGBody bodies[NG_PHYS_MAX_BODIES];  /**< Body pool */
+    NGBody bodies[NG_PHYS_MAX_BODIES]; /**< Body pool */
 } NGPhysWorld;
 
 /** World handle */
@@ -129,11 +129,11 @@ typedef NGPhysWorld *NGPhysWorldHandle;
 
 /** Collision information */
 typedef struct {
-    NGBodyHandle body_a;     /**< First body */
-    NGBodyHandle body_b;     /**< Second body */
-    NGVec2 normal;           /**< Collision normal (A to B) */
-    fixed penetration;       /**< Overlap depth */
-    NGVec2 contact_point;    /**< Point of contact */
+    NGBodyHandle body_a;  /**< First body */
+    NGBodyHandle body_b;  /**< Second body */
+    NGVec2 normal;        /**< Collision normal (A to B) */
+    fixed penetration;    /**< Overlap depth */
+    NGVec2 contact_point; /**< Point of contact */
 } NGCollision;
 
 /**
@@ -177,9 +177,8 @@ void NGPhysWorldSetGravity(NGPhysWorldHandle world, fixed gx, fixed gy);
  * @param top Top edge (fixed)
  * @param bottom Bottom edge (fixed)
  */
-void NGPhysWorldSetBounds(NGPhysWorldHandle world,
-                          fixed left, fixed right,
-                          fixed top, fixed bottom);
+void NGPhysWorldSetBounds(NGPhysWorldHandle world, fixed left, fixed right, fixed top,
+                          fixed bottom);
 
 /**
  * Disable bounds checking.
@@ -202,9 +201,7 @@ void NGPhysWorldReset(NGPhysWorldHandle world);
  * @param callback Collision callback (can be NULL)
  * @param callback_data User data for callback
  */
-void NGPhysWorldUpdate(NGPhysWorldHandle world,
-                       NGCollisionCallback callback,
-                       void *callback_data);
+void NGPhysWorldUpdate(NGPhysWorldHandle world, NGCollisionCallback callback, void *callback_data);
 
 /** @} */
 
@@ -220,9 +217,7 @@ void NGPhysWorldUpdate(NGPhysWorldHandle world,
  * @param radius Circle radius (fixed)
  * @return Body handle, or NULL if failed
  */
-NGBodyHandle NGPhysBodyCreateCircle(NGPhysWorldHandle world,
-                                    fixed x, fixed y,
-                                    fixed radius);
+NGBodyHandle NGPhysBodyCreateCircle(NGPhysWorldHandle world, fixed x, fixed y, fixed radius);
 
 /**
  * Create an AABB body.
@@ -233,9 +228,8 @@ NGBodyHandle NGPhysBodyCreateCircle(NGPhysWorldHandle world,
  * @param half_height Half-height (fixed)
  * @return Body handle, or NULL if failed
  */
-NGBodyHandle NGPhysBodyCreateAABB(NGPhysWorldHandle world,
-                                  fixed x, fixed y,
-                                  fixed half_width, fixed half_height);
+NGBodyHandle NGPhysBodyCreateAABB(NGPhysWorldHandle world, fixed x, fixed y, fixed half_width,
+                                  fixed half_height);
 
 /**
  * Destroy a body.

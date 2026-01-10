@@ -16,28 +16,28 @@
 #include "ngmath.h"
 
 /* Hardware registers for 68k/Z80 communication */
-#define REG_SOUND       (*(vu8*)0x320000)   /* Write: send command, Read: get reply */
-#define REG_SOUND_REPLY (*(vu8*)0x320001)   /* Read only: Z80 reply */
+#define REG_SOUND       (*(vu8 *)0x320000) /* Write: send command, Read: get reply */
+#define REG_SOUND_REPLY (*(vu8 *)0x320001) /* Read only: Z80 reply */
 
 /* Audio command codes (must match Z80 driver) */
-#define CMD_NOP             0x00
-#define CMD_SLOT_SWITCH     0x01
-#define CMD_EYECATCHER      0x02
-#define CMD_RESET           0x03
-#define CMD_SFX_BASE        0x10    /* 0x10-0x1F: SFX 0-15 */
-#define CMD_MUSIC_BASE      0x20    /* 0x20-0x2F: Music 0-15 */
-#define CMD_MUSIC_STOP      0x30
-#define CMD_MUSIC_PAUSE     0x31
-#define CMD_MUSIC_RESUME    0x32
-#define CMD_SFX_EXT_BASE    0x40    /* 0x40-0x4F: SFX 16-31 */
-#define CMD_MUSIC_EXT_BASE  0x50    /* 0x50-0x5F: Music 16-31 */
-#define CMD_SFX_STOP_CH     0x60    /* 0x60-0x65: Stop SFX channel 0-5 */
-#define CMD_STOP_ALL        0x70
-#define CMD_VOLUME_BASE     0x80    /* 0x80-0x8F: Volume 0-15 */
+#define CMD_NOP            0x00
+#define CMD_SLOT_SWITCH    0x01
+#define CMD_EYECATCHER     0x02
+#define CMD_RESET          0x03
+#define CMD_SFX_BASE       0x10 /* 0x10-0x1F: SFX 0-15 */
+#define CMD_MUSIC_BASE     0x20 /* 0x20-0x2F: Music 0-15 */
+#define CMD_MUSIC_STOP     0x30
+#define CMD_MUSIC_PAUSE    0x31
+#define CMD_MUSIC_RESUME   0x32
+#define CMD_SFX_EXT_BASE   0x40 /* 0x40-0x4F: SFX 16-31 */
+#define CMD_MUSIC_EXT_BASE 0x50 /* 0x50-0x5F: Music 16-31 */
+#define CMD_SFX_STOP_CH    0x60 /* 0x60-0x65: Stop SFX channel 0-5 */
+#define CMD_STOP_ALL       0x70
+#define CMD_VOLUME_BASE    0x80 /* 0x80-0x8F: Volume 0-15 */
 
 /* Screen dimensions for pan calculation */
-#define SCREEN_WIDTH        320
-#define SCREEN_HALF_WIDTH   160
+#define SCREEN_WIDTH      320
+#define SCREEN_HALF_WIDTH 160
 
 static u8 current_music_index = 0xFF;
 static u8 music_paused = 0;
@@ -69,7 +69,8 @@ void NGAudioInit(void) {
 }
 
 void NGSfxPlay(u8 sfx_index) {
-    if (sfx_index >= NG_AUDIO_MAX_SFX) return;
+    if (sfx_index >= NG_AUDIO_MAX_SFX)
+        return;
 
     if (sfx_index < 16) {
         NGAudioSendCommand(CMD_SFX_BASE + sfx_index);
@@ -79,12 +80,13 @@ void NGSfxPlay(u8 sfx_index) {
 }
 
 void NGSfxPlayPan(u8 sfx_index, NGPan pan) {
-    (void)pan;  // TODO: Implement pan in Z80 driver
+    (void)pan; // TODO: Implement pan in Z80 driver
     NGSfxPlay(sfx_index);
 }
 
 void NGSfxStopChannel(u8 channel) {
-    if (channel >= NG_AUDIO_MAX_CHANNELS) return;
+    if (channel >= NG_AUDIO_MAX_CHANNELS)
+        return;
     NGAudioSendCommand(CMD_SFX_STOP_CH + channel);
 }
 
@@ -96,7 +98,8 @@ void NGSfxStopAll(void) {
 }
 
 void NGMusicPlay(u8 music_index) {
-    if (music_index >= NG_AUDIO_MAX_MUSIC) return;
+    if (music_index >= NG_AUDIO_MAX_MUSIC)
+        return;
 
     current_music_index = music_index;
     music_paused = 0;
@@ -137,7 +140,8 @@ u8 NGMusicIsPaused(void) {
 }
 
 void NGAudioSetVolume(u8 volume) {
-    if (volume > 15) volume = 15;
+    if (volume > 15)
+        volume = 15;
     master_volume = volume;
     NGAudioSendCommand(CMD_VOLUME_BASE + volume);
 }

@@ -47,8 +47,8 @@
  *  @{
  */
 
-#define NG_PARALLAX_MAX             4       /**< Maximum parallax layers */
-#define NG_PARALLAX_WIDTH_INFINITE  0xFFFF  /**< Infinite width value */
+#define NG_PARALLAX_MAX            4      /**< Maximum parallax layers */
+#define NG_PARALLAX_WIDTH_INFINITE 0xFFFF /**< Infinite width value */
 
 /** @} */
 
@@ -77,13 +77,8 @@ typedef s8 NGParallaxHandle;
  * @param parallax_y Vertical movement rate (FIX_ONE = 1:1 with camera)
  * @return Parallax handle, or NG_PARALLAX_INVALID if no slots available
  */
-NGParallaxHandle NGParallaxCreate(
-    const NGVisualAsset *asset,
-    u16 width,
-    u16 height,
-    fixed parallax_x,
-    fixed parallax_y
-);
+NGParallaxHandle NGParallaxCreate(const NGVisualAsset *asset, u16 width, u16 height,
+                                  fixed parallax_x, fixed parallax_y);
 
 /**
  * Add parallax effect to the scene.

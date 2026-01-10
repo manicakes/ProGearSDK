@@ -20,7 +20,7 @@ typedef struct {
 #define RENDER_TYPE_ACTOR    0
 #define RENDER_TYPE_PARALLAX 1
 #define RENDER_TYPE_TILEMAP  2
-#define MAX_RENDER_ENTRIES  (NG_ACTOR_MAX + NG_PARALLAX_MAX + NG_TILEMAP_MAX)
+#define MAX_RENDER_ENTRIES   (NG_ACTOR_MAX + NG_PARALLAX_MAX + NG_TILEMAP_MAX)
 
 static RenderEntry render_queue[MAX_RENDER_ENTRIES];
 static u8 render_count;
@@ -33,8 +33,8 @@ static u16 hw_sprite_next;
 static u16 hw_sprite_ui_next;
 static u16 hw_sprite_last_max;
 static u16 hw_sprite_last_ui_max;
-#define HW_SPRITE_FIRST    1
-#define HW_SPRITE_MAX    380
+#define HW_SPRITE_FIRST   1
+#define HW_SPRITE_MAX     380
 #define HW_SPRITE_UI_BASE 350
 
 extern void _NGActorSystemInit(void);
@@ -61,7 +61,8 @@ extern void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite);
 extern u8 NGTilemapGetSpriteCount(NGTilemapHandle handle);
 
 static void clear_unused_sprites(u16 current, u16 last_max) {
-    if (current >= last_max) return;
+    if (current >= last_max)
+        return;
     NG_REG_VRAMADDR = 0x8200 + current;
     NG_REG_VRAMMOD = 1;
     for (u16 i = current; i < last_max; i++) {
@@ -148,14 +149,15 @@ void NGSceneInit(void) {
     NG_REG_VRAMADDR = 0x8200;
     NG_REG_VRAMMOD = 1;
     for (u16 i = 0; i < HW_SPRITE_MAX; i++) {
-        NG_REG_VRAMDATA = 0;  // Height 0 = invisible
+        NG_REG_VRAMDATA = 0; // Height 0 = invisible
     }
 
     scene_initialized = 1;
 }
 
 void NGSceneUpdate(void) {
-    if (!scene_initialized) return;
+    if (!scene_initialized)
+        return;
 
     NGCameraUpdate();
     _NGActorSystemUpdate();
@@ -163,7 +165,8 @@ void NGSceneUpdate(void) {
 }
 
 void NGSceneDraw(void) {
-    if (!scene_initialized) return;
+    if (!scene_initialized)
+        return;
 
     if (render_queue_dirty) {
         build_render_queue();

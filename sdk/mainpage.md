@@ -667,6 +667,17 @@ make          # Build ROM files
 make clean    # Clean build artifacts
 ```
 
+### Code Quality
+
+```bash
+make format       # Auto-format all source files
+make format-check # Check formatting (fails if changes needed)
+make lint         # Run static analysis with cppcheck
+make check        # Run all checks (format-check + lint)
+```
+
+Requires `clang-format` and `cppcheck` to be installed.
+
 Output files:
 - `mygame-p1.bin` - Program ROM (68000 code)
 - `mygame-c1.bin`, `mygame-c2.bin` - Sprite graphics

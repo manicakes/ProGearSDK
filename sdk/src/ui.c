@@ -13,29 +13,29 @@
 #include <audio.h>
 #include <neogeo.h>
 
-#define MENU_ITEM_HEIGHT      8
-#define MENU_TEXT_OFFSET_X    3
-#define MENU_TEXT_OFFSET_Y    2
-#define MENU_TITLE_OFFSET_Y   3
+#define MENU_ITEM_HEIGHT     8
+#define MENU_TEXT_OFFSET_X   3
+#define MENU_TEXT_OFFSET_Y   2
+#define MENU_TITLE_OFFSET_Y  3
 #define MENU_CURSOR_OFFSET_X -14
 #define MENU_CURSOR_OFFSET_Y -4
 
-#define PANEL_MIN_ROWS        7
-#define PANEL_COLS           11
-#define PANEL_TOP_ROWS        1
-#define PANEL_BOTTOM_ROWS     1
-#define PANEL_MIDDLE_ROW      3
-#define PANEL_SPRITE_BASE   320
+#define PANEL_MIN_ROWS    7
+#define PANEL_COLS        11
+#define PANEL_TOP_ROWS    1
+#define PANEL_BOTTOM_ROWS 1
+#define PANEL_MIDDLE_ROW  3
+#define PANEL_SPRITE_BASE 320
 
-#define MENU_HIDDEN_OFFSET_FIX   FIX_FROM_FLOAT(-120.0)
+#define MENU_HIDDEN_OFFSET_FIX FIX_FROM_FLOAT(-120.0)
 
-#define MENU_BLINK_COUNT         3
-#define MENU_BLINK_FRAMES        4
+#define MENU_BLINK_COUNT  3
+#define MENU_BLINK_FRAMES 4
 
-#define CURSOR_BOUNCE_SPEED      3
-#define CURSOR_BOUNCE_AMPLITUDE  2
+#define CURSOR_BOUNCE_SPEED     3
+#define CURSOR_BOUNCE_AMPLITUDE 2
 
-#define DIM_ANIM_SPEED           2
+#define DIM_ANIM_SPEED          2
 #define DIM_BACKUP_MAX_PALETTES 32
 
 typedef struct NGMenu {
@@ -97,23 +97,28 @@ static s16 get_item_y_offset(u8 index) {
 
 static u8 find_first_selectable(NGMenu *menu) {
     for (u8 i = 0; i < menu->item_count; i++) {
-        if (menu->item_selectable[i]) return i;
+        if (menu->item_selectable[i])
+            return i;
     }
     return 0;
 }
 
 static u8 find_next_selectable(NGMenu *menu, u8 current) {
     for (u8 i = current + 1; i < menu->item_count; i++) {
-        if (menu->item_selectable[i]) return i;
+        if (menu->item_selectable[i])
+            return i;
     }
     return current;
 }
 
 static u8 find_prev_selectable(NGMenu *menu, u8 current) {
-    if (current == 0) return current;
-    for (u8 i = current - 1; ; i--) {
-        if (menu->item_selectable[i]) return i;
-        if (i == 0) break;
+    if (current == 0)
+        return current;
+    for (u8 i = current - 1;; i--) {
+        if (menu->item_selectable[i])
+            return i;
+        if (i == 0)
+            break;
     }
     return current;
 }
@@ -144,8 +149,8 @@ static void draw_menu_text(NGMenu *menu) {
             if (i == menu->selection && menu->blink_count > 0 && !menu->blink_on) {
                 NGFixClear(fix_x, item_y, 12, 1);
             } else {
-                u8 pal = (i == menu->selection && menu->item_selectable[i])
-                         ? menu->selected_pal : menu->normal_pal;
+                u8 pal = (i == menu->selection && menu->item_selectable[i]) ? menu->selected_pal
+                                                                            : menu->normal_pal;
                 NGTextPrint(NGFixLayoutXY(fix_x, item_y), pal, menu->items[i]);
             }
         }
@@ -157,22 +162,28 @@ static inline u8 is_menu_palette(NGMenu *menu, u8 pal) {
 }
 
 static void backup_palettes(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0) return;
+    if (!menu->pal_backup || menu->backup_count == 0)
+        return;
 
     u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        if (is_menu_palette(menu, pal)) continue;
+    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
+         pal++) {
+        if (is_menu_palette(menu, pal))
+            continue;
         NGPalBackup(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
         backup_idx++;
     }
 }
 
 static void apply_dimming(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0) return;
+    if (!menu->pal_backup || menu->backup_count == 0)
+        return;
 
     u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        if (is_menu_palette(menu, pal)) continue;
+    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
+         pal++) {
+        if (is_menu_palette(menu, pal))
+            continue;
         NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
         if (menu->dim_current > 0) {
             NGPalFadeToBlack(pal, menu->dim_current);
@@ -182,26 +193,30 @@ static void apply_dimming(NGMenu *menu) {
 }
 
 static void restore_palettes(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0) return;
+    if (!menu->pal_backup || menu->backup_count == 0)
+        return;
 
     u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        if (is_menu_palette(menu, pal)) continue;
+    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
+         pal++) {
+        if (is_menu_palette(menu, pal))
+            continue;
         NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
         backup_idx++;
     }
 }
 
-#define SCB1_BASE  0x0000
-#define SCB2_BASE  0x8000
-#define SCB3_BASE  0x8200
-#define SCB4_BASE  0x8400
+#define SCB1_BASE 0x0000
+#define SCB2_BASE 0x8000
+#define SCB3_BASE 0x8200
+#define SCB4_BASE 0x8400
 
 static u8 calc_panel_height(u8 item_count) {
     u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
     u16 content_height_px = (text_fix_rows * 8) + 8;
     u8 sprite_tiles = (content_height_px + 15) / 16;
-    if (sprite_tiles < PANEL_MIN_ROWS) sprite_tiles = PANEL_MIN_ROWS;
+    if (sprite_tiles < PANEL_MIN_ROWS)
+        sprite_tiles = PANEL_MIN_ROWS;
     return sprite_tiles;
 }
 
@@ -215,11 +230,12 @@ static u16 get_panel_tile(const NGVisualAsset *asset, u8 col, u8 row) {
 static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     const NGVisualAsset *asset = menu->panel_asset;
     u8 target_height = calc_panel_height(menu->item_count);
-    u8 orig_height = asset->height_tiles;  // 7 for ui_panel
+    u8 orig_height = asset->height_tiles; // 7 for ui_panel
     u8 extra_rows = (target_height > orig_height) ? (target_height - orig_height) : 0;
     u8 actual_height = orig_height + extra_rows;
 
-    if (actual_height > 32) actual_height = 32;
+    if (actual_height > 32)
+        actual_height = 32;
 
     menu->panel_height_tiles = actual_height;
 
@@ -228,7 +244,8 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     u8 num_cols = asset->width_tiles;
 
     s16 y_val = 496 - screen_y;
-    if (y_val < 0) y_val += 512;
+    if (y_val < 0)
+        y_val += 512;
     y_val &= 0x1FF;
 
     u16 scb3_val = ((u16)y_val << 7) | (actual_height & 0x3F);
@@ -298,7 +315,8 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
 }
 
 static void hide_panel_sprites(NGMenu *menu) {
-    if (!menu->panel_sprites_allocated) return;
+    if (!menu->panel_sprites_allocated)
+        return;
 
     for (u8 col = 0; col < PANEL_COLS; col++) {
         u16 spr = menu->panel_first_sprite + col;
@@ -307,14 +325,14 @@ static void hide_panel_sprites(NGMenu *menu) {
     }
 }
 
-NGMenuHandle NGMenuCreate(NGArena *arena,
-                          const NGVisualAsset *panel_asset,
-                          const NGVisualAsset *cursor_asset,
-                          u8 dim_amount) {
-    if (!arena || !panel_asset || !cursor_asset) return 0;
+NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
+                          const NGVisualAsset *cursor_asset, u8 dim_amount) {
+    if (!arena || !panel_asset || !cursor_asset)
+        return 0;
 
     NGMenu *menu = NG_ARENA_ALLOC(arena, NGMenu);
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
 
     menu->panel_asset = panel_asset;
     menu->cursor_asset = cursor_asset;
@@ -371,9 +389,11 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     if (dim_amount > 0) {
         u8 count = 0;
         for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal; pal++) {
-            if (is_menu_palette(menu, pal)) continue;
+            if (is_menu_palette(menu, pal))
+                continue;
             count++;
-            if (count >= DIM_BACKUP_MAX_PALETTES) break;
+            if (count >= DIM_BACKUP_MAX_PALETTES)
+                break;
         }
 
         if (count > 0) {
@@ -389,31 +409,35 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
 }
 
 void NGMenuSetTitle(NGMenuHandle menu, const char *title) {
-    if (!menu) return;
+    if (!menu)
+        return;
     menu->title = title;
     menu->text_dirty = 1;
 }
 
 void NGMenuSetPosition(NGMenuHandle menu, s16 viewport_x, s16 viewport_y) {
-    if (!menu) return;
+    if (!menu)
+        return;
     menu->viewport_x = viewport_x;
     menu->viewport_y = viewport_y;
     menu->text_dirty = 1;
 }
 
 void NGMenuSetTextPalette(NGMenuHandle menu, u8 normal_pal, u8 selected_pal) {
-    if (!menu) return;
+    if (!menu)
+        return;
     menu->normal_pal = normal_pal;
     menu->selected_pal = selected_pal;
     menu->text_dirty = 1;
 }
 
 u8 NGMenuAddItem(NGMenuHandle menu, const char *label) {
-    if (!menu || menu->item_count >= NG_MENU_MAX_ITEMS) return 0xFF;
+    if (!menu || menu->item_count >= NG_MENU_MAX_ITEMS)
+        return 0xFF;
 
     u8 index = menu->item_count;
     menu->items[index] = label;
-    menu->item_selectable[index] = 1;  // Normal items are selectable
+    menu->item_selectable[index] = 1; // Normal items are selectable
     menu->item_count++;
     menu->text_dirty = 1;
 
@@ -421,11 +445,12 @@ u8 NGMenuAddItem(NGMenuHandle menu, const char *label) {
 }
 
 u8 NGMenuAddSeparator(NGMenuHandle menu, const char *label) {
-    if (!menu || menu->item_count >= NG_MENU_MAX_ITEMS) return 0xFF;
+    if (!menu || menu->item_count >= NG_MENU_MAX_ITEMS)
+        return 0xFF;
 
     u8 index = menu->item_count;
     menu->items[index] = label;
-    menu->item_selectable[index] = 0;  // Separators are not selectable
+    menu->item_selectable[index] = 0; // Separators are not selectable
     menu->item_count++;
     menu->text_dirty = 1;
 
@@ -433,20 +458,23 @@ u8 NGMenuAddSeparator(NGMenuHandle menu, const char *label) {
 }
 
 void NGMenuSetItemText(NGMenuHandle menu, u8 index, const char *label) {
-    if (!menu || index >= menu->item_count) return;
+    if (!menu || index >= menu->item_count)
+        return;
 
     menu->items[index] = label;
     menu->text_dirty = 1;
 }
 
 void NGMenuSetSounds(NGMenuHandle menu, u8 move_sfx, u8 select_sfx) {
-    if (!menu) return;
+    if (!menu)
+        return;
     menu->sfx_move = move_sfx;
     menu->sfx_select = select_sfx;
 }
 
 void NGMenuShow(NGMenuHandle menu) {
-    if (!menu) return;
+    if (!menu)
+        return;
 
     menu->visible = 1;
     menu->confirmed = 0;
@@ -480,7 +508,8 @@ void NGMenuShow(NGMenuHandle menu) {
 }
 
 void NGMenuHide(NGMenuHandle menu) {
-    if (!menu) return;
+    if (!menu)
+        return;
 
     menu->visible = 0;
 
@@ -493,7 +522,8 @@ void NGMenuHide(NGMenuHandle menu) {
 }
 
 void NGMenuUpdate(NGMenuHandle menu) {
-    if (!menu) return;
+    if (!menu)
+        return;
 
     NGSpringUpdate(&menu->panel_y_spring);
     NGSpringUpdate(&menu->cursor_y_spring);
@@ -503,7 +533,8 @@ void NGMenuUpdate(NGMenuHandle menu) {
 
         if (menu->dim_current < target) {
             menu->dim_current += DIM_ANIM_SPEED;
-            if (menu->dim_current > target) menu->dim_current = target;
+            if (menu->dim_current > target)
+                menu->dim_current = target;
             apply_dimming(menu);
         } else if (menu->dim_current > target) {
             if (menu->dim_current >= DIM_ANIM_SPEED) {
@@ -603,7 +634,8 @@ void NGMenuUpdate(NGMenuHandle menu) {
 }
 
 void NGMenuDraw(NGMenuHandle menu) {
-    if (!menu || !menu->showing) return;
+    if (!menu || !menu->showing)
+        return;
 
     u8 panel_arrived = menu->visible && NGSpringSettled(&menu->panel_y_spring);
 
@@ -618,24 +650,28 @@ void NGMenuDraw(NGMenuHandle menu) {
 }
 
 u8 NGMenuIsVisible(NGMenuHandle menu) {
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
     return menu->showing;
 }
 
 u8 NGMenuIsAnimating(NGMenuHandle menu) {
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
     // Animating if spring not settled OR dimming is still transitioning
     u8 target = menu->visible ? menu->dim_target : 0;
     return !NGSpringSettled(&menu->panel_y_spring) || menu->dim_current != target;
 }
 
 u8 NGMenuGetSelection(NGMenuHandle menu) {
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
     return menu->selection;
 }
 
 void NGMenuSetSelection(NGMenuHandle menu, u8 index) {
-    if (!menu || index >= menu->item_count) return;
+    if (!menu || index >= menu->item_count)
+        return;
     menu->selection = index;
 
     if (menu->visible) {
@@ -647,21 +683,24 @@ void NGMenuSetSelection(NGMenuHandle menu, u8 index) {
 }
 
 u8 NGMenuConfirmed(NGMenuHandle menu) {
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
     u8 result = menu->confirmed;
     menu->confirmed = 0;
     return result;
 }
 
 u8 NGMenuCancelled(NGMenuHandle menu) {
-    if (!menu) return 0;
+    if (!menu)
+        return 0;
     u8 result = menu->cancelled;
     menu->cancelled = 0;
     return result;
 }
 
 void NGMenuDestroy(NGMenuHandle menu) {
-    if (!menu) return;
+    if (!menu)
+        return;
 
     if (menu->dim_current > 0) {
         restore_palettes(menu);

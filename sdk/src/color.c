@@ -7,8 +7,10 @@
 #include <color.h>
 
 NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
-    if (ratio == 0) return a;
-    if (ratio == 255) return b;
+    if (ratio == 0)
+        return a;
+    if (ratio == 255)
+        return b;
 
     u8 inv_ratio = 255 - ratio;
 
@@ -28,7 +30,8 @@ NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
 }
 
 NGColor NGColorDarken(NGColor c, u8 amount) {
-    if (amount > 31) amount = 31;
+    if (amount > 31)
+        amount = 31;
 
     u8 r = NGColorGetRed(c);
     u8 g = NGColorGetGreen(c);
@@ -42,7 +45,8 @@ NGColor NGColorDarken(NGColor c, u8 amount) {
 }
 
 NGColor NGColorLighten(NGColor c, u8 amount) {
-    if (amount > 31) amount = 31;
+    if (amount > 31)
+        amount = 31;
 
     u8 r = NGColorGetRed(c);
     u8 g = NGColorGetGreen(c);
@@ -70,7 +74,8 @@ NGColor NGColorGrayscale(NGColor c) {
 
     // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
     u16 lum = (77 * r + 150 * g + 29 * b) >> 8;
-    if (lum > 31) lum = 31;
+    if (lum > 31)
+        lum = 31;
 
     return NG_RGB5(lum, lum, lum);
 }
@@ -102,11 +107,17 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
     t = t >> 3;
 
     switch (sector) {
-        case 0:  return NG_RGB5(v, t, p);
-        case 1:  return NG_RGB5(q, v, p);
-        case 2:  return NG_RGB5(p, v, t);
-        case 3:  return NG_RGB5(p, q, v);
-        case 4:  return NG_RGB5(t, p, v);
-        default: return NG_RGB5(v, p, q);
+        case 0:
+            return NG_RGB5(v, t, p);
+        case 1:
+            return NG_RGB5(q, v, p);
+        case 2:
+            return NG_RGB5(p, v, t);
+        case 3:
+            return NG_RGB5(p, q, v);
+        case 4:
+            return NG_RGB5(t, p, v);
+        default:
+            return NG_RGB5(v, p, q);
     }
 }

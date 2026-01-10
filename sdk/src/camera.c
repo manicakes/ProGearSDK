@@ -7,34 +7,28 @@
 #include <camera.h>
 #include <actor.h>
 
-#define SCREEN_WIDTH   320
-#define SCREEN_HEIGHT  224
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 224
 
 // Zoom index 0-128 maps to zoom 8-16 (50%-100%). Eliminates fixed-point math.
 // Each entry is (h_shrink << 8) | v_shrink
-#define ZOOM_INDEX_MIN  0
-#define ZOOM_INDEX_MAX  128
+#define ZOOM_INDEX_MIN 0
+#define ZOOM_INDEX_MAX 128
 
 static const u16 zoom_shrink_table[129] = {
-    0x077F, 0x0780, 0x0781, 0x0782, 0x0783, 0x0784, 0x0785, 0x0786,
-    0x0787, 0x0788, 0x0789, 0x078A, 0x078B, 0x078C, 0x078D, 0x078E,
+    0x077F, 0x0780, 0x0781, 0x0782, 0x0783, 0x0784, 0x0785, 0x0786, 0x0787, 0x0788, 0x0789, 0x078A,
+    0x078B, 0x078C, 0x078D, 0x078E,
     // Index 16-31: h_shrink=8, v_shrink=143-158
-    0x088F, 0x0890, 0x0891, 0x0892, 0x0893, 0x0894, 0x0895, 0x0896,
-    0x0897, 0x0898, 0x0899, 0x089A, 0x089B, 0x089C, 0x089D, 0x089E,
-    0x099F, 0x09A0, 0x09A1, 0x09A2, 0x09A3, 0x09A4, 0x09A5, 0x09A6,
-    0x09A7, 0x09A8, 0x09A9, 0x09AA, 0x09AB, 0x09AC, 0x09AD, 0x09AE,
-    0x0AAF, 0x0AB0, 0x0AB1, 0x0AB2, 0x0AB3, 0x0AB4, 0x0AB5, 0x0AB6,
-    0x0AB7, 0x0AB8, 0x0AB9, 0x0ABA, 0x0ABB, 0x0ABC, 0x0ABD, 0x0ABE,
-    0x0BBF, 0x0BC0, 0x0BC1, 0x0BC2, 0x0BC3, 0x0BC4, 0x0BC5, 0x0BC6,
-    0x0BC7, 0x0BC8, 0x0BC9, 0x0BCA, 0x0BCB, 0x0BCC, 0x0BCD, 0x0BCE,
-    0x0CCF, 0x0CD0, 0x0CD1, 0x0CD2, 0x0CD3, 0x0CD4, 0x0CD5, 0x0CD6,
-    0x0CD7, 0x0CD8, 0x0CD9, 0x0CDA, 0x0CDB, 0x0CDC, 0x0CDD, 0x0CDE,
-    0x0DDF, 0x0DE0, 0x0DE1, 0x0DE2, 0x0DE3, 0x0DE4, 0x0DE5, 0x0DE6,
-    0x0DE7, 0x0DE8, 0x0DE9, 0x0DEA, 0x0DEB, 0x0DEC, 0x0DED, 0x0DEE,
-    0x0EEF, 0x0EF0, 0x0EF1, 0x0EF2, 0x0EF3, 0x0EF4, 0x0EF5, 0x0EF6,
-    0x0EF7, 0x0EF8, 0x0EF9, 0x0EFA, 0x0EFB, 0x0EFC, 0x0EFD, 0x0EFE,
-    0x0FFF
-};
+    0x088F, 0x0890, 0x0891, 0x0892, 0x0893, 0x0894, 0x0895, 0x0896, 0x0897, 0x0898, 0x0899, 0x089A,
+    0x089B, 0x089C, 0x089D, 0x089E, 0x099F, 0x09A0, 0x09A1, 0x09A2, 0x09A3, 0x09A4, 0x09A5, 0x09A6,
+    0x09A7, 0x09A8, 0x09A9, 0x09AA, 0x09AB, 0x09AC, 0x09AD, 0x09AE, 0x0AAF, 0x0AB0, 0x0AB1, 0x0AB2,
+    0x0AB3, 0x0AB4, 0x0AB5, 0x0AB6, 0x0AB7, 0x0AB8, 0x0AB9, 0x0ABA, 0x0ABB, 0x0ABC, 0x0ABD, 0x0ABE,
+    0x0BBF, 0x0BC0, 0x0BC1, 0x0BC2, 0x0BC3, 0x0BC4, 0x0BC5, 0x0BC6, 0x0BC7, 0x0BC8, 0x0BC9, 0x0BCA,
+    0x0BCB, 0x0BCC, 0x0BCD, 0x0BCE, 0x0CCF, 0x0CD0, 0x0CD1, 0x0CD2, 0x0CD3, 0x0CD4, 0x0CD5, 0x0CD6,
+    0x0CD7, 0x0CD8, 0x0CD9, 0x0CDA, 0x0CDB, 0x0CDC, 0x0CDD, 0x0CDE, 0x0DDF, 0x0DE0, 0x0DE1, 0x0DE2,
+    0x0DE3, 0x0DE4, 0x0DE5, 0x0DE6, 0x0DE7, 0x0DE8, 0x0DE9, 0x0DEA, 0x0DEB, 0x0DEC, 0x0DED, 0x0DEE,
+    0x0EEF, 0x0EF0, 0x0EF1, 0x0EF2, 0x0EF3, 0x0EF4, 0x0EF5, 0x0EF6, 0x0EF7, 0x0EF8, 0x0EF9, 0x0EFA,
+    0x0EFB, 0x0EFC, 0x0EFD, 0x0EFE, 0x0FFF};
 
 static struct {
     fixed x;
@@ -71,8 +65,10 @@ static struct {
 };
 
 static inline u8 zoom_to_index(u8 zoom) {
-    if (zoom < 8) zoom = 8;
-    if (zoom > 16) zoom = 16;
+    if (zoom < 8)
+        zoom = 8;
+    if (zoom > 16)
+        zoom = 16;
     return (zoom - 8) << 4;
 }
 
@@ -107,23 +103,29 @@ fixed NGCameraGetY(void) {
 }
 
 void NGCameraSetZoom(u8 zoom) {
-    if (zoom > NG_CAM_ZOOM_100) zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50) zoom = NG_CAM_ZOOM_50;
+    if (zoom > NG_CAM_ZOOM_100)
+        zoom = NG_CAM_ZOOM_100;
+    if (zoom < NG_CAM_ZOOM_50)
+        zoom = NG_CAM_ZOOM_50;
     u8 idx = zoom_to_index(zoom);
     camera.zoom.index = idx;
     camera.zoom.target = idx;
 }
 
 void NGCameraSetTargetZoom(u8 zoom) {
-    if (zoom > NG_CAM_ZOOM_100) zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50) zoom = NG_CAM_ZOOM_50;
+    if (zoom > NG_CAM_ZOOM_100)
+        zoom = NG_CAM_ZOOM_100;
+    if (zoom < NG_CAM_ZOOM_50)
+        zoom = NG_CAM_ZOOM_50;
     camera.zoom.target = zoom_to_index(zoom);
 }
 
 void NGCameraSetZoomSpeed(fixed speed) {
     u8 step = (u8)(speed >> 14);
-    if (step < 1) step = 1;
-    if (step > 32) step = 32;
+    if (step < 1)
+        step = 1;
+    if (step > 32)
+        step = 32;
     camera.zoom.step = step;
 }
 
@@ -196,7 +198,8 @@ void NGCameraClampToBounds(u16 world_width, u16 world_height) {
     }
 
     s32 max_x = (s32)world_width - (s32)vis_w;
-    if (max_x < 0) max_x = 0;
+    if (max_x < 0)
+        max_x = 0;
 
     if (camera.x > FIX(max_x)) {
         camera.x = FIX(max_x);
@@ -207,15 +210,15 @@ void NGCameraClampToBounds(u16 world_width, u16 world_height) {
     }
 
     s32 max_y = (s32)world_height - (s32)vis_h;
-    if (max_y < 0) max_y = 0;
+    if (max_y < 0)
+        max_y = 0;
 
     if (camera.y > FIX(max_y)) {
         camera.y = FIX(max_y);
     }
 }
 
-void NGCameraWorldToScreen(fixed world_x, fixed world_y,
-                           s16 *screen_x, s16 *screen_y) {
+void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *screen_y) {
     fixed cam_render_x = camera.x + FIX(camera.shake.offset_x);
     fixed cam_render_y = camera.y + FIX(camera.shake.offset_y);
 
@@ -230,8 +233,7 @@ void NGCameraWorldToScreen(fixed world_x, fixed world_y,
     *screen_y = (s16)scaled_y;
 }
 
-void NGCameraScreenToWorld(s16 screen_x, s16 screen_y,
-                           fixed *world_x, fixed *world_y) {
+void NGCameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *world_y) {
     s32 zoom = index_to_zoom(camera.zoom.index);
     s32 unscaled_x = ((s32)screen_x << 4) / zoom;
     s32 unscaled_y = ((s32)screen_y << 4) / zoom;
@@ -265,8 +267,10 @@ static void update_shake(void) {
     if (camera.shake.timer > 0) {
         camera.shake.timer--;
 
-        s32 current_intensity = (camera.shake.intensity * camera.shake.timer) / camera.shake.duration;
-        if (current_intensity < 1 && camera.shake.timer > 0) current_intensity = 1;
+        s32 current_intensity =
+            (camera.shake.intensity * camera.shake.timer) / camera.shake.duration;
+        if (current_intensity < 1 && camera.shake.timer > 0)
+            current_intensity = 1;
 
         camera.shake.offset_x = (shake_random() % (current_intensity * 2 + 1)) - current_intensity;
         camera.shake.offset_y = (shake_random() % (current_intensity * 2 + 1)) - current_intensity;
@@ -285,7 +289,8 @@ fixed NGCameraGetRenderY(void) {
 }
 
 static void update_tracking(void) {
-    if (camera.track.actor == NG_ACTOR_INVALID) return;
+    if (camera.track.actor == NG_ACTOR_INVALID)
+        return;
 
     fixed actor_x = NGActorGetX(camera.track.actor);
     fixed actor_y = NGActorGetY(camera.track.actor);

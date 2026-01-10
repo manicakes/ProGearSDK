@@ -8,13 +8,13 @@
 #include <camera.h>
 #include <neogeo.h>
 
-#define SCREEN_WIDTH   320
-#define SCREEN_HEIGHT  224
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 224
 
-#define SCB1_BASE  0x0000
-#define SCB2_BASE  0x8000
-#define SCB3_BASE  0x8200
-#define SCB4_BASE  0x8400
+#define SCB1_BASE 0x0000
+#define SCB2_BASE 0x8000
+#define SCB3_BASE 0x8200
+#define SCB4_BASE 0x8400
 
 typedef struct {
     const NGTilemapAsset *asset;
@@ -54,12 +54,14 @@ void _NGTilemapSystemInit(void) {
 }
 
 u8 _NGTilemapIsInScene(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     return tilemaps[handle].active && tilemaps[handle].in_scene;
 }
 
 u8 _NGTilemapGetZ(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     return tilemaps[handle].z;
 }
 
@@ -72,8 +74,8 @@ static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 n
     for (u8 row = 0; row < num_rows; row++) {
         s16 tilemap_row = tm->viewport_row + row;
 
-        if (tilemap_col < 0 || tilemap_col >= asset->width_tiles ||
-            tilemap_row < 0 || tilemap_row >= asset->height_tiles) {
+        if (tilemap_col < 0 || tilemap_col >= asset->width_tiles || tilemap_row < 0 ||
+            tilemap_row >= asset->height_tiles) {
             // Out of bounds - empty tile
             NG_REG_VRAMDATA = 0;
             NG_REG_VRAMDATA = 0;
@@ -101,7 +103,8 @@ static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 n
 }
 
 static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
-    if (!tm->visible || !tm->asset) return;
+    if (!tm->visible || !tm->asset)
+        return;
 
     fixed cam_x = NGCameraGetX();
     fixed cam_y = NGCameraGetY();
@@ -119,8 +122,10 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     u8 num_cols = (view_width / NG_TILE_SIZE) + 2;
     u8 num_rows = (view_height / NG_TILE_SIZE) + 2;
 
-    if (num_cols > NG_TILEMAP_MAX_COLS) num_cols = NG_TILEMAP_MAX_COLS;
-    if (num_rows > NG_TILEMAP_MAX_ROWS) num_rows = NG_TILEMAP_MAX_ROWS;
+    if (num_cols > NG_TILEMAP_MAX_COLS)
+        num_cols = NG_TILEMAP_MAX_COLS;
+    if (num_rows > NG_TILEMAP_MAX_ROWS)
+        num_rows = NG_TILEMAP_MAX_ROWS;
 
     u8 zoom_changed = (zoom != tm->last_zoom);
 
@@ -163,7 +168,7 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
         tm->hw_sprite_count = num_cols;
         tm->tiles_loaded = 1;
         tm->last_zoom = zoom;
-        tm->last_scb3 = 0xFFFF;  // Force SCB3 write
+        tm->last_scb3 = 0xFFFF; // Force SCB3 write
         tm->last_viewport_col = first_col;
         tm->last_viewport_row = first_row;
     }
@@ -222,15 +227,18 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     u16 shrink = NGCameraGetShrink();
     u8 v_shrink = shrink & 0xFF;
     u16 adjusted_rows = ((u16)num_rows * v_shrink + 254) / 255;
-    if (adjusted_rows < 1) adjusted_rows = 1;
-    if (adjusted_rows > 32) adjusted_rows = 32;
+    if (adjusted_rows < 1)
+        adjusted_rows = 1;
+    if (adjusted_rows > 32)
+        adjusted_rows = 32;
     u8 height_bits = (u8)adjusted_rows;
 
     s16 base_screen_y = FIX_INT(tm->world_y - cam_y) + (first_row * NG_TILE_SIZE);
     base_screen_y = (base_screen_y * zoom) >> 4;
 
     s16 y_val = 496 - base_screen_y;
-    if (y_val < 0) y_val += 512;
+    if (y_val < 0)
+        y_val += 512;
     y_val &= 0x1FF;
 
     u16 scb3_val = ((u16)y_val << 7) | height_bits;
@@ -260,7 +268,8 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
 }
 
 NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset) {
-    if (!asset) return NG_TILEMAP_INVALID;
+    if (!asset)
+        return NG_TILEMAP_INVALID;
 
     NGTilemapHandle handle = NG_TILEMAP_INVALID;
     for (u8 i = 0; i < NG_TILEMAP_MAX; i++) {
@@ -269,7 +278,8 @@ NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset) {
             break;
         }
     }
-    if (handle == NG_TILEMAP_INVALID) return NG_TILEMAP_INVALID;
+    if (handle == NG_TILEMAP_INVALID)
+        return NG_TILEMAP_INVALID;
 
     Tilemap *tm = &tilemaps[handle];
     tm->asset = asset;
@@ -296,9 +306,11 @@ NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset) {
 }
 
 void NGTilemapAddToScene(NGTilemapHandle handle, fixed world_x, fixed world_y, u8 z) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active) return;
+    if (!tm->active)
+        return;
 
     tm->world_x = world_x;
     tm->world_y = world_y;
@@ -310,9 +322,11 @@ void NGTilemapAddToScene(NGTilemapHandle handle, fixed world_x, fixed world_y, u
 }
 
 void NGTilemapRemoveFromScene(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active) return;
+    if (!tm->active)
+        return;
 
     u8 was_in_scene = tm->in_scene;
     tm->in_scene = 0;
@@ -330,24 +344,29 @@ void NGTilemapRemoveFromScene(NGTilemapHandle handle) {
 }
 
 void NGTilemapDestroy(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     NGTilemapRemoveFromScene(handle);
     tilemaps[handle].active = 0;
 }
 
 void NGTilemapSetPos(NGTilemapHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active) return;
+    if (!tm->active)
+        return;
 
     tm->world_x = world_x;
     tm->world_y = world_y;
 }
 
 void NGTilemapSetZ(NGTilemapHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active) return;
+    if (!tm->active)
+        return;
     if (tm->z != z) {
         tm->z = z;
         if (tm->in_scene) {
@@ -357,38 +376,48 @@ void NGTilemapSetZ(NGTilemapHandle handle, u8 z) {
 }
 
 void NGTilemapSetVisible(NGTilemapHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active) return;
+    if (!tm->active)
+        return;
     tm->visible = visible ? 1 : 0;
 }
 
 void NGTilemapGetDimensions(NGTilemapHandle handle, u16 *width_out, u16 *height_out) {
     if (handle < 0 || handle >= NG_TILEMAP_MAX) {
-        if (width_out) *width_out = 0;
-        if (height_out) *height_out = 0;
+        if (width_out)
+            *width_out = 0;
+        if (height_out)
+            *height_out = 0;
         return;
     }
     Tilemap *tm = &tilemaps[handle];
     if (!tm->active || !tm->asset) {
-        if (width_out) *width_out = 0;
-        if (height_out) *height_out = 0;
+        if (width_out)
+            *width_out = 0;
+        if (height_out)
+            *height_out = 0;
         return;
     }
-    if (width_out) *width_out = tm->asset->width_tiles * NG_TILE_SIZE;
-    if (height_out) *height_out = tm->asset->height_tiles * NG_TILE_SIZE;
+    if (width_out)
+        *width_out = tm->asset->width_tiles * NG_TILE_SIZE;
+    if (height_out)
+        *height_out = tm->asset->height_tiles * NG_TILE_SIZE;
 }
 
 u8 NGTilemapGetCollision(NGTilemapHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data) return 0;
+    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+        return 0;
 
     s16 tile_x = FIX_INT(world_x - tm->world_x) / NG_TILE_SIZE;
     s16 tile_y = FIX_INT(world_y - tm->world_y) / NG_TILE_SIZE;
 
-    if (tile_x < 0 || tile_x >= tm->asset->width_tiles ||
-        tile_y < 0 || tile_y >= tm->asset->height_tiles) {
+    if (tile_x < 0 || tile_x >= tm->asset->width_tiles || tile_y < 0 ||
+        tile_y >= tm->asset->height_tiles) {
         return 0;
     }
 
@@ -397,9 +426,11 @@ u8 NGTilemapGetCollision(NGTilemapHandle handle, fixed world_x, fixed world_y) {
 }
 
 u8 NGTilemapGetTileAt(NGTilemapHandle handle, u16 tile_x, u16 tile_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->asset) return 0;
+    if (!tm->active || !tm->asset)
+        return 0;
 
     if (tile_x >= tm->asset->width_tiles || tile_y >= tm->asset->height_tiles) {
         return 0;
@@ -409,23 +440,27 @@ u8 NGTilemapGetTileAt(NGTilemapHandle handle, u16 tile_x, u16 tile_y) {
     return tm->asset->tile_data[idx];
 }
 
-u8 NGTilemapTestAABB(NGTilemapHandle handle,
-                     fixed x, fixed y,
-                     fixed half_w, fixed half_h,
+u8 NGTilemapTestAABB(NGTilemapHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
                      u8 *flags_out) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data) return 0;
+    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+        return 0;
 
-    s16 left_tile   = FIX_INT(x - half_w - tm->world_x) / NG_TILE_SIZE;
-    s16 right_tile  = FIX_INT(x + half_w - tm->world_x) / NG_TILE_SIZE;
-    s16 top_tile    = FIX_INT(y - half_h - tm->world_y) / NG_TILE_SIZE;
+    s16 left_tile = FIX_INT(x - half_w - tm->world_x) / NG_TILE_SIZE;
+    s16 right_tile = FIX_INT(x + half_w - tm->world_x) / NG_TILE_SIZE;
+    s16 top_tile = FIX_INT(y - half_h - tm->world_y) / NG_TILE_SIZE;
     s16 bottom_tile = FIX_INT(y + half_h - tm->world_y) / NG_TILE_SIZE;
 
-    if (left_tile < 0) left_tile = 0;
-    if (right_tile >= tm->asset->width_tiles) right_tile = tm->asset->width_tiles - 1;
-    if (top_tile < 0) top_tile = 0;
-    if (bottom_tile >= tm->asset->height_tiles) bottom_tile = tm->asset->height_tiles - 1;
+    if (left_tile < 0)
+        left_tile = 0;
+    if (right_tile >= tm->asset->width_tiles)
+        right_tile = tm->asset->width_tiles - 1;
+    if (top_tile < 0)
+        top_tile = 0;
+    if (bottom_tile >= tm->asset->height_tiles)
+        bottom_tile = tm->asset->height_tiles - 1;
 
     u8 result = 0;
     for (s16 ty = top_tile; ty <= bottom_tile; ty++) {
@@ -436,17 +471,18 @@ u8 NGTilemapTestAABB(NGTilemapHandle handle,
         }
     }
 
-    if (flags_out) *flags_out = result;
+    if (flags_out)
+        *flags_out = result;
     return (result & NG_TILE_SOLID) ? 1 : 0;
 }
 
-u8 NGTilemapResolveAABB(NGTilemapHandle handle,
-                        fixed *x, fixed *y,
-                        fixed half_w, fixed half_h,
+u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
                         fixed *vel_x, fixed *vel_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return NG_COLL_NONE;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return NG_COLL_NONE;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data) return NG_COLL_NONE;
+    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+        return NG_COLL_NONE;
 
     u8 result = NG_COLL_NONE;
     fixed new_x = *x;
@@ -454,15 +490,19 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle,
 
     // Vertical resolution first: allows jumping to clear ground before horizontal check
     if (*vel_y != 0) {
-        s16 left_tile   = FIX_INT(*x - half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 right_tile  = FIX_INT(*x + half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 top_tile    = FIX_INT(new_y - half_h - tm->world_y) / NG_TILE_SIZE;
+        s16 left_tile = FIX_INT(*x - half_w - tm->world_x) / NG_TILE_SIZE;
+        s16 right_tile = FIX_INT(*x + half_w - tm->world_x) / NG_TILE_SIZE;
+        s16 top_tile = FIX_INT(new_y - half_h - tm->world_y) / NG_TILE_SIZE;
         s16 bottom_tile = FIX_INT(new_y + half_h - tm->world_y) / NG_TILE_SIZE;
 
-        if (left_tile < 0) left_tile = 0;
-        if (right_tile >= tm->asset->width_tiles) right_tile = tm->asset->width_tiles - 1;
-        if (top_tile < 0) top_tile = 0;
-        if (bottom_tile >= tm->asset->height_tiles) bottom_tile = tm->asset->height_tiles - 1;
+        if (left_tile < 0)
+            left_tile = 0;
+        if (right_tile >= tm->asset->width_tiles)
+            right_tile = tm->asset->width_tiles - 1;
+        if (top_tile < 0)
+            top_tile = 0;
+        if (bottom_tile >= tm->asset->height_tiles)
+            bottom_tile = tm->asset->height_tiles - 1;
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
@@ -500,15 +540,19 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle,
         new_x = *x + *vel_x;
 
         // 2px skin avoids catching on edges
-        s16 left_tile   = FIX_INT(new_x - half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 right_tile  = FIX_INT(new_x + half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 top_tile    = FIX_INT(new_y - half_h + FIX(2) - tm->world_y) / NG_TILE_SIZE;
+        s16 left_tile = FIX_INT(new_x - half_w - tm->world_x) / NG_TILE_SIZE;
+        s16 right_tile = FIX_INT(new_x + half_w - tm->world_x) / NG_TILE_SIZE;
+        s16 top_tile = FIX_INT(new_y - half_h + FIX(2) - tm->world_y) / NG_TILE_SIZE;
         s16 bottom_tile = FIX_INT(new_y + half_h - FIX(2) - tm->world_y) / NG_TILE_SIZE;
 
-        if (left_tile < 0) left_tile = 0;
-        if (right_tile >= tm->asset->width_tiles) right_tile = tm->asset->width_tiles - 1;
-        if (top_tile < 0) top_tile = 0;
-        if (bottom_tile >= tm->asset->height_tiles) bottom_tile = tm->asset->height_tiles - 1;
+        if (left_tile < 0)
+            left_tile = 0;
+        if (right_tile >= tm->asset->width_tiles)
+            right_tile = tm->asset->width_tiles - 1;
+        if (top_tile < 0)
+            top_tile = 0;
+        if (bottom_tile >= tm->asset->height_tiles)
+            bottom_tile = tm->asset->height_tiles - 1;
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
@@ -541,31 +585,42 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle,
 
 // TODO: Implement runtime tile modification (requires RAM copy support)
 void NGTilemapSetTile(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
-    (void)handle; (void)tile_x; (void)tile_y; (void)tile_index;
+    (void)handle;
+    (void)tile_x;
+    (void)tile_y;
+    (void)tile_index;
 }
 
 // TODO: Implement runtime collision modification (requires RAM copy support)
 void NGTilemapSetCollision(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
-    (void)handle; (void)tile_x; (void)tile_y; (void)collision;
+    (void)handle;
+    (void)tile_x;
+    (void)tile_y;
+    (void)collision;
 }
 
 void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->in_scene) return;
+    if (!tm->active || !tm->in_scene)
+        return;
 
     draw_tilemap(tm, first_sprite);
 }
 
 u8 NGTilemapGetSpriteCount(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) return 0;
+    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+        return 0;
     Tilemap *tm = &tilemaps[handle];
-    if (!tm->active || !tm->asset) return 0;
+    if (!tm->active || !tm->asset)
+        return 0;
 
     u8 zoom = NGCameraGetZoom();
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;
     u8 num_cols = (view_width / NG_TILE_SIZE) + 2;
-    if (num_cols > NG_TILEMAP_MAX_COLS) num_cols = NG_TILEMAP_MAX_COLS;
+    if (num_cols > NG_TILEMAP_MAX_COLS)
+        num_cols = NG_TILEMAP_MAX_COLS;
 
     return num_cols;
 }

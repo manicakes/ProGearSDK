@@ -26,22 +26,22 @@
  *  @{
  */
 
-#define NG_FIX_WIDTH    40      /**< Fix layer width in tiles */
-#define NG_FIX_HEIGHT   32      /**< Fix layer height in tiles */
-#define NG_FIX_VRAM     0x7000  /**< Fix layer VRAM address */
+#define NG_FIX_WIDTH  40     /**< Fix layer width in tiles */
+#define NG_FIX_HEIGHT 32     /**< Fix layer height in tiles */
+#define NG_FIX_VRAM   0x7000 /**< Fix layer VRAM address */
 
-#define NG_FIX_VISIBLE_TOP     2   /**< First visible row (inclusive) */
-#define NG_FIX_VISIBLE_BOTTOM  29  /**< Last visible row (inclusive) */
-#define NG_FIX_VISIBLE_LEFT    0   /**< First visible column (inclusive) */
-#define NG_FIX_VISIBLE_RIGHT   39  /**< Last visible column (inclusive) */
+#define NG_FIX_VISIBLE_TOP    2  /**< First visible row (inclusive) */
+#define NG_FIX_VISIBLE_BOTTOM 29 /**< Last visible row (inclusive) */
+#define NG_FIX_VISIBLE_LEFT   0  /**< First visible column (inclusive) */
+#define NG_FIX_VISIBLE_RIGHT  39 /**< Last visible column (inclusive) */
 
-#define NG_FIX_SAFE_TOP        3   /**< Safe area top row (inclusive) */
-#define NG_FIX_SAFE_BOTTOM     28  /**< Safe area bottom row (inclusive) */
-#define NG_FIX_SAFE_LEFT       1   /**< Safe area left column (inclusive) */
-#define NG_FIX_SAFE_RIGHT      38  /**< Safe area right column (inclusive) */
+#define NG_FIX_SAFE_TOP    3  /**< Safe area top row (inclusive) */
+#define NG_FIX_SAFE_BOTTOM 28 /**< Safe area bottom row (inclusive) */
+#define NG_FIX_SAFE_LEFT   1  /**< Safe area left column (inclusive) */
+#define NG_FIX_SAFE_RIGHT  38 /**< Safe area right column (inclusive) */
 
-#define NG_FIX_COLOR_TEXT    1     /**< Main text color index */
-#define NG_FIX_COLOR_SHADOW  2     /**< Shadow/outline color index */
+#define NG_FIX_COLOR_TEXT   1 /**< Main text color index */
+#define NG_FIX_COLOR_SHADOW 2 /**< Shadow/outline color index */
 
 /** @} */
 
@@ -52,24 +52,24 @@
 
 /** Horizontal alignment */
 typedef enum {
-    NG_ALIGN_LEFT = 0,    /**< Align to left edge */
-    NG_ALIGN_CENTER = 1,  /**< Center horizontally */
-    NG_ALIGN_RIGHT = 2    /**< Align to right edge */
+    NG_ALIGN_LEFT = 0,   /**< Align to left edge */
+    NG_ALIGN_CENTER = 1, /**< Center horizontally */
+    NG_ALIGN_RIGHT = 2   /**< Align to right edge */
 } NGFixHAlign;
 
 /** Vertical alignment */
 typedef enum {
-    NG_ALIGN_TOP = 0,     /**< Align to top edge */
-    NG_ALIGN_MIDDLE = 1,  /**< Center vertically */
-    NG_ALIGN_BOTTOM = 2   /**< Align to bottom edge */
+    NG_ALIGN_TOP = 0,    /**< Align to top edge */
+    NG_ALIGN_MIDDLE = 1, /**< Center vertically */
+    NG_ALIGN_BOTTOM = 2  /**< Align to bottom edge */
 } NGFixVAlign;
 
 /** Layout descriptor for text positioning */
 typedef struct {
-    u8 h_align;   /**< Horizontal alignment */
-    u8 v_align;   /**< Vertical alignment */
-    s8 offset_x;  /**< X offset from aligned position */
-    s8 offset_y;  /**< Y offset from aligned position */
+    u8 h_align;  /**< Horizontal alignment */
+    u8 v_align;  /**< Vertical alignment */
+    s8 offset_x; /**< X offset from aligned position */
+    s8 offset_y; /**< Y offset from aligned position */
 } NGFixLayout;
 
 /**
@@ -97,7 +97,8 @@ NGFixLayout NGFixLayoutOffset(NGFixHAlign h, NGFixVAlign v, s8 offset_x, s8 offs
  * @return Layout descriptor
  */
 static inline NGFixLayout NGFixLayoutXY(u8 x, u8 y) {
-    NGFixLayout layout = { NG_ALIGN_LEFT, NG_ALIGN_TOP, (s8)(x - NG_FIX_SAFE_LEFT), (s8)(y - NG_FIX_SAFE_TOP) };
+    NGFixLayout layout = {NG_ALIGN_LEFT, NG_ALIGN_TOP, (s8)(x - NG_FIX_SAFE_LEFT),
+                          (s8)(y - NG_FIX_SAFE_TOP)};
     return layout;
 }
 

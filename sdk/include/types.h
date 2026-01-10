@@ -21,12 +21,12 @@
  *  @{
  */
 
-typedef uint8_t  u8;   /**< Unsigned 8-bit integer */
-typedef uint16_t u16;  /**< Unsigned 16-bit integer */
-typedef uint32_t u32;  /**< Unsigned 32-bit integer */
-typedef int8_t   s8;   /**< Signed 8-bit integer */
-typedef int16_t  s16;  /**< Signed 16-bit integer */
-typedef int32_t  s32;  /**< Signed 32-bit integer */
+typedef uint8_t u8;   /**< Unsigned 8-bit integer */
+typedef uint16_t u16; /**< Unsigned 16-bit integer */
+typedef uint32_t u32; /**< Unsigned 32-bit integer */
+typedef int8_t s8;    /**< Signed 8-bit integer */
+typedef int16_t s16;  /**< Signed 16-bit integer */
+typedef int32_t s32;  /**< Signed 32-bit integer */
 
 /** @} */
 
@@ -35,14 +35,14 @@ typedef int32_t  s32;  /**< Signed 32-bit integer */
  *  @{
  */
 
-typedef volatile u8  vu8;   /**< Volatile unsigned 8-bit */
-typedef volatile u16 vu16;  /**< Volatile unsigned 16-bit */
-typedef volatile u32 vu32;  /**< Volatile unsigned 32-bit */
+typedef volatile u8 vu8;   /**< Volatile unsigned 8-bit */
+typedef volatile u16 vu16; /**< Volatile unsigned 16-bit */
+typedef volatile u32 vu32; /**< Volatile unsigned 32-bit */
 
 /** @} */
 
 #ifndef NULL
-#define NULL ((void*)0)
+#define NULL ((void *)0)
 #endif
 
 #endif // _TYPES_H_

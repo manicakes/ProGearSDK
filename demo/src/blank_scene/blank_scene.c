@@ -35,12 +35,8 @@ void BlankSceneInit(void) {
 
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
-    state->menu = NGMenuCreate(
-        &ng_arena_state,
-        &NGVisualAsset_ui_panel,
-        &NGVisualAsset_ui_cursor,
-        10
-    );
+    state->menu =
+        NGMenuCreate(&ng_arena_state, &NGVisualAsset_ui_panel, &NGVisualAsset_ui_cursor, 10);
     NGMenuSetTitle(state->menu, "BLANK SCENE");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Ball Demo");

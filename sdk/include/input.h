@@ -32,20 +32,20 @@
  *  @{
  */
 
-#define NG_BTN_UP       0x0001  /**< D-pad up */
-#define NG_BTN_DOWN     0x0002  /**< D-pad down */
-#define NG_BTN_LEFT     0x0004  /**< D-pad left */
-#define NG_BTN_RIGHT    0x0008  /**< D-pad right */
-#define NG_BTN_A        0x0010  /**< A button */
-#define NG_BTN_B        0x0020  /**< B button */
-#define NG_BTN_C        0x0040  /**< C button */
-#define NG_BTN_D        0x0080  /**< D button */
-#define NG_BTN_START    0x0100  /**< Start button */
-#define NG_BTN_SELECT   0x0200  /**< Select button */
+#define NG_BTN_UP     0x0001 /**< D-pad up */
+#define NG_BTN_DOWN   0x0002 /**< D-pad down */
+#define NG_BTN_LEFT   0x0004 /**< D-pad left */
+#define NG_BTN_RIGHT  0x0008 /**< D-pad right */
+#define NG_BTN_A      0x0010 /**< A button */
+#define NG_BTN_B      0x0020 /**< B button */
+#define NG_BTN_C      0x0040 /**< C button */
+#define NG_BTN_D      0x0080 /**< D button */
+#define NG_BTN_START  0x0100 /**< Start button */
+#define NG_BTN_SELECT 0x0200 /**< Select button */
 
-#define NG_BTN_DIR      (NG_BTN_UP | NG_BTN_DOWN | NG_BTN_LEFT | NG_BTN_RIGHT)  /**< All directions */
-#define NG_BTN_FACE     (NG_BTN_A | NG_BTN_B | NG_BTN_C | NG_BTN_D)  /**< All face buttons */
-#define NG_BTN_ALL      0x03FF  /**< All buttons */
+#define NG_BTN_DIR  (NG_BTN_UP | NG_BTN_DOWN | NG_BTN_LEFT | NG_BTN_RIGHT) /**< All directions */
+#define NG_BTN_FACE (NG_BTN_A | NG_BTN_B | NG_BTN_C | NG_BTN_D)            /**< All face buttons */
+#define NG_BTN_ALL  0x03FF                                                 /**< All buttons */
 
 /** @} */
 
@@ -54,11 +54,11 @@
  *  @{
  */
 
-#define NG_SYS_COIN1    0x0001  /**< Player 1 coin slot */
-#define NG_SYS_COIN2    0x0002  /**< Player 2 coin slot */
-#define NG_SYS_SERVICE  0x0004  /**< Service button */
-#define NG_SYS_TEST     0x0008  /**< Test button */
-#define NG_SYS_ALL      0x000F  /**< All system inputs */
+#define NG_SYS_COIN1   0x0001 /**< Player 1 coin slot */
+#define NG_SYS_COIN2   0x0002 /**< Player 2 coin slot */
+#define NG_SYS_SERVICE 0x0004 /**< Service button */
+#define NG_SYS_TEST    0x0008 /**< Test button */
+#define NG_SYS_ALL     0x000F /**< All system inputs */
 
 /** @} */
 
@@ -66,8 +66,8 @@
  *  @{
  */
 
-#define NG_PLAYER_1     0  /**< Player 1 */
-#define NG_PLAYER_2     1  /**< Player 2 */
+#define NG_PLAYER_1 0 /**< Player 1 */
+#define NG_PLAYER_2 1 /**< Player 2 */
 
 /** @} */
 

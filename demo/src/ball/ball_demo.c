@@ -23,7 +23,7 @@
 #include <engine.h>
 #include <ngres_generated_assets.h>
 
-#define CAM_CIRCLE_SPEED  1
+#define CAM_CIRCLE_SPEED   1
 #define CAM_DEFAULT_RADIUS FIX(24)
 
 typedef struct BallDemoState {
@@ -40,15 +40,15 @@ typedef struct BallDemoState {
 
 static BallDemoState *state;
 
-#define MENU_RESUME        0
-#define MENU_ADD_BALL      1
-#define MENU_CLEAR_BALLS   2
-#define MENU_TOGGLE_ZOOM   3
-#define MENU_TOGGLE_MUSIC  4
+#define MENU_RESUME       0
+#define MENU_ADD_BALL     1
+#define MENU_CLEAR_BALLS  2
+#define MENU_TOGGLE_ZOOM  3
+#define MENU_TOGGLE_MUSIC 4
 // Index 5 is separator
-#define MENU_SCROLL_DEMO   6
-#define MENU_BLANK_SCENE   7
-#define MENU_TILEMAP_DEMO  8
+#define MENU_SCROLL_DEMO  6
+#define MENU_BLANK_SCENE  7
+#define MENU_TILEMAP_DEMO 8
 
 void BallDemoInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, BallDemoState);
@@ -60,18 +60,14 @@ void BallDemoInit(void) {
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
     // Match brick asset size to avoid sprite limits
-    state->brick_pattern = NGParallaxCreate(&NGVisualAsset_brick_pattern,
-                                            336, 256,
-                                            FIX_FROM_FLOAT(0.8),
-                                            FIX_FROM_FLOAT(0.8));
+    state->brick_pattern = NGParallaxCreate(&NGVisualAsset_brick_pattern, 336, 256,
+                                            FIX_FROM_FLOAT(0.8), FIX_FROM_FLOAT(0.8));
     NGParallaxAddToScene(state->brick_pattern, 0, 0, 4);
 
     // Shadow moves slower than camera for depth effect
-    state->brick_shadow = NGParallaxCreate(&NGVisualAsset_brick_shadow,
-                                           NGVisualAsset_brick_shadow.width_pixels,
-                                           NGVisualAsset_brick_shadow.height_pixels,
-                                           FIX_FROM_FLOAT(0.9),
-                                           FIX_FROM_FLOAT(0.9));
+    state->brick_shadow = NGParallaxCreate(
+        &NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
+        NGVisualAsset_brick_shadow.height_pixels, FIX_FROM_FLOAT(0.9), FIX_FROM_FLOAT(0.9));
     NGParallaxAddToScene(state->brick_shadow, 8, 8, 5);
 
     state->brick = NGActorCreate(&NGVisualAsset_brick, 0, 0);
@@ -81,12 +77,8 @@ void BallDemoInit(void) {
     BallSpawn(state->balls);
     BallSpawn(state->balls);
 
-    state->menu = NGMenuCreate(
-        &ng_arena_state,
-        &NGVisualAsset_ui_panel,
-        &NGVisualAsset_ui_cursor,
-        10
-    );
+    state->menu =
+        NGMenuCreate(&ng_arena_state, &NGVisualAsset_ui_panel, &NGVisualAsset_ui_cursor, 10);
     NGMenuSetTitle(state->menu, "BALL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Add Ball");
@@ -131,16 +123,14 @@ u8 BallDemoUpdate(void) {
                 case MENU_CLEAR_BALLS:
                     while (BallDestroyLast(state->balls)) {}
                     break;
-                case MENU_TOGGLE_ZOOM:
-                    {
-                        u8 target = NGCameraGetTargetZoom();
-                        if (target == NG_CAM_ZOOM_100) {
-                            NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
-                        } else {
-                            NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
-                        }
+                case MENU_TOGGLE_ZOOM: {
+                    u8 target = NGCameraGetTargetZoom();
+                    if (target == NG_CAM_ZOOM_100) {
+                        NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
+                    } else {
+                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
                     }
-                    break;
+                } break;
                 case MENU_TOGGLE_MUSIC:
                     if (NGMusicIsPaused()) {
                         NGMusicResume();

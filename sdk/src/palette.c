@@ -46,9 +46,9 @@ void NGPalClear(u8 palette) {
     }
 }
 
-void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx,
-                   NGColor start_color, NGColor end_color) {
-    if (start_idx >= NG_PAL_SIZE || end_idx >= NG_PAL_SIZE) return;
+void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx, NGColor start_color, NGColor end_color) {
+    if (start_idx >= NG_PAL_SIZE || end_idx >= NG_PAL_SIZE)
+        return;
     if (start_idx > end_idx) {
         u8 tmp = start_idx;
         start_idx = end_idx;
@@ -95,7 +95,8 @@ void NGPalFadeToWhite(u8 palette, u8 amount) {
 }
 
 void NGPalFadeToColor(u8 palette, NGColor target, u8 amount) {
-    if (amount > 31) amount = 31;
+    if (amount > 31)
+        amount = 31;
     volatile u16 *pal = NGPalGetPtr(palette);
     u8 ratio = amount * 8;
     for (u8 i = 1; i < NG_PAL_SIZE; i++) {
@@ -143,11 +144,11 @@ void NGPalSetupGrayscale(u8 palette) {
 #define NG_BACKDROP_ADDR 0x401FFE
 
 void NGPalSetBackdrop(NGColor color) {
-    *(volatile u16*)NG_BACKDROP_ADDR = color;
+    *(volatile u16 *)NG_BACKDROP_ADDR = color;
 }
 
 NGColor NGPalGetBackdrop(void) {
-    return *(volatile u16*)NG_BACKDROP_ADDR;
+    return *(volatile u16 *)NG_BACKDROP_ADDR;
 }
 
 void NGPalInitDefault(void) {

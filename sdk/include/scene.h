@@ -29,9 +29,9 @@
  *  @{
  */
 
-#define NG_SCENE_MAX_HEIGHT     512     /**< Maximum scene height in pixels */
-#define NG_SCENE_VIEWPORT_W     320     /**< Viewport width (NeoGeo resolution) */
-#define NG_SCENE_VIEWPORT_H     224     /**< Viewport height (NeoGeo resolution) */
+#define NG_SCENE_MAX_HEIGHT 512 /**< Maximum scene height in pixels */
+#define NG_SCENE_VIEWPORT_W 320 /**< Viewport width (NeoGeo resolution) */
+#define NG_SCENE_VIEWPORT_H 224 /**< Viewport height (NeoGeo resolution) */
 
 /** @} */
 

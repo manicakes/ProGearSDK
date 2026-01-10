@@ -28,29 +28,29 @@
 // Tuned for 60fps, settling in ~200-300ms (12-18 frames)
 
 // Snappy with minimal overshoot - good for UI cursors
-#define NG_SPRING_SNAPPY_STIFFNESS    FIX_FROM_FLOAT(0.35)
-#define NG_SPRING_SNAPPY_DAMPING      FIX_FROM_FLOAT(0.65)
+#define NG_SPRING_SNAPPY_STIFFNESS FIX_FROM_FLOAT(0.35)
+#define NG_SPRING_SNAPPY_DAMPING   FIX_FROM_FLOAT(0.65)
 
 // Bouncy with noticeable overshoot - good for playful UI
-#define NG_SPRING_BOUNCY_STIFFNESS    FIX_FROM_FLOAT(0.25)
-#define NG_SPRING_BOUNCY_DAMPING      FIX_FROM_FLOAT(0.45)
+#define NG_SPRING_BOUNCY_STIFFNESS FIX_FROM_FLOAT(0.25)
+#define NG_SPRING_BOUNCY_DAMPING   FIX_FROM_FLOAT(0.45)
 
 // Smooth with no overshoot - good for subtle transitions
-#define NG_SPRING_SMOOTH_STIFFNESS    FIX_FROM_FLOAT(0.20)
-#define NG_SPRING_SMOOTH_DAMPING      FIX_FROM_FLOAT(0.80)
+#define NG_SPRING_SMOOTH_STIFFNESS FIX_FROM_FLOAT(0.20)
+#define NG_SPRING_SMOOTH_DAMPING   FIX_FROM_FLOAT(0.80)
 
 // Quick snap - very fast, almost instant
-#define NG_SPRING_QUICK_STIFFNESS     FIX_FROM_FLOAT(0.50)
-#define NG_SPRING_QUICK_DAMPING       FIX_FROM_FLOAT(0.70)
+#define NG_SPRING_QUICK_STIFFNESS FIX_FROM_FLOAT(0.50)
+#define NG_SPRING_QUICK_DAMPING   FIX_FROM_FLOAT(0.70)
 
 // === 1D Spring ===
 
 typedef struct NGSpring {
-    fixed value;       // Current animated value
-    fixed velocity;    // Current velocity
-    fixed target;      // Target value to animate toward
-    fixed stiffness;   // Spring constant (higher = faster)
-    fixed damping;     // Damping ratio (higher = less bouncy)
+    fixed value;     // Current animated value
+    fixed velocity;  // Current velocity
+    fixed target;    // Target value to animate toward
+    fixed stiffness; // Spring constant (higher = faster)
+    fixed damping;   // Damping ratio (higher = less bouncy)
 } NGSpring;
 
 // Initialize spring with starting value and default snappy physics

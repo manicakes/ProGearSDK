@@ -30,7 +30,8 @@ GEN_DIR = $(BUILD_DIR)/gen
 
 # === Compiler Flags ===
 CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
+CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
 CFLAGS += -I$(SDK_PATH)/include -I$(GEN_DIR)
 
 ASFLAGS = -m68000
@@ -277,3 +278,38 @@ $(BUILD_DIR)/$(MAME_DRIVER).zip: $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) 
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+# === Code Quality Targets ===
+# All C source files (SDK + demo)
+ALL_C_SOURCES = $(SDK_C_SOURCES) $(GAME_SOURCES)
+ALL_H_SOURCES = $(wildcard $(SDK_PATH)/include/*.h) $(wildcard src/**/*.h)
+
+.PHONY: format format-check lint check
+
+# Auto-format all source files
+format:
+	@echo "Formatting source files..."
+	@clang-format -i $(ALL_C_SOURCES) $(ALL_H_SOURCES)
+	@echo "Done."
+
+# Check formatting without modifying (fails if formatting needed)
+format-check:
+	@echo "Checking code formatting..."
+	@clang-format --dry-run --Werror $(ALL_C_SOURCES) $(ALL_H_SOURCES)
+	@echo "Formatting OK."
+
+# Static analysis with cppcheck
+lint:
+	@echo "Running static analysis..."
+	@cppcheck --enable=warning,performance,portability \
+		--suppress=missingIncludeSystem \
+		--suppress=unusedFunction \
+		--error-exitcode=1 \
+		--inline-suppr \
+		-I$(SDK_PATH)/include \
+		$(ALL_C_SOURCES)
+	@echo "Static analysis OK."
+
+# Run all checks (for CI)
+check: format-check lint
+	@echo "All checks passed."

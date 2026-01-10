@@ -25,13 +25,13 @@
  *  @{
  */
 
-#define NG_PAL_COUNT       256      /**< Total number of palettes */
-#define NG_PAL_SIZE        16       /**< Colors per palette */
-#define NG_PAL_RAM_BASE    0x400000 /**< Palette RAM start address */
+#define NG_PAL_COUNT    256      /**< Total number of palettes */
+#define NG_PAL_SIZE     16       /**< Colors per palette */
+#define NG_PAL_RAM_BASE 0x400000 /**< Palette RAM start address */
 
-#define NG_PAL_BANK_FIX    0        /**< Fix layer palette bank (0-15) */
-#define NG_PAL_BANK_SPR    16       /**< Sprite palette bank (16-255) */
-#define NG_PAL_FIX         0        /**< Default fix layer palette */
+#define NG_PAL_BANK_FIX 0  /**< Fix layer palette bank (0-15) */
+#define NG_PAL_BANK_SPR 16 /**< Sprite palette bank (16-255) */
+#define NG_PAL_FIX      0  /**< Default fix layer palette */
 
 /** @} */
 
@@ -104,8 +104,7 @@ void NGPalClear(u8 palette);
  * @param start_color Starting color
  * @param end_color Ending color
  */
-void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx,
-                   NGColor start_color, NGColor end_color);
+void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx, NGColor start_color, NGColor end_color);
 
 /**
  * Generate gradient from color to black.
@@ -230,8 +229,8 @@ NGColor NGPalGetBackdrop(void);
  * @param palette Palette index
  * @return Pointer to first color in palette
  */
-static inline volatile u16* NGPalGetPtr(u8 palette) {
-    return (volatile u16*)(NG_PAL_RAM_BASE + (palette * NG_PAL_SIZE * 2));
+static inline volatile u16 *NGPalGetPtr(u8 palette) {
+    return (volatile u16 *)(NG_PAL_RAM_BASE + (palette * NG_PAL_SIZE * 2));
 }
 
 /**
@@ -240,8 +239,8 @@ static inline volatile u16* NGPalGetPtr(u8 palette) {
  * @param index Color index
  * @return Pointer to color
  */
-static inline volatile u16* NGPalGetColorPtr(u8 palette, u8 index) {
-    return (volatile u16*)(NG_PAL_RAM_BASE + (palette * NG_PAL_SIZE * 2) + (index * 2));
+static inline volatile u16 *NGPalGetColorPtr(u8 palette, u8 index) {
+    return (volatile u16 *)(NG_PAL_RAM_BASE + (palette * NG_PAL_SIZE * 2) + (index * 2));
 }
 
 /** @} */

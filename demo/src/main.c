@@ -13,12 +13,7 @@
 #include "blank_scene/blank_scene.h"
 #include "tilemap_demo/tilemap_demo.h"
 
-typedef enum {
-    DEMO_BALL,
-    DEMO_SCROLL,
-    DEMO_BLANK_SCENE,
-    DEMO_TILEMAP
-} DemoMode;
+typedef enum { DEMO_BALL, DEMO_SCROLL, DEMO_BLANK_SCENE, DEMO_TILEMAP } DemoMode;
 
 int main(void) {
     NGEngineInit();

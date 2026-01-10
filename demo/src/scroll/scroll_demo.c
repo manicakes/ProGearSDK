@@ -17,9 +17,9 @@
 #include <engine.h>
 #include <ngres_generated_assets.h>
 
-#define SCROLL_SPEED      2
-#define SCREEN_WIDTH    320
-#define BOB_AMPLITUDE     10
+#define SCROLL_SPEED  2
+#define SCREEN_WIDTH  320
+#define BOB_AMPLITUDE 10
 
 typedef struct ScrollDemoState {
     NGParallaxHandle back;
@@ -35,13 +35,13 @@ typedef struct ScrollDemoState {
 
 static ScrollDemoState *state;
 
-#define MENU_RESUME        0
-#define MENU_TOGGLE_ZOOM   1
-#define MENU_RESET_CAMERA  2
+#define MENU_RESUME       0
+#define MENU_TOGGLE_ZOOM  1
+#define MENU_RESET_CAMERA 2
 // Index 3 is separator
-#define MENU_BALL_DEMO     4
-#define MENU_BLANK_SCENE   5
-#define MENU_TILEMAP_DEMO  6
+#define MENU_BALL_DEMO    4
+#define MENU_BLANK_SCENE  5
+#define MENU_TILEMAP_DEMO 6
 
 void ScrollDemoInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, ScrollDemoState);
@@ -51,36 +51,23 @@ void ScrollDemoInit(void) {
     state->scroll_dir = 1;
     state->bob_phase = 0;
 
-    state->back = NGParallaxCreate(
-        &NGVisualAsset_back_layer,
-        NG_PARALLAX_WIDTH_INFINITE, 0,
-        FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25)
-    );
+    state->back = NGParallaxCreate(&NGVisualAsset_back_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+                                   FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25));
     NGParallaxAddToScene(state->back, 0, 0, 0);
 
-    state->middle = NGParallaxCreate(
-        &NGVisualAsset_middle_layer,
-        NG_PARALLAX_WIDTH_INFINITE, 0,
-        FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5)
-    );
+    state->middle = NGParallaxCreate(&NGVisualAsset_middle_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+                                     FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
     s16 middle_y = NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20;
     NGParallaxAddToScene(state->middle, 0, middle_y, 1);
 
-    state->front = NGParallaxCreate(
-        &NGVisualAsset_front_layer,
-        NG_PARALLAX_WIDTH_INFINITE, 0,
-        FIX_ONE, FIX_ONE
-    );
+    state->front = NGParallaxCreate(&NGVisualAsset_front_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+                                    FIX_ONE, FIX_ONE);
     s16 front_y = NG_SCENE_VIEWPORT_H - NGVisualAsset_front_layer.height_pixels;
     NGParallaxAddToScene(state->front, 0, front_y, 2);
 
     // Menu uses palette fade, no sprite limit issues
-    state->menu = NGMenuCreate(
-        &ng_arena_state,
-        &NGVisualAsset_ui_panel,
-        &NGVisualAsset_ui_cursor,
-        10
-    );
+    state->menu =
+        NGMenuCreate(&ng_arena_state, &NGVisualAsset_ui_panel, &NGVisualAsset_ui_cursor, 10);
     NGMenuSetTitle(state->menu, "SCROLL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Toggle Zoom");
@@ -115,16 +102,14 @@ u8 ScrollDemoUpdate(void) {
                     NGMenuHide(state->menu);
                     state->menu_open = 0;
                     break;
-                case MENU_TOGGLE_ZOOM:
-                    {
-                        u8 target = NGCameraGetTargetZoom();
-                        if (target == NG_CAM_ZOOM_100) {
-                            NGCameraSetTargetZoom(NG_CAM_ZOOM_50);
-                        } else {
-                            NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
-                        }
+                case MENU_TOGGLE_ZOOM: {
+                    u8 target = NGCameraGetTargetZoom();
+                    if (target == NG_CAM_ZOOM_100) {
+                        NGCameraSetTargetZoom(NG_CAM_ZOOM_50);
+                    } else {
+                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
                     }
-                    break;
+                } break;
                 case MENU_RESET_CAMERA:
                     NGCameraSetPos(0, 0);
                     NGCameraSetZoom(NG_CAM_ZOOM_100);

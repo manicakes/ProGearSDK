@@ -24,9 +24,9 @@
  * Uses bump-pointer allocation for zero-fragmentation memory management.
  */
 typedef struct NGArena {
-    u8 *base;       /**< Start of memory region */
-    u8 *current;    /**< Current allocation pointer (bump pointer) */
-    u8 *end;        /**< End of memory region */
+    u8 *base;    /**< Start of memory region */
+    u8 *current; /**< Current allocation pointer (bump pointer) */
+    u8 *end;     /**< End of memory region */
 } NGArena;
 
 /** Mark for save/restore (temporary allocations) */
@@ -111,8 +111,7 @@ u32 NGArenaRemaining(NGArena *arena);
  * @param type Type to allocate
  * @return Typed pointer to allocated struct
  */
-#define NG_ARENA_ALLOC(arena, type) \
-    ((type *)NGArenaAlloc((arena), sizeof(type)))
+#define NG_ARENA_ALLOC(arena, type) ((type *)NGArenaAlloc((arena), sizeof(type)))
 
 /**
  * Allocate an array of structs.
@@ -133,17 +132,17 @@ u32 NGArenaRemaining(NGArena *arena);
 
 /** Default size for persistent arena (can be overridden before including arena.h) */
 #ifndef NG_ARENA_PERSISTENT_SIZE
-#define NG_ARENA_PERSISTENT_SIZE  8192   /**< 8 KB */
+#define NG_ARENA_PERSISTENT_SIZE 8192 /**< 8 KB */
 #endif
 
 /** Default size for state arena (can be overridden before including arena.h) */
 #ifndef NG_ARENA_STATE_SIZE
-#define NG_ARENA_STATE_SIZE      24576   /**< 24 KB */
+#define NG_ARENA_STATE_SIZE 24576 /**< 24 KB */
 #endif
 
 /** Default size for frame arena (can be overridden before including arena.h) */
 #ifndef NG_ARENA_FRAME_SIZE
-#define NG_ARENA_FRAME_SIZE       4096   /**< 4 KB */
+#define NG_ARENA_FRAME_SIZE 4096 /**< 4 KB */
 #endif
 
 /** Persistent arena - lives entire game (player data, global state) */

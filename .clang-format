@@ -1,0 +1,57 @@
+# ProGearSDK code formatting rules
+# Run: clang-format -i <file> to format
+# Run: clang-format --dry-run -Werror <file> to check
+
+Language: C
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+IndentCaseLabels: true
+
+# Braces
+BreakBeforeBraces: Attach
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+
+# Line length
+ColumnLimit: 100
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Pointer alignment
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+# Includes
+SortIncludes: false
+IncludeBlocks: Preserve
+
+# Other
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+MaxEmptyLinesToKeep: 1
+ReflowComments: false

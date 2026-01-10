@@ -26,8 +26,8 @@
 
 // === Configuration ===
 
-#define NG_MENU_MAX_ITEMS    12   // Maximum items per menu
-#define NG_MENU_Z_INDEX    250    // High Z to render on top of game
+#define NG_MENU_MAX_ITEMS 12  // Maximum items per menu
+#define NG_MENU_Z_INDEX   250 // High Z to render on top of game
 
 // === Menu Handle ===
 
@@ -45,10 +45,8 @@ typedef struct NGMenu *NGMenuHandle;
  *                   so it doesn't consume sprite resources.
  * @return Menu handle, or NULL if allocation failed
  */
-NGMenuHandle NGMenuCreate(NGArena *arena,
-                          const NGVisualAsset *panel_asset,
-                          const NGVisualAsset *cursor_asset,
-                          u8 dim_amount);
+NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
+                          const NGVisualAsset *cursor_asset, u8 dim_amount);
 
 // === Menu Configuration ===
 

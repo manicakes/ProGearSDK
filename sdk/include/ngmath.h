@@ -37,18 +37,18 @@ typedef s16 fixed16;
  *  @{
  */
 
-#define FIX_SHIFT       16                      /**< Fractional bits in fixed */
-#define FIX_ONE         (1 << FIX_SHIFT)        /**< 1.0 in fixed format */
-#define FIX_HALF        (1 << (FIX_SHIFT - 1))  /**< 0.5 in fixed format */
+#define FIX_SHIFT 16                     /**< Fractional bits in fixed */
+#define FIX_ONE   (1 << FIX_SHIFT)       /**< 1.0 in fixed format */
+#define FIX_HALF  (1 << (FIX_SHIFT - 1)) /**< 0.5 in fixed format */
 
 /** Convert integer to fixed */
-#define FIX(x)          ((fixed)((x) << FIX_SHIFT))
+#define FIX(x) ((fixed)((x) << FIX_SHIFT))
 
 /** Convert fixed to integer (truncates toward zero) */
-#define FIX_INT(x)      ((s16)((x) >> FIX_SHIFT))
+#define FIX_INT(x) ((s16)((x) >> FIX_SHIFT))
 
 /** Convert fixed to integer (rounds to nearest) */
-#define FIX_ROUND(x)    ((s16)(((x) + FIX_HALF) >> FIX_SHIFT))
+#define FIX_ROUND(x) ((s16)(((x) + FIX_HALF) >> FIX_SHIFT))
 
 /** Convert float literal to fixed (compile-time only) */
 #define FIX_FROM_FLOAT(x) ((fixed)((x) * FIX_ONE))
@@ -73,13 +73,13 @@ static inline fixed FIX_MUL(fixed a, fixed b) {
 }
 
 /** Divide two fixed values (slow - prefer multiply by reciprocal) */
-#define FIX_DIV(a, b)   ((fixed)((((long long)(a)) << FIX_SHIFT) / (b)))
+#define FIX_DIV(a, b) ((fixed)((((long long)(a)) << FIX_SHIFT) / (b)))
 
 /** Absolute value of fixed */
-#define FIX_ABS(x)      ((x) < 0 ? -(x) : (x))
+#define FIX_ABS(x) ((x) < 0 ? -(x) : (x))
 
 /** Sign of fixed value: returns -FIX_ONE, 0, or FIX_ONE */
-#define FIX_SIGN(x)     ((x) > 0 ? FIX_ONE : ((x) < 0 ? -FIX_ONE : 0))
+#define FIX_SIGN(x) ((x) > 0 ? FIX_ONE : ((x) < 0 ? -FIX_ONE : 0))
 
 /** @} */
 
@@ -88,18 +88,18 @@ static inline fixed FIX_MUL(fixed a, fixed b) {
  *  @{
  */
 
-#define FIX16_SHIFT     8                       /**< Fractional bits in fixed16 */
-#define FIX16_ONE       (1 << FIX16_SHIFT)      /**< 1.0 in fixed16 format */
-#define FIX16_HALF      (1 << (FIX16_SHIFT - 1))/**< 0.5 in fixed16 format */
+#define FIX16_SHIFT 8                        /**< Fractional bits in fixed16 */
+#define FIX16_ONE   (1 << FIX16_SHIFT)       /**< 1.0 in fixed16 format */
+#define FIX16_HALF  (1 << (FIX16_SHIFT - 1)) /**< 0.5 in fixed16 format */
 
 /** Convert integer to fixed16 */
-#define FIX16(x)        ((fixed16)((x) << FIX16_SHIFT))
+#define FIX16(x) ((fixed16)((x) << FIX16_SHIFT))
 
 /** Convert fixed16 to integer (truncates) */
-#define FIX16_INT(x)    ((s8)((x) >> FIX16_SHIFT))
+#define FIX16_INT(x) ((s8)((x) >> FIX16_SHIFT))
 
 /** Convert fixed16 to integer (rounds) */
-#define FIX16_ROUND(x)  ((s8)(((x) + FIX16_HALF) >> FIX16_SHIFT))
+#define FIX16_ROUND(x) ((s8)(((x) + FIX16_HALF) >> FIX16_SHIFT))
 
 /** Multiply two fixed16 values */
 #define FIX16_MUL(a, b) ((fixed16)(((s32)(a) * (s32)(b)) >> FIX16_SHIFT))
@@ -123,15 +123,15 @@ static inline fixed FIX_MUL(fixed a, fixed b) {
 /** Angle type: 0-255 represents 0-360 degrees */
 typedef u8 angle_t;
 
-#define ANGLE_0         0    /**< 0 degrees */
-#define ANGLE_45        32   /**< 45 degrees */
-#define ANGLE_90        64   /**< 90 degrees */
-#define ANGLE_135       96   /**< 135 degrees */
-#define ANGLE_180       128  /**< 180 degrees */
-#define ANGLE_225       160  /**< 225 degrees */
-#define ANGLE_270       192  /**< 270 degrees */
-#define ANGLE_315       224  /**< 315 degrees */
-#define ANGLE_360       0    /**< 360 degrees (wraps to 0) */
+#define ANGLE_0   0   /**< 0 degrees */
+#define ANGLE_45  32  /**< 45 degrees */
+#define ANGLE_90  64  /**< 90 degrees */
+#define ANGLE_135 96  /**< 135 degrees */
+#define ANGLE_180 128 /**< 180 degrees */
+#define ANGLE_225 160 /**< 225 degrees */
+#define ANGLE_270 192 /**< 270 degrees */
+#define ANGLE_315 224 /**< 315 degrees */
+#define ANGLE_360 0   /**< 360 degrees (wraps to 0) */
 
 /** @} */
 
@@ -216,23 +216,23 @@ fixed NGClamp(fixed x, fixed min, fixed max);
 
 /** 2D vector with fixed-point components */
 typedef struct {
-    fixed x;  /**< X component */
-    fixed y;  /**< Y component */
+    fixed x; /**< X component */
+    fixed y; /**< Y component */
 } NGVec2;
 
 /** Add two vectors */
 static inline NGVec2 NGVec2Add(NGVec2 a, NGVec2 b) {
-    return (NGVec2){ a.x + b.x, a.y + b.y };
+    return (NGVec2){a.x + b.x, a.y + b.y};
 }
 
 /** Subtract two vectors */
 static inline NGVec2 NGVec2Sub(NGVec2 a, NGVec2 b) {
-    return (NGVec2){ a.x - b.x, a.y - b.y };
+    return (NGVec2){a.x - b.x, a.y - b.y};
 }
 
 /** Scale vector by scalar */
 static inline NGVec2 NGVec2Scale(NGVec2 v, fixed s) {
-    return (NGVec2){ FIX_MUL(v.x, s), FIX_MUL(v.y, s) };
+    return (NGVec2){FIX_MUL(v.x, s), FIX_MUL(v.y, s)};
 }
 
 /** Dot product of two vectors */

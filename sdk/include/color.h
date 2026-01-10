@@ -34,24 +34,20 @@ typedef u16 NGColor;
  */
 
 /** Build color from 5-bit RGB components (0-31 each) */
-#define NG_RGB(r, g, b) ( \
-    (((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | \
-    ((((r) >> 1) & 0xF) << 8) | ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF) \
-)
+#define NG_RGB(r, g, b)                                                                      \
+    ((((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | ((((r) >> 1) & 0xF) << 8) | \
+     ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF))
 
 /** Alias for NG_RGB (5-bit components) */
-#define NG_RGB5(r, g, b) ( \
-    (((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | \
-    ((((r) >> 1) & 0xF) << 8) | ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF) \
-)
+#define NG_RGB5(r, g, b)                                                                     \
+    ((((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | ((((r) >> 1) & 0xF) << 8) | \
+     ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF))
 
 /** Build color from 5-bit RGB with dark bit set */
 #define NG_RGB5_DARK(r, g, b) (NG_RGB5(r, g, b) | 0x8000)
 
 /** Build color from 4-bit RGB components (0-15 each) */
-#define NG_RGB4(r, g, b) ( \
-    (((r) & 0xF) << 8) | (((g) & 0xF) << 4) | ((b) & 0xF) \
-)
+#define NG_RGB4(r, g, b) ((((r) & 0xF) << 8) | (((g) & 0xF) << 4) | ((b) & 0xF))
 
 /** Build color from 4-bit RGB with dark bit */
 #define NG_RGB4_DARK(r, g, b) (NG_RGB4(r, g, b) | 0x8000)
@@ -69,41 +65,41 @@ typedef u16 NGColor;
  *  @{
  */
 
-#define NG_COLOR_REFERENCE 0x8000  /**< Reference/backdrop marker */
+#define NG_COLOR_REFERENCE 0x8000 /**< Reference/backdrop marker */
 
-#define NG_COLOR_BLACK       NG_RGB4(0x0, 0x0, 0x0)  /**< Pure black */
-#define NG_COLOR_WHITE       NG_RGB4(0xF, 0xF, 0xF)  /**< Pure white */
-#define NG_COLOR_RED         NG_RGB4(0xF, 0x0, 0x0)  /**< Bright red */
-#define NG_COLOR_GREEN       NG_RGB4(0x0, 0xF, 0x0)  /**< Bright green */
-#define NG_COLOR_BLUE        NG_RGB4(0x0, 0x0, 0xF)  /**< Bright blue */
-#define NG_COLOR_YELLOW      NG_RGB4(0xF, 0xF, 0x0)  /**< Yellow */
-#define NG_COLOR_CYAN        NG_RGB4(0x0, 0xF, 0xF)  /**< Cyan */
-#define NG_COLOR_MAGENTA     NG_RGB4(0xF, 0x0, 0xF)  /**< Magenta */
+#define NG_COLOR_BLACK   NG_RGB4(0x0, 0x0, 0x0) /**< Pure black */
+#define NG_COLOR_WHITE   NG_RGB4(0xF, 0xF, 0xF) /**< Pure white */
+#define NG_COLOR_RED     NG_RGB4(0xF, 0x0, 0x0) /**< Bright red */
+#define NG_COLOR_GREEN   NG_RGB4(0x0, 0xF, 0x0) /**< Bright green */
+#define NG_COLOR_BLUE    NG_RGB4(0x0, 0x0, 0xF) /**< Bright blue */
+#define NG_COLOR_YELLOW  NG_RGB4(0xF, 0xF, 0x0) /**< Yellow */
+#define NG_COLOR_CYAN    NG_RGB4(0x0, 0xF, 0xF) /**< Cyan */
+#define NG_COLOR_MAGENTA NG_RGB4(0xF, 0x0, 0xF) /**< Magenta */
 
-#define NG_COLOR_DARK_RED    NG_RGB4(0x8, 0x0, 0x0)  /**< Dark red */
-#define NG_COLOR_DARK_GREEN  NG_RGB4(0x0, 0x8, 0x0)  /**< Dark green */
-#define NG_COLOR_DARK_BLUE   NG_RGB4(0x0, 0x0, 0x8)  /**< Dark blue */
-#define NG_COLOR_DARK_YELLOW NG_RGB4(0x8, 0x8, 0x0)  /**< Dark yellow */
-#define NG_COLOR_DARK_CYAN   NG_RGB4(0x0, 0x8, 0x8)  /**< Dark cyan */
+#define NG_COLOR_DARK_RED     NG_RGB4(0x8, 0x0, 0x0) /**< Dark red */
+#define NG_COLOR_DARK_GREEN   NG_RGB4(0x0, 0x8, 0x0) /**< Dark green */
+#define NG_COLOR_DARK_BLUE    NG_RGB4(0x0, 0x0, 0x8) /**< Dark blue */
+#define NG_COLOR_DARK_YELLOW  NG_RGB4(0x8, 0x8, 0x0) /**< Dark yellow */
+#define NG_COLOR_DARK_CYAN    NG_RGB4(0x0, 0x8, 0x8) /**< Dark cyan */
 #define NG_COLOR_DARK_MAGENTA NG_RGB4(0x8, 0x0, 0x8) /**< Dark magenta */
 
-#define NG_COLOR_GRAY_DARK   NG_RGB4(0x4, 0x4, 0x4)  /**< Dark gray */
-#define NG_COLOR_GRAY        NG_RGB4(0x8, 0x8, 0x8)  /**< Medium gray */
-#define NG_COLOR_GRAY_LIGHT  NG_RGB4(0xC, 0xC, 0xC)  /**< Light gray */
+#define NG_COLOR_GRAY_DARK  NG_RGB4(0x4, 0x4, 0x4) /**< Dark gray */
+#define NG_COLOR_GRAY       NG_RGB4(0x8, 0x8, 0x8) /**< Medium gray */
+#define NG_COLOR_GRAY_LIGHT NG_RGB4(0xC, 0xC, 0xC) /**< Light gray */
 
-#define NG_COLOR_ORANGE        NG_RGB4(0xF, 0x8, 0x0)  /**< Orange */
-#define NG_COLOR_HERMES_ORANGE NG_RGB4(0xF, 0x7, 0x2)  /**< Hermes orange */
-#define NG_COLOR_PINK          NG_RGB4(0xF, 0x8, 0xC)  /**< Pink */
-#define NG_COLOR_PURPLE        NG_RGB4(0x8, 0x0, 0xF)  /**< Purple */
-#define NG_COLOR_BROWN         NG_RGB4(0x8, 0x4, 0x0)  /**< Brown */
-#define NG_COLOR_DARK_ORANGE   NG_RGB4(0xA, 0x4, 0x0)  /**< Dark orange */
-#define NG_COLOR_SKY_BLUE      NG_RGB4(0x4, 0x8, 0xF)  /**< Sky blue */
-#define NG_COLOR_LIME          NG_RGB4(0x8, 0xF, 0x0)  /**< Lime green */
+#define NG_COLOR_ORANGE        NG_RGB4(0xF, 0x8, 0x0) /**< Orange */
+#define NG_COLOR_HERMES_ORANGE NG_RGB4(0xF, 0x7, 0x2) /**< Hermes orange */
+#define NG_COLOR_PINK          NG_RGB4(0xF, 0x8, 0xC) /**< Pink */
+#define NG_COLOR_PURPLE        NG_RGB4(0x8, 0x0, 0xF) /**< Purple */
+#define NG_COLOR_BROWN         NG_RGB4(0x8, 0x4, 0x0) /**< Brown */
+#define NG_COLOR_DARK_ORANGE   NG_RGB4(0xA, 0x4, 0x0) /**< Dark orange */
+#define NG_COLOR_SKY_BLUE      NG_RGB4(0x4, 0x8, 0xF) /**< Sky blue */
+#define NG_COLOR_LIME          NG_RGB4(0x8, 0xF, 0x0) /**< Lime green */
 
-#define NG_COLOR_WHITE_BRIGHT  NG_RGB4_DARK(0xF, 0xF, 0xF)  /**< Brightest white */
-#define NG_COLOR_RED_BRIGHT    NG_RGB4_DARK(0xF, 0x0, 0x0)  /**< Brightest red */
-#define NG_COLOR_GREEN_BRIGHT  NG_RGB4_DARK(0x0, 0xF, 0x0)  /**< Brightest green */
-#define NG_COLOR_BLUE_BRIGHT   NG_RGB4_DARK(0x0, 0x0, 0xF)  /**< Brightest blue */
+#define NG_COLOR_WHITE_BRIGHT NG_RGB4_DARK(0xF, 0xF, 0xF) /**< Brightest white */
+#define NG_COLOR_RED_BRIGHT   NG_RGB4_DARK(0xF, 0x0, 0x0) /**< Brightest red */
+#define NG_COLOR_GREEN_BRIGHT NG_RGB4_DARK(0x0, 0xF, 0x0) /**< Brightest green */
+#define NG_COLOR_BLUE_BRIGHT  NG_RGB4_DARK(0x0, 0x0, 0xF) /**< Brightest blue */
 
 /** @} */
 

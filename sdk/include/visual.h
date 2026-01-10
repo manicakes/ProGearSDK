@@ -29,11 +29,11 @@
  * Defines a named animation sequence within a visual asset.
  */
 typedef struct {
-    const char *name;       /**< Animation name (e.g., "idle", "walk") */
-    u16 first_frame;        /**< First frame index */
-    u16 frame_count;        /**< Number of frames */
-    u8 speed;               /**< Ticks per frame (higher = slower) */
-    u8 loop;                /**< 1 = loop, 0 = play once */
+    const char *name; /**< Animation name (e.g., "idle", "walk") */
+    u16 first_frame;  /**< First frame index */
+    u16 frame_count;  /**< Number of frames */
+    u8 speed;         /**< Ticks per frame (higher = slower) */
+    u8 loop;          /**< 1 = loop, 0 = play once */
 } NGAnimDef;
 
 /** @} */
@@ -49,21 +49,21 @@ typedef struct {
  * Max height is 512 pixels due to NeoGeo hardware limitations.
  */
 typedef struct {
-    const char *name;           /**< Asset name */
-    u16 base_tile;              /**< First tile in C-ROM */
-    u16 width_pixels;           /**< Natural width in pixels */
-    u16 height_pixels;          /**< Natural height in pixels */
-    u8 width_tiles;             /**< Width in 16x16 tiles */
-    u8 height_tiles;            /**< Height in 16x16 tiles */
-    const u16 *tilemap;         /**< Tile indices (row-major) */
-    u8 palette;                 /**< Default palette index */
-    const u16 *palette_data;    /**< Palette colors (16 entries), or NULL */
+    const char *name;        /**< Asset name */
+    u16 base_tile;           /**< First tile in C-ROM */
+    u16 width_pixels;        /**< Natural width in pixels */
+    u16 height_pixels;       /**< Natural height in pixels */
+    u8 width_tiles;          /**< Width in 16x16 tiles */
+    u8 height_tiles;         /**< Height in 16x16 tiles */
+    const u16 *tilemap;      /**< Tile indices (row-major) */
+    u8 palette;              /**< Default palette index */
+    const u16 *palette_data; /**< Palette colors (16 entries), or NULL */
 
     /* Animation support (optional) */
-    const NGAnimDef *anims;     /**< Animation array (NULL if static) */
-    u8 anim_count;              /**< Number of animations (0 if static) */
-    u16 frame_count;            /**< Total frames (1 if static) */
-    u16 tiles_per_frame;        /**< Tiles per animation frame */
+    const NGAnimDef *anims; /**< Animation array (NULL if static) */
+    u8 anim_count;          /**< Number of animations (0 if static) */
+    u16 frame_count;        /**< Total frames (1 if static) */
+    u16 tiles_per_frame;    /**< Tiles per animation frame */
 } NGVisualAsset;
 
 /** @} */
@@ -73,9 +73,9 @@ typedef struct {
  *  @{
  */
 
-#define NG_TILE_HFLIP   0x8000  /**< Horizontal flip flag */
-#define NG_TILE_VFLIP   0x4000  /**< Vertical flip flag */
-#define NG_TILE_MASK    0x0FFF  /**< Tile index mask (bits 0-11) */
+#define NG_TILE_HFLIP 0x8000 /**< Horizontal flip flag */
+#define NG_TILE_VFLIP 0x4000 /**< Vertical flip flag */
+#define NG_TILE_MASK  0x0FFF /**< Tile index mask (bits 0-11) */
 
 /** @} */
 

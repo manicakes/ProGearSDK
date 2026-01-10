@@ -29,13 +29,13 @@
  *  @{
  */
 
-#define NG_REG_LSPCMODE    (*(vu16*)0x3C0006)  /**< LSPC mode register */
-#define NG_REG_IRQACK      (*(vu16*)0x3C000C)  /**< IRQ acknowledge */
-#define NG_REG_WATCHDOG    (*(vu8*)0x300001)   /**< Watchdog kick */
+#define NG_REG_LSPCMODE (*(vu16 *)0x3C0006) /**< LSPC mode register */
+#define NG_REG_IRQACK   (*(vu16 *)0x3C000C) /**< IRQ acknowledge */
+#define NG_REG_WATCHDOG (*(vu8 *)0x300001)  /**< Watchdog kick */
 
-#define NG_REG_VRAMADDR    (*(vu16*)0x3C0000)  /**< VRAM address */
-#define NG_REG_VRAMDATA    (*(vu16*)0x3C0002)  /**< VRAM data read/write */
-#define NG_REG_VRAMMOD     (*(vu16*)0x3C0004)  /**< VRAM address auto-increment */
+#define NG_REG_VRAMADDR (*(vu16 *)0x3C0000) /**< VRAM address */
+#define NG_REG_VRAMDATA (*(vu16 *)0x3C0002) /**< VRAM data read/write */
+#define NG_REG_VRAMMOD  (*(vu16 *)0x3C0004) /**< VRAM address auto-increment */
 
 /** @} */
 
@@ -44,10 +44,10 @@
  *  @{
  */
 
-#define NG_BIOS_SYSTEM_MODE    (*(vu8*)0x10FD80)  /**< System mode */
-#define NG_BIOS_MVS_FLAG       (*(vu8*)0x10FD82)  /**< 0=AES, 1=MVS */
-#define NG_BIOS_COUNTRY        (*(vu8*)0x10FD83)  /**< 0=Japan, 1=USA, 2=Europe */
-#define NG_BIOS_VBLANK_FLAG    (*(vu8*)0x10FD8E)  /**< Set by VBlank handler */
+#define NG_BIOS_SYSTEM_MODE (*(vu8 *)0x10FD80) /**< System mode */
+#define NG_BIOS_MVS_FLAG    (*(vu8 *)0x10FD82) /**< 0=AES, 1=MVS */
+#define NG_BIOS_COUNTRY     (*(vu8 *)0x10FD83) /**< 0=Japan, 1=USA, 2=Europe */
+#define NG_BIOS_VBLANK_FLAG (*(vu8 *)0x10FD8E) /**< Set by VBlank handler */
 
 /** @} */
 

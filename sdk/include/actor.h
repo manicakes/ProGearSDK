@@ -36,8 +36,8 @@
  *  @{
  */
 
-#define NG_ACTOR_MAX            64      /**< Maximum active actors */
-#define NG_ACTOR_WIDTH_INFINITE 0xFFFF  /**< Infinite width value */
+#define NG_ACTOR_MAX            64     /**< Maximum active actors */
+#define NG_ACTOR_WIDTH_INFINITE 0xFFFF /**< Infinite width value */
 
 /** @} */
 

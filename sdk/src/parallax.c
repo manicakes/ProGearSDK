@@ -8,25 +8,25 @@
 #include <camera.h>
 #include <neogeo.h>
 
-#define SCREEN_WIDTH   320
-#define SCREEN_HEIGHT  224
-#define TILE_SIZE      16
-#define SCB1_BASE  0x0000
-#define SCB2_BASE  0x8000
-#define SCB3_BASE  0x8200
-#define SCB4_BASE  0x8400
-#define MAX_COLUMNS_PER_PARALLAX  42
+#define SCREEN_WIDTH             320
+#define SCREEN_HEIGHT            224
+#define TILE_SIZE                16
+#define SCB1_BASE                0x0000
+#define SCB2_BASE                0x8000
+#define SCB3_BASE                0x8200
+#define SCB4_BASE                0x8400
+#define MAX_COLUMNS_PER_PARALLAX 42
 
 typedef struct {
     const NGVisualAsset *asset;
-    u16 width, height;       // Display dimensions (0 = asset, 0xFFFF = infinite)
-    fixed parallax_x;        // Horizontal movement rate (FIX_ONE = 1:1 with camera)
-    fixed parallax_y;        // Vertical movement rate
-    s16 viewport_x;          // X offset from camera viewport
-    s16 viewport_y;          // Y offset from camera viewport
-    fixed anchor_cam_x;      // Camera position when added (for parallax calc)
+    u16 width, height;  // Display dimensions (0 = asset, 0xFFFF = infinite)
+    fixed parallax_x;   // Horizontal movement rate (FIX_ONE = 1:1 with camera)
+    fixed parallax_y;   // Vertical movement rate
+    s16 viewport_x;     // X offset from camera viewport
+    s16 viewport_y;     // Y offset from camera viewport
+    fixed anchor_cam_x; // Camera position when added (for parallax calc)
     fixed anchor_cam_y;
-    u8 z;                    // Z-index for render order
+    u8 z; // Z-index for render order
     u8 palette;
     u8 visible;
     u8 in_scene;
@@ -43,9 +43,9 @@ typedef struct {
     s16 last_base_x;
 } Parallax;
 
-#define SCROLL_FRAC_BITS  4
-#define SCROLL_FIX(x)     ((x) << SCROLL_FRAC_BITS)
-#define SCROLL_INT(x)     ((x) >> SCROLL_FRAC_BITS)
+#define SCROLL_FRAC_BITS 4
+#define SCROLL_FIX(x)    ((x) << SCROLL_FRAC_BITS)
+#define SCROLL_INT(x)    ((x) >> SCROLL_FRAC_BITS)
 
 static Parallax parallax_layers[NG_PARALLAX_MAX];
 
@@ -58,21 +58,23 @@ void _NGParallaxSystemInit(void) {
     }
 }
 
-void _NGParallaxSystemUpdate(void) {
-}
+void _NGParallaxSystemUpdate(void) {}
 
 u8 _NGParallaxIsInScene(NGParallaxHandle handle) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return 0;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return 0;
     return parallax_layers[handle].active && parallax_layers[handle].in_scene;
 }
 
 u8 _NGParallaxGetZ(NGParallaxHandle handle) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return 0;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return 0;
     return parallax_layers[handle].z;
 }
 
 static void draw_parallax(Parallax *plx, u16 first_sprite) {
-    if (!plx->visible || !plx->asset) return;
+    if (!plx->visible || !plx->asset)
+        return;
 
     const NGVisualAsset *asset = plx->asset;
 
@@ -85,7 +87,8 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     s16 base_y = plx->viewport_y - FIX_INT(parallax_offset_y);
 
     u16 disp_w = plx->width;
-    if (disp_w == 0) disp_w = asset->width_pixels;
+    if (disp_w == 0)
+        disp_w = asset->width_pixels;
 
     u8 infinite_width = (plx->width == NG_PARALLAX_WIDTH_INFINITE);
     u8 asset_cols = asset->width_tiles;
@@ -95,14 +98,17 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     if (infinite_width) {
         u8 screen_cols = (SCREEN_WIDTH / TILE_SIZE) + 2;
         num_cols = (asset_cols > screen_cols) ? asset_cols : screen_cols;
-        if (num_cols > MAX_COLUMNS_PER_PARALLAX) num_cols = MAX_COLUMNS_PER_PARALLAX;
+        if (num_cols > MAX_COLUMNS_PER_PARALLAX)
+            num_cols = MAX_COLUMNS_PER_PARALLAX;
     } else {
         num_cols = (disp_w + TILE_SIZE - 1) / TILE_SIZE;
-        if (num_cols > MAX_COLUMNS_PER_PARALLAX) num_cols = MAX_COLUMNS_PER_PARALLAX;
+        if (num_cols > MAX_COLUMNS_PER_PARALLAX)
+            num_cols = MAX_COLUMNS_PER_PARALLAX;
     }
 
     u16 disp_h = plx->height;
-    if (disp_h == 0) disp_h = asset->height_pixels;
+    if (disp_h == 0)
+        disp_h = asset->height_pixels;
 
     u8 num_rows;
     if (!infinite_width && disp_h > asset->height_pixels) {
@@ -110,7 +116,8 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     } else {
         num_rows = asset_rows;
     }
-    if (num_rows > 32) num_rows = 32;
+    if (num_rows > 32)
+        num_rows = 32;
 
     u8 zoom = NGCameraGetZoom();
     u8 zoom_changed = (zoom != plx->last_zoom);
@@ -200,13 +207,16 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     u16 shrink = NGCameraGetShrink();
     u8 v_shrink = shrink & 0xFF;
     u16 adjusted_rows = ((u16)num_rows * v_shrink + 254) / 255;
-    if (adjusted_rows < 1) adjusted_rows = 1;
-    if (adjusted_rows > 32) adjusted_rows = 32;
+    if (adjusted_rows < 1)
+        adjusted_rows = 1;
+    if (adjusted_rows > 32)
+        adjusted_rows = 32;
     u8 height_bits = (u8)adjusted_rows;
 
     // NeoGeo Y: 496 at top of screen, decreasing goes down
     s16 y_val = 496 - base_y;
-    if (y_val < 0) y_val += 512;
+    if (y_val < 0)
+        y_val += 512;
     y_val &= 0x1FF;
 
     u16 scb3_val = ((u16)y_val << 7) | height_bits;
@@ -286,14 +296,10 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     }
 }
 
-NGParallaxHandle NGParallaxCreate(
-    const NGVisualAsset *asset,
-    u16 width,
-    u16 height,
-    fixed parallax_x,
-    fixed parallax_y
-) {
-    if (!asset) return NG_PARALLAX_INVALID;
+NGParallaxHandle NGParallaxCreate(const NGVisualAsset *asset, u16 width, u16 height,
+                                  fixed parallax_x, fixed parallax_y) {
+    if (!asset)
+        return NG_PARALLAX_INVALID;
 
     NGParallaxHandle handle = NG_PARALLAX_INVALID;
     for (u8 i = 0; i < NG_PARALLAX_MAX; i++) {
@@ -302,7 +308,8 @@ NGParallaxHandle NGParallaxCreate(
             break;
         }
     }
-    if (handle == NG_PARALLAX_INVALID) return NG_PARALLAX_INVALID;
+    if (handle == NG_PARALLAX_INVALID)
+        return NG_PARALLAX_INVALID;
 
     Parallax *plx = &parallax_layers[handle];
     plx->asset = asset;
@@ -333,9 +340,11 @@ NGParallaxHandle NGParallaxCreate(
 }
 
 void NGParallaxAddToScene(NGParallaxHandle handle, s16 viewport_x, s16 viewport_y, u8 z) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
 
     plx->viewport_x = viewport_x;
     plx->viewport_y = viewport_y;
@@ -351,9 +360,11 @@ void NGParallaxAddToScene(NGParallaxHandle handle, s16 viewport_x, s16 viewport_
 }
 
 void NGParallaxRemoveFromScene(NGParallaxHandle handle) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
 
     u8 was_in_scene = plx->in_scene;
     plx->in_scene = 0;
@@ -371,15 +382,18 @@ void NGParallaxRemoveFromScene(NGParallaxHandle handle) {
 }
 
 void NGParallaxDestroy(NGParallaxHandle handle) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     NGParallaxRemoveFromScene(handle);
     parallax_layers[handle].active = 0;
 }
 
 void NGParallaxSetViewportPos(NGParallaxHandle handle, s16 viewport_x, s16 viewport_y) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
 
     plx->viewport_x = viewport_x;
     plx->viewport_y = viewport_y;
@@ -389,9 +403,11 @@ void NGParallaxSetViewportPos(NGParallaxHandle handle, s16 viewport_x, s16 viewp
 }
 
 void NGParallaxSetZ(NGParallaxHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
     if (plx->z != z) {
         plx->z = z;
         if (plx->in_scene) {
@@ -401,46 +417,57 @@ void NGParallaxSetZ(NGParallaxHandle handle, u8 z) {
 }
 
 void NGParallaxSetVisible(NGParallaxHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
     plx->visible = visible ? 1 : 0;
 }
 
 void NGParallaxSetPalette(NGParallaxHandle handle, u8 palette) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active) return;
+    if (!plx->active)
+        return;
     plx->palette = palette;
     plx->tiles_loaded = 0;
 }
 
 void NGParallaxDraw(NGParallaxHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active || !plx->in_scene) return;
+    if (!plx->active || !plx->in_scene)
+        return;
 
     draw_parallax(plx, first_sprite);
 }
 
 u8 NGParallaxGetSpriteCount(NGParallaxHandle handle) {
-    if (handle < 0 || handle >= NG_PARALLAX_MAX) return 0;
+    if (handle < 0 || handle >= NG_PARALLAX_MAX)
+        return 0;
     Parallax *plx = &parallax_layers[handle];
-    if (!plx->active || !plx->asset) return 0;
+    if (!plx->active || !plx->asset)
+        return 0;
 
     u16 disp_w = plx->width;
-    if (disp_w == 0) disp_w = plx->asset->width_pixels;
+    if (disp_w == 0)
+        disp_w = plx->asset->width_pixels;
 
     if (plx->width == NG_PARALLAX_WIDTH_INFINITE) {
         // Match the allocation in draw_parallax
         u8 asset_cols = plx->asset->width_tiles;
         u8 screen_cols = (SCREEN_WIDTH / TILE_SIZE) + 2;
         u8 cols = (asset_cols > screen_cols) ? asset_cols : screen_cols;
-        if (cols > MAX_COLUMNS_PER_PARALLAX) cols = MAX_COLUMNS_PER_PARALLAX;
+        if (cols > MAX_COLUMNS_PER_PARALLAX)
+            cols = MAX_COLUMNS_PER_PARALLAX;
         return cols;
     }
 
     u8 cols = (disp_w + TILE_SIZE - 1) / TILE_SIZE;
-    if (cols > MAX_COLUMNS_PER_PARALLAX) cols = MAX_COLUMNS_PER_PARALLAX;
+    if (cols > MAX_COLUMNS_PER_PARALLAX)
+        cols = MAX_COLUMNS_PER_PARALLAX;
     return cols;
 }

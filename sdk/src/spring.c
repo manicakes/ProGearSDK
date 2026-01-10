@@ -6,8 +6,8 @@
 
 #include <spring.h>
 
-#define SETTLE_VELOCITY_THRESHOLD  FIX_FROM_FLOAT(0.1)
-#define SETTLE_POSITION_THRESHOLD  FIX_FROM_FLOAT(0.5)
+#define SETTLE_VELOCITY_THRESHOLD FIX_FROM_FLOAT(0.1)
+#define SETTLE_POSITION_THRESHOLD FIX_FROM_FLOAT(0.5)
 
 void NGSpringInit(NGSpring *spring, fixed initial) {
     spring->value = initial;
@@ -52,13 +52,14 @@ void NGSpringUpdate(NGSpring *spring) {
 
 u8 NGSpringSettled(NGSpring *spring) {
     fixed displacement = spring->value - spring->target;
-    if (displacement < 0) displacement = -displacement;
+    if (displacement < 0)
+        displacement = -displacement;
 
     fixed vel = spring->velocity;
-    if (vel < 0) vel = -vel;
+    if (vel < 0)
+        vel = -vel;
 
-    return (displacement < SETTLE_POSITION_THRESHOLD) &&
-           (vel < SETTLE_VELOCITY_THRESHOLD);
+    return (displacement < SETTLE_POSITION_THRESHOLD) && (vel < SETTLE_VELOCITY_THRESHOLD);
 }
 
 void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y) {

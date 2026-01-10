@@ -185,6 +185,15 @@ make mame     # Build and run in MAME emulator
 make clean    # Clean build artifacts
 ```
 
+### Code Quality
+
+```bash
+make format       # Auto-format all source files
+make format-check # Check formatting (fails if changes needed)
+make lint         # Run static analysis with cppcheck
+make check        # Run all checks (format-check + lint)
+```
+
 ## Requirements
 
 - **m68k-elf-gcc** - 68000 cross-compiler (GCC 10+)
@@ -192,19 +201,21 @@ make clean    # Clean build artifacts
 - **SDCC** - Z80 assembler (sdasz80)
 - **Python 3.8+** - Asset pipeline
 - **Pillow, PyYAML** - Python libraries
+- **clang-format** - Code formatting (optional, for `make format`)
+- **cppcheck** - Static analysis (optional, for `make lint`)
 
 ### macOS (Homebrew)
 
 ```bash
-brew install m68k-elf-gcc m68k-elf-binutils sdcc
+brew install m68k-elf-gcc m68k-elf-binutils sdcc clang-format cppcheck
 pip install -r requirements.txt
 ```
 
 ### Linux (Debian/Ubuntu)
 
 ```bash
-# Install SDCC from package manager
-sudo apt install sdcc
+# Install SDCC and code quality tools from package manager
+sudo apt install sdcc clang-format cppcheck
 
 # Build m68k toolchain from source or use a PPA
 # See: https://wiki.neogeodev.org/index.php?title=Development_tools

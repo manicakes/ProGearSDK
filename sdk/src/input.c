@@ -7,10 +7,10 @@
 #include <input.h>
 
 // Hardware registers (directly mapped, 68000 big-endian)
-#define REG_P1CNT    (*(volatile u8*)0x300000)
-#define REG_STATUS_A (*(volatile u8*)0x320001)
-#define REG_P2CNT    (*(volatile u8*)0x340000)
-#define REG_STATUS_B (*(volatile u8*)0x380000)
+#define REG_P1CNT    (*(volatile u8 *)0x300000)
+#define REG_STATUS_A (*(volatile u8 *)0x320001)
+#define REG_P2CNT    (*(volatile u8 *)0x340000)
+#define REG_STATUS_B (*(volatile u8 *)0x380000)
 
 typedef struct {
     u16 current;
@@ -35,16 +35,14 @@ typedef struct {
 
 static SystemState g_system;
 
-static const u16 BUTTON_BITS[] = {
-    NG_BTN_UP, NG_BTN_DOWN, NG_BTN_LEFT, NG_BTN_RIGHT,
-    NG_BTN_A, NG_BTN_B, NG_BTN_C, NG_BTN_D,
-    NG_BTN_START, NG_BTN_SELECT
-};
+static const u16 BUTTON_BITS[] = {NG_BTN_UP, NG_BTN_DOWN, NG_BTN_LEFT, NG_BTN_RIGHT, NG_BTN_A,
+                                  NG_BTN_B,  NG_BTN_C,    NG_BTN_D,    NG_BTN_START, NG_BTN_SELECT};
 #define NUM_BUTTONS 10
 
 static u8 button_to_index(u16 button) {
     for (u8 i = 0; i < NUM_BUTTONS; i++) {
-        if (button == BUTTON_BITS[i]) return i;
+        if (button == BUTTON_BITS[i])
+            return i;
     }
     return 0;
 }
@@ -77,24 +75,36 @@ static u16 read_player_input(u8 player) {
     u8 joy = (player == 0) ? REG_P1CNT : REG_P2CNT;
     joy = ~joy;
 
-    if (joy & 0x01) result |= NG_BTN_UP;
-    if (joy & 0x02) result |= NG_BTN_DOWN;
-    if (joy & 0x04) result |= NG_BTN_LEFT;
-    if (joy & 0x08) result |= NG_BTN_RIGHT;
-    if (joy & 0x10) result |= NG_BTN_A;
-    if (joy & 0x20) result |= NG_BTN_B;
-    if (joy & 0x40) result |= NG_BTN_C;
-    if (joy & 0x80) result |= NG_BTN_D;
+    if (joy & 0x01)
+        result |= NG_BTN_UP;
+    if (joy & 0x02)
+        result |= NG_BTN_DOWN;
+    if (joy & 0x04)
+        result |= NG_BTN_LEFT;
+    if (joy & 0x08)
+        result |= NG_BTN_RIGHT;
+    if (joy & 0x10)
+        result |= NG_BTN_A;
+    if (joy & 0x20)
+        result |= NG_BTN_B;
+    if (joy & 0x40)
+        result |= NG_BTN_C;
+    if (joy & 0x80)
+        result |= NG_BTN_D;
 
     // STATUS_B bits 0-3: Start P1, Select P1, Start P2, Select P2
     u8 status = REG_STATUS_B;
 
     if (player == 0) {
-        if (status & 0x01) result |= NG_BTN_START;
-        if (status & 0x02) result |= NG_BTN_SELECT;
+        if (status & 0x01)
+            result |= NG_BTN_START;
+        if (status & 0x02)
+            result |= NG_BTN_SELECT;
     } else {
-        if (status & 0x04) result |= NG_BTN_START;
-        if (status & 0x08) result |= NG_BTN_SELECT;
+        if (status & 0x04)
+            result |= NG_BTN_START;
+        if (status & 0x08)
+            result |= NG_BTN_SELECT;
     }
 
     return result;
@@ -106,9 +116,12 @@ static u16 read_system_input(void) {
     // STATUS_A: active-low, bits 0-2 = Coin1, Coin2, Service
     u8 status_a = ~REG_STATUS_A;
 
-    if (status_a & 0x01) result |= NG_SYS_COIN1;
-    if (status_a & 0x02) result |= NG_SYS_COIN2;
-    if (status_a & 0x04) result |= NG_SYS_SERVICE;
+    if (status_a & 0x01)
+        result |= NG_SYS_COIN1;
+    if (status_a & 0x02)
+        result |= NG_SYS_COIN2;
+    if (status_a & 0x04)
+        result |= NG_SYS_SERVICE;
 
     return result;
 }
@@ -147,51 +160,63 @@ void NGInputUpdate(void) {
 }
 
 u8 NGInputHeld(u8 player, u16 buttons) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     return (g_input[player].current & buttons) == buttons;
 }
 
 u8 NGInputPressed(u8 player, u16 buttons) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     return (g_input[player].pressed & buttons) == buttons;
 }
 
 u8 NGInputReleased(u8 player, u16 buttons) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     return (g_input[player].released & buttons) == buttons;
 }
 
 u16 NGInputGetRaw(u8 player) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     return g_input[player].current;
 }
 
 s8 NGInputGetX(u8 player) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     u16 state = g_input[player].current;
     s8 x = 0;
-    if (state & NG_BTN_LEFT) x -= 1;
-    if (state & NG_BTN_RIGHT) x += 1;
+    if (state & NG_BTN_LEFT)
+        x -= 1;
+    if (state & NG_BTN_RIGHT)
+        x += 1;
     return x;
 }
 
 s8 NGInputGetY(u8 player) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     u16 state = g_input[player].current;
     s8 y = 0;
-    if (state & NG_BTN_UP) y -= 1;
-    if (state & NG_BTN_DOWN) y += 1;
+    if (state & NG_BTN_UP)
+        y -= 1;
+    if (state & NG_BTN_DOWN)
+        y += 1;
     return y;
 }
 
 u16 NGInputHeldFrames(u8 player, u16 button) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     u8 idx = button_to_index(button);
     return g_input[player].hold_frames[idx];
 }
 
 u16 NGInputReleasedFrames(u8 player, u16 button) {
-    if (player > 1) return 0;
+    if (player > 1)
+        return 0;
     u8 idx = button_to_index(button);
     return g_input[player].release_frames[idx];
 }

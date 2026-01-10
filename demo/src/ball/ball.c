@@ -12,17 +12,11 @@
 #include <physics.h>
 #include <ngres_generated_assets.h>
 
-#define BALL_HALF_SIZE FIX(16)  // 16 pixels (32x32 sprite)
+#define BALL_HALF_SIZE FIX(16) // 16 pixels (32x32 sprite)
 
 static const u8 ball_palettes[] = {
-    NGPAL_BALL_DEFAULT,
-    NGPAL_BALL_RED,
-    NGPAL_BALL_GREEN,
-    NGPAL_BALL_BLUE,
-    NGPAL_BALL_YELLOW,
-    NGPAL_BALL_CYAN,
-    NGPAL_BALL_MAGENTA,
-    NGPAL_BALL_WHITE,
+    NGPAL_BALL_DEFAULT, NGPAL_BALL_RED,  NGPAL_BALL_GREEN,   NGPAL_BALL_BLUE,
+    NGPAL_BALL_YELLOW,  NGPAL_BALL_CYAN, NGPAL_BALL_MAGENTA, NGPAL_BALL_WHITE,
 };
 
 #define NUM_PALETTES (sizeof(ball_palettes) / sizeof(ball_palettes[0]))
@@ -35,7 +29,7 @@ typedef struct Ball {
 
 typedef struct BallSystem {
     NGPhysWorldHandle physics;
-    Ball *balls;           // Allocated from arena
+    Ball *balls; // Allocated from arena
     u8 max_balls;
     u8 ball_count;
     u16 random_seed;
@@ -72,10 +66,12 @@ static void on_ball_collision(NGCollision *collision, void *user_data) {
 
 BallSystemHandle BallSystemCreate(NGArena *arena, u8 max_balls) {
     BallSystem *sys = NG_ARENA_ALLOC(arena, BallSystem);
-    if (!sys) return 0;
+    if (!sys)
+        return 0;
 
     sys->balls = NG_ARENA_ALLOC_ARRAY(arena, Ball, max_balls);
-    if (!sys->balls) return 0;
+    if (!sys->balls)
+        return 0;
 
     sys->max_balls = max_balls;
     sys->ball_count = 0;
@@ -87,18 +83,16 @@ BallSystemHandle BallSystemCreate(NGArena *arena, u8 max_balls) {
 
     sys->physics = NGPhysWorldCreate();
     const u8 offset = 16;
-    NGPhysWorldSetBounds(sys->physics,
-                         FIX(offset),
-                         FIX(NGVisualAsset_brick.width_pixels - offset),
-                         FIX(offset),
-                         FIX(NGVisualAsset_brick.height_pixels - offset));
+    NGPhysWorldSetBounds(sys->physics, FIX(offset), FIX(NGVisualAsset_brick.width_pixels - offset),
+                         FIX(offset), FIX(NGVisualAsset_brick.height_pixels - offset));
     NGPhysWorldSetGravity(sys->physics, 0, FIX(1));
 
     return sys;
 }
 
 void BallSystemDestroy(BallSystemHandle sys) {
-    if (!sys) return;
+    if (!sys)
+        return;
 
     for (u8 i = 0; i < sys->max_balls; i++) {
         if (sys->balls[i].active) {
@@ -113,14 +107,16 @@ void BallSystemDestroy(BallSystemHandle sys) {
 }
 
 void BallSystemUpdate(BallSystemHandle sys) {
-    if (!sys) return;
+    if (!sys)
+        return;
 
     NGPhysWorldUpdate(sys->physics, on_ball_collision, 0);
 
     // Physics uses center position, actor uses top-left
     for (u8 i = 0; i < sys->max_balls; i++) {
         Ball *ball = &sys->balls[i];
-        if (!ball->active) continue;
+        if (!ball->active)
+            continue;
 
         NGVec2 pos = NGPhysBodyGetPos(ball->body);
         fixed x = pos.x - BALL_HALF_SIZE;
@@ -130,7 +126,8 @@ void BallSystemUpdate(BallSystemHandle sys) {
 }
 
 u8 BallSpawn(BallSystemHandle sys) {
-    if (!sys) return 0;
+    if (!sys)
+        return 0;
 
     for (u8 i = 0; i < sys->max_balls; i++) {
         if (!sys->balls[i].active) {
@@ -141,8 +138,10 @@ u8 BallSpawn(BallSystemHandle sys) {
 
             fixed vx = FIX(random_range(sys, -3, 3));
             fixed vy = FIX(random_range(sys, -3, 3));
-            if (vx == 0) vx = FIX(1);
-            if (vy == 0) vy = FIX(1);
+            if (vx == 0)
+                vx = FIX(1);
+            if (vy == 0)
+                vy = FIX(1);
 
             ball->body = NGPhysBodyCreateAABB(sys->physics, x, y, BALL_HALF_SIZE, BALL_HALF_SIZE);
             NGPhysBodySetVel(ball->body, vx, vy);
@@ -159,11 +158,12 @@ u8 BallSpawn(BallSystemHandle sys) {
             return 1;
         }
     }
-    return 0;  // Pool full
+    return 0; // Pool full
 }
 
 u8 BallDestroyLast(BallSystemHandle sys) {
-    if (!sys) return 0;
+    if (!sys)
+        return 0;
 
     for (s8 i = sys->max_balls - 1; i >= 0; i--) {
         if (sys->balls[i].active) {
@@ -174,10 +174,11 @@ u8 BallDestroyLast(BallSystemHandle sys) {
             return 1;
         }
     }
-    return 0;  // No balls to destroy
+    return 0; // No balls to destroy
 }
 
 u8 BallCount(BallSystemHandle sys) {
-    if (!sys) return 0;
+    if (!sys)
+        return 0;
     return sys->ball_count;
 }

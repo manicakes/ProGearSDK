@@ -10,7 +10,8 @@
 static u16 font_base = 0;
 
 void NGFixPut(u8 x, u8 y, u16 tile, u8 palette) {
-    if (x >= NG_FIX_WIDTH || y >= NG_FIX_HEIGHT) return;
+    if (x >= NG_FIX_WIDTH || y >= NG_FIX_HEIGHT)
+        return;
 
     // Fix layer is column-major: address = base + (x * 32) + y
     NG_REG_VRAMADDR = NG_FIX_VRAM + (x << 5) + y;
@@ -37,12 +38,12 @@ void NGFixClearAll(void) {
 }
 
 NGFixLayout NGFixLayoutAlign(NGFixHAlign h, NGFixVAlign v) {
-    NGFixLayout layout = { h, v, 0, 0 };
+    NGFixLayout layout = {h, v, 0, 0};
     return layout;
 }
 
 NGFixLayout NGFixLayoutOffset(NGFixHAlign h, NGFixVAlign v, s8 offset_x, s8 offset_y) {
-    NGFixLayout layout = { h, v, offset_x, offset_y };
+    NGFixLayout layout = {h, v, offset_x, offset_y};
     return layout;
 }
 
@@ -52,7 +53,8 @@ void NGTextSetFont(u16 font_base_tile) {
 
 static u8 str_len(const char *str) {
     u8 len = 0;
-    while (*str++) len++;
+    while (*str++)
+        len++;
     return len;
 }
 
@@ -71,8 +73,10 @@ static u8 calc_x(NGFixLayout layout, u8 text_len) {
             break;
     }
     x += layout.offset_x;
-    if (x < 0) x = 0;
-    if (x >= NG_FIX_WIDTH) x = NG_FIX_WIDTH - 1;
+    if (x < 0)
+        x = 0;
+    if (x >= NG_FIX_WIDTH)
+        x = NG_FIX_WIDTH - 1;
     return (u8)x;
 }
 
@@ -91,8 +95,10 @@ static u8 calc_y(NGFixLayout layout) {
             break;
     }
     y += layout.offset_y;
-    if (y < 0) y = 0;
-    if (y >= NG_FIX_HEIGHT) y = NG_FIX_HEIGHT - 1;
+    if (y < 0)
+        y = 0;
+    if (y >= NG_FIX_HEIGHT)
+        y = NG_FIX_HEIGHT - 1;
     return (u8)y;
 }
 
@@ -141,19 +147,23 @@ static u8 int_to_str(s32 value, char *buf, u8 base, u8 is_signed) {
     }
 
     u8 len = 0;
-    if (neg) buf[len++] = '-';
-    while (i > 0) buf[len++] = tmp[--i];
+    if (neg)
+        buf[len++] = '-';
+    while (i > 0)
+        buf[len++] = tmp[--i];
     buf[len] = '\0';
 
     return len;
 }
 
-static char *emit_padded_str(char *out, char *end, const char *str, u8 len, char pad_char, u8 width) {
+static char *emit_padded_str(char *out, char *end, const char *str, u8 len, char pad_char,
+                             u8 width) {
     while (len < width && out < end) {
         *out++ = pad_char;
         width--;
     }
-    while (*str && out < end) *out++ = *str++;
+    while (*str && out < end)
+        *out++ = *str++;
     return out;
 }
 
@@ -208,7 +218,9 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
             }
             case 's': {
                 const char *s = va_arg(args, const char *);
-                if (s) while (*s && out < end) *out++ = *s++;
+                if (s)
+                    while (*s && out < end)
+                        *out++ = *s++;
                 break;
             }
             case 'c':
