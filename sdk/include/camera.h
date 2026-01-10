@@ -195,6 +195,20 @@ u8 NGCameraIsShaking(void);
  */
 void NGCameraShakeStop(void);
 
+/**
+ * Get camera X position with shake offset applied.
+ * Use this for rendering to include shake effect.
+ * @return World X coordinate including shake offset
+ */
+fixed NGCameraGetRenderX(void);
+
+/**
+ * Get camera Y position with shake offset applied.
+ * Use this for rendering to include shake effect.
+ * @return World Y coordinate including shake offset
+ */
+fixed NGCameraGetRenderY(void);
+
 /** @} */
 
 /** @defgroup camutil Camera Utilities

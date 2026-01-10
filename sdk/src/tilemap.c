@@ -106,8 +106,8 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     if (!tm->visible || !tm->asset)
         return;
 
-    fixed cam_x = NGCameraGetX();
-    fixed cam_y = NGCameraGetY();
+    fixed cam_x = NGCameraGetRenderX();
+    fixed cam_y = NGCameraGetRenderY();
     u8 zoom = NGCameraGetZoom();
 
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;

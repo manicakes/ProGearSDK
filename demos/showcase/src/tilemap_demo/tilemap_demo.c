@@ -1938,7 +1938,14 @@ u8 TilemapDemoUpdate(void) {
             NGTilemapResolveAABB(state->tilemap, &state->player_x, &state->player_y, PLAYER_HALF_W,
                                  PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
 
-        state->on_ground = (coll & NG_COLL_BOTTOM) ? 1 : 0;
+        const u8 ground_coll = (coll & NG_COLL_BOTTOM) ? 1 : 0;
+
+        // camera shake on hitting ground
+        if (state->on_ground == 0 && ground_coll == 1) {
+            NGCameraShake(5, 5);
+        }
+
+        state->on_ground = ground_coll;
 
         if (state->player_x < PLAYER_HALF_W) {
             state->player_x = PLAYER_HALF_W;
