@@ -77,8 +77,7 @@ void BallDemoInit(void) {
     BallSpawn(state->balls);
     BallSpawn(state->balls);
 
-    state->menu =
-        NGMenuCreateDefault(&ng_arena_state, 10);
+    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "BALL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Add Ball");

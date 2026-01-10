@@ -66,8 +66,7 @@ void ScrollDemoInit(void) {
     NGParallaxAddToScene(state->front, 0, front_y, 2);
 
     // Menu uses palette fade, no sprite limit issues
-    state->menu =
-        NGMenuCreateDefault(&ng_arena_state, 10);
+    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "SCROLL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Toggle Zoom");

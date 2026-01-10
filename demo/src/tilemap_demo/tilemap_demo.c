@@ -1829,8 +1829,7 @@ void TilemapDemoInit(void) {
     NGCameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));
     NGCameraSetBounds(LEVEL_WIDTH_PX, LEVEL_HEIGHT_PX);
 
-    state->menu =
-        NGMenuCreateDefault(&ng_arena_state, 10);
+    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "TILEMAP DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Ball Demo");
