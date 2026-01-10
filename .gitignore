@@ -16,3 +16,6 @@ nvram/
 .idea/
 *.swp
 *~
+
+# neogeo bios
+bios/

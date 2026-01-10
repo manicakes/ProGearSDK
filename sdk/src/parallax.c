@@ -471,3 +471,14 @@ u8 NGParallaxGetSpriteCount(NGParallaxHandle handle) {
         cols = MAX_COLUMNS_PER_PARALLAX;
     return cols;
 }
+
+/* Internal: collect palettes from all parallax layers in scene into bitmask */
+void _NGParallaxCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < NG_PARALLAX_MAX; i++) {
+        Parallax *plx = &parallax_layers[i];
+        if (plx->active && plx->in_scene && plx->visible) {
+            u8 pal = plx->palette;
+            palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+        }
+    }
+}
