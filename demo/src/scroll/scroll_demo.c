@@ -67,7 +67,7 @@ void ScrollDemoInit(void) {
 
     // Menu uses palette fade, no sprite limit issues
     state->menu =
-        NGMenuCreate(&ng_arena_state, &NGVisualAsset_ui_panel, &NGVisualAsset_ui_cursor, 10);
+        NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "SCROLL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Toggle Zoom");
@@ -76,7 +76,7 @@ void ScrollDemoInit(void) {
     NGMenuAddItem(state->menu, "Ball Demo");
     NGMenuAddItem(state->menu, "Blank Scene");
     NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuSetSounds(state->menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
+    NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");

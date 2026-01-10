@@ -25,6 +25,7 @@ BUILD_DIR = build
 # Asset pipeline
 NGRES = python3 $(TOOLS_PATH)/ngres.py
 ASSETS_YAML = assets.yaml
+SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
 ASSETS_DIR = assets
 GEN_DIR = $(BUILD_DIR)/gen
 
@@ -114,7 +115,7 @@ assets: $(GEN_ASSETS_H)
 $(GEN_ASSETS_H): | $(GEN_DIR)
 	@if [ -f $(ASSETS_YAML) ]; then \
 		echo "Processing assets..."; \
-		$(NGRES) $(ASSETS_YAML) -o $(GEN_DIR) --c1 sprites-c1.bin --c2 sprites-c2.bin --v1 audio-v1.bin --m1-tables audio-tables.bin -v; \
+		$(NGRES) --sdk-assets $(SDK_ASSETS) $(ASSETS_YAML) -o $(GEN_DIR) --c1 sprites-c1.bin --c2 sprites-c2.bin --v1 audio-v1.bin --m1-tables audio-tables.bin -v; \
 	else \
 		echo "No $(ASSETS_YAML) found, creating empty ngres_generated_assets.h"; \
 		echo "// ngres_generated_assets.h - No assets defined" > $(GEN_ASSETS_H); \

@@ -35,11 +35,6 @@ palettes:
     colors: [0x8000, 0x7FFF, 0x5DDD, 0x3AAA, 0x0000, 0x0000, 0x0000, 0x0000,
              0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
 
-  # Dark red palette for menu cursor (index 1 = cursor, index 2 = shadow)
-  cursor_red:
-    colors: [0x8000, 0x0A33, 0x0111, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
-
   # Dithered shadow palette - index 0 transparent, index 1 black
   dithered_shadow:
     colors: [0x8000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
@@ -63,17 +58,6 @@ visual_assets:
     source: assets/brick_shadow.png
     palette: dithered_shadow
 
-  # UI elements
-  - name: ui_panel
-    source: assets/ui_panel.png
-
-  - name: ui_cursor
-    source: assets/ui_cursor.png
-    palette: cursor_red
-
-  - name: ui_overlay
-    source: assets/ui_overlay.png
-
   # Brick pattern (tiling background for ball demo)
   - name: brick_pattern
     source: assets/brick_pattern.png
@@ -96,10 +80,6 @@ visual_assets:
 sound_effects:
   - name: ball_hit
     source: assets/ball_hit.wav
-  - name: ui_click
-    source: assets/ui_click.wav
-  - name: ui_select
-    source: assets/ui_select.wav
 
 # Background music (ADPCM-B)
 music:

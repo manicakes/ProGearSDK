@@ -1,0 +1,25 @@
+# ProGearSDK built-in assets
+# All names prefixed with progearsdk_ to avoid conflicts with user assets
+
+palettes:
+  # Dark red palette for menu cursor
+  progearsdk_cursor_red:
+    colors: [0x8000, 0x0A33, 0x0111, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
+visual_assets:
+  - name: progearsdk_ui_panel
+    source: ui/panel.png
+
+  - name: progearsdk_ui_cursor
+    source: ui/cursor.png
+    palette: progearsdk_cursor_red
+
+  - name: progearsdk_ui_overlay
+    source: ui/overlay.png
+
+sound_effects:
+  - name: progearsdk_ui_click
+    source: ui/click.wav
+  - name: progearsdk_ui_select
+    source: ui/select.wav

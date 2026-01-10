@@ -36,13 +36,13 @@ void BlankSceneInit(void) {
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
     state->menu =
-        NGMenuCreate(&ng_arena_state, &NGVisualAsset_ui_panel, &NGVisualAsset_ui_cursor, 10);
+        NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "BLANK SCENE");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Ball Demo");
     NGMenuAddItem(state->menu, "Scroll Demo");
     NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuSetSounds(state->menu, NGSFX_UI_CLICK, NGSFX_UI_SELECT);
+    NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
