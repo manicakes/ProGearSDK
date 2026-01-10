@@ -286,10 +286,6 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     }
 }
 
-void _NGParallaxSystemDraw(u16 first_sprite) {
-    (void)first_sprite;
-}
-
 NGParallaxHandle NGParallaxCreate(
     const NGVisualAsset *asset,
     u16 width,

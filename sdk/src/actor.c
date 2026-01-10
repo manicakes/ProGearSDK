@@ -229,10 +229,6 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
     actor->last_cols = cols;
 }
 
-void _NGActorSystemDraw(u16 first_sprite) {
-    (void)first_sprite;
-}
-
 u8 _NGActorIsInScene(NGActorHandle handle) {
     if (handle < 0 || handle >= NG_ACTOR_MAX) return 0;
     return actors[handle].active && actors[handle].in_scene;

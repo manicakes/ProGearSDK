@@ -269,70 +269,46 @@ static void resolve_collision(NGCollision *col) {
     }
 }
 
+static inline void bounce_velocity(fixed *vel, fixed restitution) {
+    if (restitution == FIX_ONE) {
+        *vel = -*vel;
+    } else {
+        *vel = FIX_MUL(-*vel, restitution);
+    }
+}
+
 static void handle_bounds(NGPhysWorld *world, NGBody *body) {
     if (!world->bounds_enabled) return;
     if (body->flags & NG_BODY_STATIC) return;
 
-    fixed left, right, top, bottom;
-
+    fixed half_w, half_h;
     if (body->shape.type == NG_SHAPE_CIRCLE) {
-        left = body->pos.x - body->shape.circle.radius;
-        right = body->pos.x + body->shape.circle.radius;
-        top = body->pos.y - body->shape.circle.radius;
-        bottom = body->pos.y + body->shape.circle.radius;
+        half_w = half_h = body->shape.circle.radius;
     } else {
-        left = body->pos.x - body->shape.aabb.half_width;
-        right = body->pos.x + body->shape.aabb.half_width;
-        top = body->pos.y - body->shape.aabb.half_height;
-        bottom = body->pos.y + body->shape.aabb.half_height;
+        half_w = body->shape.aabb.half_width;
+        half_h = body->shape.aabb.half_height;
     }
 
-    // Left edge
+    fixed left = body->pos.x - half_w;
+    fixed right = body->pos.x + half_w;
+    fixed top = body->pos.y - half_h;
+    fixed bottom = body->pos.y + half_h;
+
     if (left < world->bounds_left) {
         body->pos.x += world->bounds_left - left;
-        if (body->vel.x < 0) {
-            if (body->restitution == FIX_ONE) {
-                body->vel.x = -body->vel.x;
-            } else {
-                body->vel.x = FIX_MUL(-body->vel.x, body->restitution);
-            }
-        }
+        if (body->vel.x < 0) bounce_velocity(&body->vel.x, body->restitution);
     }
-
-    // Right edge
     if (right > world->bounds_right) {
         body->pos.x -= right - world->bounds_right;
-        if (body->vel.x > 0) {
-            if (body->restitution == FIX_ONE) {
-                body->vel.x = -body->vel.x;
-            } else {
-                body->vel.x = FIX_MUL(-body->vel.x, body->restitution);
-            }
-        }
+        if (body->vel.x > 0) bounce_velocity(&body->vel.x, body->restitution);
     }
-
-    // Top edge
     if (top < world->bounds_top) {
         body->pos.y += world->bounds_top - top;
-        if (body->vel.y < 0) {
-            if (body->restitution == FIX_ONE) {
-                body->vel.y = -body->vel.y;
-            } else {
-                body->vel.y = FIX_MUL(-body->vel.y, body->restitution);
-            }
-        }
+        if (body->vel.y < 0) bounce_velocity(&body->vel.y, body->restitution);
     }
-
-    // Bottom edge
     if (bottom > world->bounds_bottom) {
         body->pos.y -= bottom - world->bounds_bottom;
-        if (body->vel.y > 0) {
-            if (body->restitution == FIX_ONE) {
-                body->vel.y = -body->vel.y;
-            } else {
-                body->vel.y = FIX_MUL(-body->vel.y, body->restitution);
-            }
-        }
+        if (body->vel.y > 0) bounce_velocity(&body->vel.y, body->restitution);
     }
 }
 

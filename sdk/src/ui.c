@@ -152,14 +152,16 @@ static void draw_menu_text(NGMenu *menu) {
     }
 }
 
+static inline u8 is_menu_palette(NGMenu *menu, u8 pal) {
+    return pal == menu->panel_pal || pal == menu->cursor_pal;
+}
+
 static void backup_palettes(NGMenu *menu) {
     if (!menu->pal_backup || menu->backup_count == 0) return;
 
     u8 backup_idx = 0;
     for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        // Skip menu's own palettes
-        if (pal == menu->panel_pal || pal == menu->cursor_pal) continue;
-
+        if (is_menu_palette(menu, pal)) continue;
         NGPalBackup(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
         backup_idx++;
     }
@@ -170,14 +172,11 @@ static void apply_dimming(NGMenu *menu) {
 
     u8 backup_idx = 0;
     for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        if (pal == menu->panel_pal || pal == menu->cursor_pal) continue;
-
+        if (is_menu_palette(menu, pal)) continue;
         NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
-
         if (menu->dim_current > 0) {
             NGPalFadeToBlack(pal, menu->dim_current);
         }
-
         backup_idx++;
     }
 }
@@ -187,9 +186,7 @@ static void restore_palettes(NGMenu *menu) {
 
     u8 backup_idx = 0;
     for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count; pal++) {
-        // Skip menu's own palettes
-        if (pal == menu->panel_pal || pal == menu->cursor_pal) continue;
-
+        if (is_menu_palette(menu, pal)) continue;
         NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
         backup_idx++;
     }
@@ -374,10 +371,9 @@ NGMenuHandle NGMenuCreate(NGArena *arena,
     if (dim_amount > 0) {
         u8 count = 0;
         for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal; pal++) {
-            if (pal != menu->panel_pal && pal != menu->cursor_pal) {
-                count++;
-                if (count >= DIM_BACKUP_MAX_PALETTES) break;
-            }
+            if (is_menu_palette(menu, pal)) continue;
+            count++;
+            if (count >= DIM_BACKUP_MAX_PALETTES) break;
         }
 
         if (count > 0) {

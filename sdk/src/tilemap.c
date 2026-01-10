@@ -539,18 +539,14 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle,
     return result;
 }
 
+// TODO: Implement runtime tile modification (requires RAM copy support)
 void NGTilemapSetTile(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
-    (void)handle;
-    (void)tile_x;
-    (void)tile_y;
-    (void)tile_index;
+    (void)handle; (void)tile_x; (void)tile_y; (void)tile_index;
 }
 
+// TODO: Implement runtime collision modification (requires RAM copy support)
 void NGTilemapSetCollision(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
-    (void)handle;
-    (void)tile_x;
-    (void)tile_y;
-    (void)collision;
+    (void)handle; (void)tile_x; (void)tile_y; (void)collision;
 }
 
 void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite) {

@@ -60,6 +60,15 @@ extern u8 _NGTilemapGetZ(NGTilemapHandle handle);
 extern void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite);
 extern u8 NGTilemapGetSpriteCount(NGTilemapHandle handle);
 
+static void clear_unused_sprites(u16 current, u16 last_max) {
+    if (current >= last_max) return;
+    NG_REG_VRAMADDR = 0x8200 + current;
+    NG_REG_VRAMMOD = 1;
+    for (u16 i = current; i < last_max; i++) {
+        NG_REG_VRAMDATA = 0;
+    }
+}
+
 void _NGSceneMarkRenderQueueDirty(void) {
     render_queue_dirty = 1;
 }
@@ -190,21 +199,8 @@ void NGSceneDraw(void) {
         }
     }
 
-    if (hw_sprite_next < hw_sprite_last_max) {
-        NG_REG_VRAMADDR = 0x8200 + hw_sprite_next;
-        NG_REG_VRAMMOD = 1;
-        for (u16 i = hw_sprite_next; i < hw_sprite_last_max; i++) {
-            NG_REG_VRAMDATA = 0;
-        }
-    }
-
-    if (hw_sprite_ui_next < hw_sprite_last_ui_max) {
-        NG_REG_VRAMADDR = 0x8200 + hw_sprite_ui_next;
-        NG_REG_VRAMMOD = 1;
-        for (u16 i = hw_sprite_ui_next; i < hw_sprite_last_ui_max; i++) {
-            NG_REG_VRAMDATA = 0;
-        }
-    }
+    clear_unused_sprites(hw_sprite_next, hw_sprite_last_max);
+    clear_unused_sprites(hw_sprite_ui_next, hw_sprite_last_ui_max);
 
     hw_sprite_last_max = hw_sprite_next;
     hw_sprite_last_ui_max = hw_sprite_ui_next;

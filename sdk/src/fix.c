@@ -148,6 +148,15 @@ static u8 int_to_str(s32 value, char *buf, u8 base, u8 is_signed) {
     return len;
 }
 
+static char *emit_padded_str(char *out, char *end, const char *str, u8 len, char pad_char, u8 width) {
+    while (len < width && out < end) {
+        *out++ = pad_char;
+        width--;
+    }
+    while (*str && out < end) *out++ = *str++;
+    return out;
+}
+
 void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
     char buf[128];
     char *out = buf;
@@ -181,49 +190,33 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...) {
             case 'i': {
                 char tmp[12];
                 u8 len = int_to_str(va_arg(args, s32), tmp, 10, 1);
-                while (len < width && out < end) {
-                    *out++ = pad_char;
-                    width--;
-                }
-                for (char *p = tmp; *p && out < end; ) *out++ = *p++;
+                out = emit_padded_str(out, end, tmp, len, pad_char, width);
                 break;
             }
             case 'u': {
                 char tmp[12];
                 u8 len = int_to_str(va_arg(args, u32), tmp, 10, 0);
-                while (len < width && out < end) {
-                    *out++ = pad_char;
-                    width--;
-                }
-                for (char *p = tmp; *p && out < end; ) *out++ = *p++;
+                out = emit_padded_str(out, end, tmp, len, pad_char, width);
                 break;
             }
             case 'x':
             case 'X': {
                 char tmp[12];
                 u8 len = int_to_str(va_arg(args, u32), tmp, 16, 0);
-                while (len < width && out < end) {
-                    *out++ = pad_char;
-                    width--;
-                }
-                for (char *p = tmp; *p && out < end; ) *out++ = *p++;
+                out = emit_padded_str(out, end, tmp, len, pad_char, width);
                 break;
             }
             case 's': {
                 const char *s = va_arg(args, const char *);
-                if (s) {
-                    while (*s && out < end) *out++ = *s++;
-                }
+                if (s) while (*s && out < end) *out++ = *s++;
                 break;
             }
-            case 'c': {
+            case 'c':
                 *out++ = (char)va_arg(args, int);
                 break;
-            }
-            case '%': {
+            case '%':
                 *out++ = '%';
                 break;
-            }
             default:
                 break;
         }
