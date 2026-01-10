@@ -659,26 +659,55 @@ for (;;) {
 
 ## Building
 
-Use the provided demo as a starting point:
+### From Project Root
+
+The top-level Makefile orchestrates building the SDK and demos:
 
 ```bash
-cd demo
-make          # Build ROM files
-make clean    # Clean build artifacts
+make              # Build SDK library + all demos
+make sdk          # Build only the SDK library
+make showcase     # Build SDK + showcase demo
+make template     # Build SDK + template demo
+make clean        # Clean all build artifacts
+```
+
+### Building the SDK Library
+
+The SDK compiles to a static library (`sdk/build/libprogearsdk.a`):
+
+```bash
+cd sdk
+make          # Build libprogearsdk.a
+make clean    # Clean SDK build artifacts
+```
+
+### Building a Demo
+
+```bash
+cd demos/showcase
+make          # Build ROM files (automatically builds SDK first)
+make mame     # Build and run in MAME
+make clean    # Clean demo build artifacts
 ```
 
 ### Code Quality
 
 ```bash
-make format       # Auto-format all source files
+# SDK only
+cd sdk
+make format       # Auto-format SDK source files
 make format-check # Check formatting (fails if changes needed)
 make lint         # Run static analysis with cppcheck
 make check        # Run all checks (format-check + lint)
+
+# Everything (from project root)
+make check        # Run checks on SDK + demos
 ```
 
 Requires `clang-format` and `cppcheck` to be installed.
 
-Output files:
+### Output Files
+
 - `mygame-p1.bin` - Program ROM (68000 code)
 - `mygame-c1.bin`, `mygame-c2.bin` - Sprite graphics
 - `mygame-s1.bin` - Fix layer graphics

@@ -5,9 +5,16 @@ A comprehensive demonstration application showcasing ProGearSDK features for Neo
 ## Building
 
 ```bash
-make          # Build ROM files
+make          # Build ROM files (automatically builds SDK library first)
 make mame     # Build and run in MAME
 make clean    # Clean build artifacts
+```
+
+### Code Quality
+
+```bash
+make check        # Check demo code formatting and lint
+make check-all    # Check demo + SDK code
 ```
 
 ## Running in MAME

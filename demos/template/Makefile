@@ -1,4 +1,4 @@
-# ProGearSDK template Makefile
+# ProGearSDK Template Makefile
 
 # === Configuration ===
 GAME_NAME = template
@@ -7,63 +7,28 @@ GAME_NAME = template
 MAME_DRIVER = puzzledp
 NEOGEO_BIOS_PATH = ../../../bios
 
-# Toolchain
-PREFIX = m68k-elf-
-CC = $(PREFIX)gcc
-AS = $(PREFIX)as
-LD = $(PREFIX)ld
-OBJCOPY = $(PREFIX)objcopy
-
-# Z80 assembler (sdasz80 from SDCC)
-Z80ASM = sdasz80
-
-# Paths
+# === SDK Setup ===
 SDK_PATH = ../../sdk
 TOOLS_PATH = ../../tools
+include $(SDK_PATH)/sdk.mk
+
+# === Paths ===
 BUILD_DIR = build
+GEN_DIR = $(BUILD_DIR)/gen
 
 # Asset pipeline
 NGRES = python3 $(TOOLS_PATH)/ngres.py
 ASSETS_YAML = assets.yaml
 SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
-GEN_DIR = $(BUILD_DIR)/gen
 
 # === Compiler Flags ===
-CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
-CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
-CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
-CFLAGS += -I$(SDK_PATH)/include -I$(GEN_DIR)
-
-ASFLAGS = -m68000
-
-LDFLAGS = -T$(SDK_PATH)/rom/link.ld -nostdlib
+CFLAGS = $(SDK_CFLAGS) -I$(GEN_DIR)
 
 # === Source Files ===
 GAME_SOURCES = src/main.c
+GAME_OBJECTS = $(BUILD_DIR)/main.o
 
-SDK_C_SOURCES = $(SDK_PATH)/src/fix.c $(SDK_PATH)/src/color.c $(SDK_PATH)/src/palette.c $(SDK_PATH)/src/scene.c $(SDK_PATH)/src/actor.c $(SDK_PATH)/src/parallax.c $(SDK_PATH)/src/input.c $(SDK_PATH)/src/ngmath.c $(SDK_PATH)/src/physics.c $(SDK_PATH)/src/camera.c $(SDK_PATH)/src/arena.c $(SDK_PATH)/src/spring.c $(SDK_PATH)/src/ui.c $(SDK_PATH)/src/audio.c $(SDK_PATH)/src/engine.c $(SDK_PATH)/src/tilemap.c
-
-# Object files go in build directory
-OBJECTS = $(BUILD_DIR)/main.o \
-          $(BUILD_DIR)/fix.o \
-          $(BUILD_DIR)/color.o \
-          $(BUILD_DIR)/palette.o \
-          $(BUILD_DIR)/scene.o \
-          $(BUILD_DIR)/actor.o \
-          $(BUILD_DIR)/parallax.o \
-          $(BUILD_DIR)/input.o \
-          $(BUILD_DIR)/ngmath.o \
-          $(BUILD_DIR)/physics.o \
-          $(BUILD_DIR)/camera.o \
-          $(BUILD_DIR)/arena.o \
-          $(BUILD_DIR)/spring.o \
-          $(BUILD_DIR)/ui.o \
-          $(BUILD_DIR)/audio.o \
-          $(BUILD_DIR)/engine.o \
-          $(BUILD_DIR)/tilemap.o \
-          $(BUILD_DIR)/crt0.o
-
-# === ROM Output Files (in build directory) ===
+# === ROM Output Files ===
 P_ROM = $(BUILD_DIR)/$(GAME_NAME)-p1.bin
 M_ROM = $(BUILD_DIR)/$(GAME_NAME)-m1.bin
 S_ROM = $(BUILD_DIR)/$(GAME_NAME)-s1.bin
@@ -80,15 +45,15 @@ GEN_V1 = $(GEN_DIR)/audio-v1.bin
 GEN_M1_TABLES = $(GEN_DIR)/audio-tables.bin
 
 # === Build Rules ===
-.PHONY: all clean mame assets
+.PHONY: all clean mame assets sdk
 
-all: $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
+all: sdk $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
 	@echo ""
 	@echo "Build complete!"
 	@echo "ROM files:"
 	@ls -la $(BUILD_DIR)/$(GAME_NAME)-*.bin
 
-# Create build directory
+# Create build directories
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
@@ -98,7 +63,6 @@ $(GEN_DIR): | $(BUILD_DIR)
 # Asset pipeline - process sprites from YAML
 assets: $(GEN_ASSETS_H)
 
-# Generate sprite and audio data from YAML if assets.yaml exists
 $(GEN_ASSETS_H): | $(GEN_DIR)
 	@if [ -f $(ASSETS_YAML) ]; then \
 		echo "Processing assets..."; \
@@ -112,90 +76,38 @@ $(GEN_ASSETS_H): | $(GEN_DIR)
 		echo "#endif" >> $(GEN_ASSETS_H); \
 	fi
 
-# Compile game source files (depend on generated headers)
+# === Compile Game Sources ===
 $(BUILD_DIR)/main.o: src/main.c $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compile SDK C files
-$(BUILD_DIR)/fix.o: $(SDK_PATH)/src/fix.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# === Link ELF ===
+$(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIB) $(SDK_CRT0)
+	$(CC) $(SDK_CFLAGS) $(SDK_LDFLAGS) $(SDK_CRT0) $(GAME_OBJECTS) $(SDK_LIB) -lgcc -o $@
 
-$(BUILD_DIR)/color.o: $(SDK_PATH)/src/color.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# === ROM Generation ===
 
-$(BUILD_DIR)/palette.o: $(SDK_PATH)/src/palette.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/scene.o: $(SDK_PATH)/src/scene.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/actor.o: $(SDK_PATH)/src/actor.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/parallax.o: $(SDK_PATH)/src/parallax.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/input.o: $(SDK_PATH)/src/input.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/ngmath.o: $(SDK_PATH)/src/ngmath.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/physics.o: $(SDK_PATH)/src/physics.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/camera.o: $(SDK_PATH)/src/camera.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/arena.o: $(SDK_PATH)/src/arena.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/spring.o: $(SDK_PATH)/src/spring.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/ui.o: $(SDK_PATH)/src/ui.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/audio.o: $(SDK_PATH)/src/audio.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/engine.o: $(SDK_PATH)/src/engine.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/tilemap.o: $(SDK_PATH)/src/tilemap.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Assemble crt0
-$(BUILD_DIR)/crt0.o: $(SDK_PATH)/src/crt0.s | $(BUILD_DIR)
-	$(AS) $(ASFLAGS) $< -o $@
-
-# Link ELF (use gcc to automatically include libgcc for division/modulo)
-$(ELF_FILE): $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -lgcc -o $@
-
-# Extract P-ROM binary (with byte-swap for MAME compatibility)
+# P-ROM (with byte-swap for MAME compatibility)
 $(P_ROM): $(ELF_FILE)
 	$(OBJCOPY) -O binary -S $< $@
 	dd if=$@ of=$@ conv=notrunc,swab status=none
 	truncate -s 128K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=131072 count=0
 
-# Build M-ROM (Z80) with audio sample tables
-$(M_ROM): $(SDK_PATH)/z80/driver.s $(GEN_ASSETS_H) | $(BUILD_DIR)
+# M-ROM (Z80) with audio sample tables
+$(M_ROM): $(SDK_Z80_DRIVER) $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(Z80ASM) -o $(BUILD_DIR)/driver.rel $<
 	sdld -n -i $(BUILD_DIR)/driver.ihx -b _CODE=0x0000 -b _DATA=0xF800 $(BUILD_DIR)/driver.rel
 	sdobjcopy -I ihex -O binary $(BUILD_DIR)/driver.ihx $@
-	@# Patch audio sample tables at offset 0x0800 if they exist
 	@if [ -f $(GEN_M1_TABLES) ]; then \
 		dd if=$(GEN_M1_TABLES) of=$@ bs=1 seek=2048 conv=notrunc status=none 2>/dev/null || true; \
 	fi
 	truncate -s 64K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=65536 count=0
 	rm -f $(BUILD_DIR)/driver.rel $(BUILD_DIR)/driver.ihx $(BUILD_DIR)/driver.sym $(BUILD_DIR)/driver.map $(BUILD_DIR)/driver.noi
 
-# Copy/generate S-ROM
-$(S_ROM): $(SDK_PATH)/rom/sfix.bin | $(BUILD_DIR)
+# S-ROM
+$(S_ROM): $(SDK_SFIX) | $(BUILD_DIR)
 	cp $< $@
 
-# C-ROM from asset pipeline (or preserve existing, or create empty)
+# C-ROM from asset pipeline
 $(C1_ROM): $(GEN_ASSETS_H) | $(BUILD_DIR)
 	@if [ -f $(GEN_C1) ]; then \
 		cp $(GEN_C1) $@; \
@@ -210,7 +122,7 @@ $(C2_ROM): $(GEN_ASSETS_H) | $(BUILD_DIR)
 		dd if=/dev/zero of=$@ bs=1K count=64 2>/dev/null; \
 	fi
 
-# V-ROM from asset pipeline (or create empty)
+# V-ROM from asset pipeline
 $(V1_ROM): $(GEN_ASSETS_H) | $(BUILD_DIR)
 	@if [ -f $(GEN_V1) ]; then \
 		cp $(GEN_V1) $@; \
@@ -219,7 +131,6 @@ $(V1_ROM): $(GEN_ASSETS_H) | $(BUILD_DIR)
 	fi
 
 # === MAME Target ===
-# Creates puzzledp.zip with proper ROM names/sizes and runs in MAME
 mame: all $(BUILD_DIR)/$(MAME_DRIVER).zip
 	@echo "Running in MAME..."
 	mame $(MAME_DRIVER) -rompath "$(BUILD_DIR);$(NEOGEO_BIOS_PATH)" -nofilter -effect scanlines -window -resolution 640x448 -skip_gameinfo
@@ -228,19 +139,14 @@ $(BUILD_DIR)/$(MAME_DRIVER).zip: $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) 
 	@echo "Creating $(MAME_DRIVER).zip for MAME..."
 	@rm -rf $(BUILD_DIR)/$(MAME_DRIVER)_tmp
 	@mkdir -p $(BUILD_DIR)/$(MAME_DRIVER)_tmp
-	@# P-ROM: 512KB
 	@cp $(P_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-p1.p1
 	@truncate -s 524288 $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-p1.p1
-	@# S-ROM: 128KB
 	@cp $(S_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-s1.s1
 	@truncate -s 131072 $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-s1.s1
-	@# M-ROM: 128KB
 	@cp $(M_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-m1.m1
 	@truncate -s 131072 $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-m1.m1
-	@# V-ROM: 2MB (audio samples and music)
 	@cp $(V1_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-v1.v1
 	@truncate -s 2097152 $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-v1.v1
-	@# C-ROM: 1MB each (sprites)
 	@cp $(C1_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-c1.c1
 	@truncate -s 1048576 $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-c1.c1
 	@cp $(C2_ROM) $(BUILD_DIR)/$(MAME_DRIVER)_tmp/202-c2.c2

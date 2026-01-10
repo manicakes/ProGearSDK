@@ -177,21 +177,49 @@ for (;;) {
 }
 ```
 
-## Building Your Game
+## Building
+
+### From Project Root
+
+The top-level Makefile orchestrates building the SDK library and demo projects:
 
 ```bash
-make          # Build ROM files
+make              # Build SDK library + all demos
+make sdk          # Build only the SDK library (sdk/build/libprogearsdk.a)
+make showcase     # Build SDK + showcase demo
+make template     # Build SDK + template demo
+make clean        # Clean all build artifacts
+```
+
+### Building a Demo
+
+From within a demo directory:
+
+```bash
+cd demos/showcase
+make          # Build ROM files (automatically builds SDK first)
 make mame     # Build and run in MAME emulator
-make clean    # Clean build artifacts
+make clean    # Clean demo build artifacts
 ```
 
 ### Code Quality
 
 ```bash
-make format       # Auto-format all source files
+# From project root - check everything
+make format       # Auto-format all source files (SDK + demos)
 make format-check # Check formatting (fails if changes needed)
 make lint         # Run static analysis with cppcheck
 make check        # Run all checks (format-check + lint)
+
+# From sdk/ directory - check SDK only
+cd sdk
+make format       # Format SDK source files
+make check        # Run SDK checks only
+
+# From a demo directory - check demo + SDK
+cd demos/showcase
+make check        # Check demo code only
+make check-all    # Check demo + SDK code
 ```
 
 ## Requirements

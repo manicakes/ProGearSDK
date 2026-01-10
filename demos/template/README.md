@@ -11,7 +11,7 @@ A minimal starting point for NeoGeo game development with ProGearSDK.
 ## Building
 
 ```bash
-make          # Build ROM files
+make          # Build ROM files (automatically builds SDK library first)
 make mame     # Build and run in MAME
 make clean    # Clean build artifacts
 ```
@@ -34,6 +34,7 @@ Before running with `make mame`, configure the path to your NeoGeo BIOS:
 3. Edit `assets.yaml` to add your graphics and audio
 4. Edit `src/main.c` to implement your game logic
 5. Update the `GAME_NAME` in `Makefile`
+6. If moving outside the `demos/` directory, update `SDK_PATH` and `TOOLS_PATH` in the Makefile
 
 ## Project Structure
 
