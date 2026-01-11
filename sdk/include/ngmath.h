@@ -41,8 +41,8 @@ typedef s16 fixed16;
 #define FIX_ONE   (1 << FIX_SHIFT)       /**< 1.0 in fixed format */
 #define FIX_HALF  (1 << (FIX_SHIFT - 1)) /**< 0.5 in fixed format */
 
-/** Convert integer to fixed */
-#define FIX(x) ((fixed)((x) << FIX_SHIFT))
+/** Convert integer to fixed (works with negative values) */
+#define FIX(x) ((fixed)((x) * FIX_ONE))
 
 /** Convert fixed to integer (truncates toward zero) */
 #define FIX_INT(x) ((s16)((x) >> FIX_SHIFT))

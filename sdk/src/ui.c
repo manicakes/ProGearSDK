@@ -417,8 +417,10 @@ void NGMenuShow(NGMenuHandle menu) {
     if (menu->dim_amount > 0 && menu->dim_layer == NG_LIGHTING_INVALID_HANDLE) {
         menu->dim_layer = NGLightingPush(NG_LIGHTING_PRIORITY_OVERLAY);
         if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
-            /* Animate brightness from 1.0 to target dim level */
-            fixed target_brightness = FIX_ONE - FIX(menu->dim_amount) / 31;
+            /* Animate brightness from 1.0 to target dim level.
+             * dim_amount=10 produces 50% brightness (50% dimming).
+             * dim_amount=20 produces 0% brightness (full black). */
+            fixed target_brightness = FIX_ONE - FIX(menu->dim_amount) / 20;
             NGLightingFadeBrightness(menu->dim_layer, target_brightness, 8);
         }
     }

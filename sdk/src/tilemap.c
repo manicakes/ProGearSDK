@@ -624,3 +624,26 @@ u8 NGTilemapGetSpriteCount(NGTilemapHandle handle) {
 
     return num_cols;
 }
+
+/* Internal: collect palettes from all tilemaps in scene into bitmask */
+void _NGTilemapCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < NG_TILEMAP_MAX; i++) {
+        Tilemap *tm = &tilemaps[i];
+        if (!tm->active || !tm->in_scene || !tm->asset)
+            continue;
+
+        /* Add default palette */
+        u8 pal = tm->asset->default_palette;
+        palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+
+        /* Add all palettes from tile_to_palette lookup */
+        if (tm->asset->tile_to_palette) {
+            for (u16 t = 0; t < 256; t++) {
+                pal = tm->asset->tile_to_palette[t];
+                if (pal > 0) {
+                    palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+                }
+            }
+        }
+    }
+}

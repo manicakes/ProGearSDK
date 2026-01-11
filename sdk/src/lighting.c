@@ -17,6 +17,7 @@
 /* External functions to collect palettes from scene objects */
 extern void _NGActorCollectPalettes(u8 *palette_mask);
 extern void _NGParallaxCollectPalettes(u8 *palette_mask);
+extern void _NGTilemapCollectPalettes(u8 *palette_mask);
 
 /** Backup entry for a single palette */
 typedef struct {
@@ -473,9 +474,10 @@ static void backup_palettes(void) {
         palette_mask[i] = 0;
     }
 
-    /* Query actors and parallax for their palettes */
+    /* Query actors, parallax, and tilemaps for their palettes */
     _NGActorCollectPalettes(palette_mask);
     _NGParallaxCollectPalettes(palette_mask);
+    _NGTilemapCollectPalettes(palette_mask);
 
     /* Convert bitmask to sparse list and backup each palette */
     g_lighting.backup_count = 0;
