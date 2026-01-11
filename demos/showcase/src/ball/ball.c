@@ -182,3 +182,9 @@ u8 BallCount(BallSystemHandle sys) {
         return 0;
     return sys->ball_count;
 }
+
+void BallSystemSetGravity(BallSystemHandle sys, fixed gravity_y) {
+    if (!sys)
+        return;
+    NGPhysWorldSetGravity(sys->physics, 0, gravity_y);
+}

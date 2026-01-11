@@ -11,6 +11,7 @@
 
 #include <types.h>
 #include <arena.h>
+#include <ngmath.h>
 
 // Opaque handle to ball system
 typedef struct BallSystem *BallSystemHandle;
@@ -36,5 +37,8 @@ u8 BallDestroyLast(BallSystemHandle sys);
 
 // Get current ball count
 u8 BallCount(BallSystemHandle sys);
+
+// Set gravity direction (positive = down, negative = up)
+void BallSystemSetGravity(BallSystemHandle sys, fixed gravity_y);
 
 #endif // BALL_H
