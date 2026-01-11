@@ -11,6 +11,7 @@ var annotated_dup =
     [ "NGShape", "struct_n_g_shape.html", "struct_n_g_shape" ],
     [ "NGSpring", "struct_n_g_spring.html", "struct_n_g_spring" ],
     [ "NGSpring2D", "struct_n_g_spring2_d.html", "struct_n_g_spring2_d" ],
+    [ "NGTilemapAsset", "struct_n_g_tilemap_asset.html", "struct_n_g_tilemap_asset" ],
     [ "NGVec2", "struct_n_g_vec2.html", "struct_n_g_vec2" ],
     [ "NGVisualAsset", "struct_n_g_visual_asset.html", "struct_n_g_visual_asset" ]
 ];

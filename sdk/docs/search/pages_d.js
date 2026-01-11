@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['rates_0',['Parallax Rates',['../parallax_8h.html#parallaxrates',1,'']]],
-  ['recommended_1',['Using NGEngine (Recommended)',['../index.html#autotoc_md18',1,'']]]
+  ['quality_0',['Code Quality',['../index.html#autotoc_md27',1,'']]],
+  ['quick_20start_1',['Quick Start',['../index.html#autotoc_md0',1,'']]]
 ];

@@ -12,5 +12,7 @@ var searchData=
   ['point_20math_9',['Point Math',['../group__fixed1616.html',1,'16.16 Fixed-Point Math'],['../group__fixed88.html',1,'8.8 Fixed-Point Math']]],
   ['point_20types_10',['Fixed-Point Types',['../group__fixedtypes.html',1,'']]],
   ['position_20functions_11',['Position Functions',['../group__actorpos.html',1,'Position Functions'],['../group__parallaxpos.html',1,'Position Functions']]],
-  ['properties_12',['Body Properties',['../group__physprop.html',1,'']]]
+  ['presets_12',['Lighting Presets',['../group__lightingpreset.html',1,'']]],
+  ['priority_20levels_13',['Priority Levels',['../group__lightingpriority.html',1,'']]],
+  ['properties_14',['Properties',['../group__physprop.html',1,'Body Properties'],['../group__tilemapprop.html',1,'Properties']]]
 ];

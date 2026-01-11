@@ -33,23 +33,31 @@ var NAVTREE =
       [ "Actors (actor.h)", "index.html#autotoc_md5", null ],
       [ "Scene (scene.h)", "index.html#autotoc_md6", null ],
       [ "Camera System (camera.h)", "index.html#autotoc_md7", null ],
-      [ "Parallax Layers (parallax.h)", "index.html#autotoc_md8", null ],
-      [ "Palettes (palette.h)", "index.html#autotoc_md9", null ],
-      [ "Colors (color.h)", "index.html#autotoc_md10", null ],
-      [ "Physics (physics.h)", "index.html#autotoc_md11", null ],
-      [ "Fixed-Point Math (ngmath.h)", "index.html#autotoc_md12", null ]
+      [ "Tilemaps (tilemap.h)", "index.html#autotoc_md8", null ],
+      [ "Parallax Layers (parallax.h)", "index.html#autotoc_md9", null ],
+      [ "Lighting Effects (lighting.h)", "index.html#autotoc_md10", null ],
+      [ "Palettes (palette.h)", "index.html#autotoc_md11", null ],
+      [ "Colors (color.h)", "index.html#autotoc_md12", null ],
+      [ "Physics (physics.h)", "index.html#autotoc_md13", null ],
+      [ "Fixed-Point Math (ngmath.h)", "index.html#autotoc_md14", null ]
     ] ],
-    [ "Asset Pipeline", "index.html#autotoc_md13", [
-      [ "Visual Assets", "index.html#autotoc_md14", null ],
-      [ "Palettes", "index.html#autotoc_md15", null ],
-      [ "Sound Effects and Music", "index.html#autotoc_md16", null ]
+    [ "Asset Pipeline", "index.html#autotoc_md15", [
+      [ "Visual Assets", "index.html#autotoc_md16", null ],
+      [ "Palettes", "index.html#autotoc_md17", null ],
+      [ "Sound Effects and Music", "index.html#autotoc_md18", null ]
     ] ],
-    [ "Main Loop Structure", "index.html#autotoc_md17", [
-      [ "Using NGEngine (Recommended)", "index.html#autotoc_md18", null ],
-      [ "Manual Control", "index.html#autotoc_md19", null ]
+    [ "Main Loop Structure", "index.html#autotoc_md19", [
+      [ "Using NGEngine (Recommended)", "index.html#autotoc_md20", null ],
+      [ "Manual Control", "index.html#autotoc_md21", null ]
     ] ],
-    [ "Hardware Limits", "index.html#autotoc_md20", null ],
-    [ "Building", "index.html#autotoc_md21", null ],
+    [ "Hardware Limits", "index.html#autotoc_md22", null ],
+    [ "Building", "index.html#autotoc_md23", [
+      [ "From Project Root", "index.html#autotoc_md24", null ],
+      [ "Building the SDK Library", "index.html#autotoc_md25", null ],
+      [ "Building a Demo", "index.html#autotoc_md26", null ],
+      [ "Code Quality", "index.html#autotoc_md27", null ],
+      [ "Output Files", "index.html#autotoc_md28", null ]
+    ] ],
     [ "Topics", "topics.html", "topics" ],
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
@@ -77,8 +85,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "actor_8h.html",
-"group__fixconst.html#ga9bf2ae769758bf1dadd42a6d95d0f719",
-"index.html#autotoc_md5"
+"group__colormanip.html#ga86801cfc5d61ab43a118b9d8e6f6e7df",
+"group__sysbtn.html#gab3a9e3f7ae1a27e2b2014b177a910c1e",
+"struct_n_g_visual_asset.html#ad99a97386e53df9ef627e23883b1f98c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

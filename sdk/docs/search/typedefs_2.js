@@ -5,7 +5,9 @@ var searchData=
   ['ngbodyhandle_2',['NGBodyHandle',['../group__physbody.html#ga71f06725f5584492191561d34474b9e4',1,'physics.h']]],
   ['ngcollisioncallback_3',['NGCollisionCallback',['../group__physcoll.html#ga16d6449d3d3773bb5f4649e704cb5039',1,'physics.h']]],
   ['ngcolor_4',['NGColor',['../color_8h.html#a88c5dd00d68a536ea119ff3fa08b26ef',1,'color.h']]],
-  ['ngmenuhandle_5',['NGMenuHandle',['../ui_8h.html#a79576d3c90d28a5c9c40aba337faf5fc',1,'ui.h']]],
-  ['ngparallaxhandle_6',['NGParallaxHandle',['../group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9',1,'parallax.h']]],
-  ['ngphysworldhandle_7',['NGPhysWorldHandle',['../group__physworld.html#gaca723cbf4f28b8cb2a279e64a51cfeed',1,'physics.h']]]
+  ['nglightinglayerhandle_5',['NGLightingLayerHandle',['../lighting_8h.html#ab2a4eeac78c73ec30409dffe91a58bce',1,'lighting.h']]],
+  ['ngmenuhandle_6',['NGMenuHandle',['../ui_8h.html#a79576d3c90d28a5c9c40aba337faf5fc',1,'ui.h']]],
+  ['ngparallaxhandle_7',['NGParallaxHandle',['../group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9',1,'parallax.h']]],
+  ['ngphysworldhandle_8',['NGPhysWorldHandle',['../group__physworld.html#gaca723cbf4f28b8cb2a279e64a51cfeed',1,'physics.h']]],
+  ['ngtilemaphandle_9',['NGTilemapHandle',['../group__tilemaphandle.html#ga876ccdeecca67775ba97e94952fdd0e7',1,'tilemap.h']]]
 ];

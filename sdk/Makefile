@@ -5,6 +5,7 @@
 # Targets:
 #   all          - Build libprogearsdk.a
 #   clean        - Remove build artifacts
+#   docs         - Generate API documentation with Doxygen
 #   format       - Auto-format all SDK source files
 #   format-check - Check formatting (fails if changes needed)
 #   lint         - Run static analysis with cppcheck
@@ -62,7 +63,7 @@ ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
 OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 
 # === Build Rules ===
-.PHONY: all clean format format-check lint check
+.PHONY: all clean docs format format-check lint check
 
 all: $(LIBRARY)
 	@echo "SDK build complete: $(LIBRARY)"
@@ -88,6 +89,15 @@ $(C_OBJECTS): $(H_SOURCES)
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+# === Documentation ===
+
+# Generate API documentation with Doxygen
+docs:
+	@command -v doxygen >/dev/null 2>&1 || { echo "Error: doxygen not found. Install with: brew install doxygen"; exit 1; }
+	@echo "Generating API documentation..."
+	@doxygen Doxyfile
+	@echo "Documentation generated in docs/"
 
 # === Code Quality Targets ===
 

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['operations_0',['Operations',['../group__palbulk.html',1,'Bulk Operations'],['../group__palcolor.html',1,'Single Color Operations']]]
+  ['operations_0',['Operations',['../group__palbulk.html',1,'Bulk Operations'],['../group__arenacore.html',1,'Core Operations'],['../group__palcolor.html',1,'Single Color Operations']]]
 ];

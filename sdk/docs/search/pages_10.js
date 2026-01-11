@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['visual_20assets_0',['Visual Assets',['../index.html#autotoc_md14',1,'']]]
+  ['the_20sdk_20library_0',['Building the SDK Library',['../index.html#autotoc_md25',1,'']]],
+  ['tilemap_20h_1',['Tilemaps (tilemap.h)',['../index.html#autotoc_md8',1,'']]],
+  ['tilemaps_20tilemap_20h_2',['Tilemaps (tilemap.h)',['../index.html#autotoc_md8',1,'']]]
 ];
