@@ -128,6 +128,7 @@ static void update_day_night_cycle(void) {
         NGLightingFadeBrightness(state->night_layer, NIGHT_BRIGHTNESS, NIGHT_TRANSITION_FRAMES);
         state->lightning_timer =
             ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
+        BallSystemSetGravity(state->balls, FIX(-1));
     }
     /* Transition to day */
     else if (state->is_night && !state->fading_to_day &&
@@ -140,6 +141,7 @@ static void update_day_night_cycle(void) {
             NGLightingFadeTint(state->night_layer, 0, 0, 0, NIGHT_TRANSITION_FRAMES);
             NGLightingFadeBrightness(state->night_layer, FIX_ONE, NIGHT_TRANSITION_FRAMES);
         }
+        BallSystemSetGravity(state->balls, FIX(1));
     }
 
     if (state->is_night) {
