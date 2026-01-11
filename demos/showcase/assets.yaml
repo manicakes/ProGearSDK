@@ -86,3 +86,11 @@ music:
   - name: ball_scene_music
     source: assets/ball_scene_music.wav
     loop: true
+
+# Tilemaps
+tilemaps:
+  - name: tilemap_demo_level
+    source: assets/tilemap_demo_level.tmx
+    layer: "Ground"
+    tileset: tiles_simple
+    default_palette: 16  # NGPAL_TILES_SIMPLE
