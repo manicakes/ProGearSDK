@@ -18,7 +18,7 @@
 
 static NGMenuHandle g_active_menu = 0;
 
-// Weak default - games using ngres provide a strong definition that loads palette data
+// Weak default - games using progear_assets.py provide a strong definition that loads palette data
 __attribute__((weak)) void NGPalInitAssets(void) {}
 
 void NGEngineInit(void) {

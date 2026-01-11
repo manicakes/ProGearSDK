@@ -75,7 +75,7 @@ visual_assets:
 
 ```c
 #include <progearsdk.h>             // All SDK headers
-#include <ngres_generated_assets.h> // Generated asset definitions
+#include <progear_assets.h>         // Generated asset definitions
 
 int main(void) {
     // Initialize all engine subsystems
@@ -286,7 +286,7 @@ tilemaps:
 
 ```c
 #include <tilemap.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 // Create tilemap from asset
 NGTilemapHandle level = NGTilemapCreate(&NGTilemapAsset_level1);

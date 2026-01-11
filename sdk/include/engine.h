@@ -25,8 +25,8 @@
  * Also sets backdrop color to black.
  *
  * NGPalInitAssets() is called automatically - if the game includes
- * ngres_generated_assets.h, its palettes will be loaded; otherwise
- * a weak no-op default is used.
+ * progear_assets.h, its palettes will be loaded; otherwise a weak
+ * no-op default is used.
  */
 void NGEngineInit(void);
 

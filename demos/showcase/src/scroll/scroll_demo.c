@@ -15,7 +15,7 @@
 #include <arena.h>
 #include <ui.h>
 #include <engine.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 #define SCROLL_SPEED  2
 #define SCREEN_WIDTH  320

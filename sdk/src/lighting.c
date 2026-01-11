@@ -50,7 +50,7 @@ typedef struct {
     s16 fade_tint_current_r; /* 8.8 fixed point accumulator */
     s16 fade_tint_current_g;
     s16 fade_tint_current_b;
-    s16 fade_tint_step_r;    /* 8.8 fixed point step per frame */
+    s16 fade_tint_step_r; /* 8.8 fixed point step per frame */
     s16 fade_tint_step_g;
     s16 fade_tint_step_b;
 } LightingLayer;

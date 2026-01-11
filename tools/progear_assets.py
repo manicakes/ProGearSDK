@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-ngres - NeoGeo Resource Compiler
+progear_assets - ProGearSDK Asset Compiler
 
 Processes visual and audio asset definitions from YAML and generates:
   - C-ROM data (sprite graphics in NeoGeo format)
@@ -12,7 +12,7 @@ Processes visual and audio asset definitions from YAML and generates:
   - C header with asset definitions for the SDK
 
 Usage:
-    ngres assets.yaml -o output_dir
+    progear_assets.py assets.yaml -o output_dir
 
 YAML format:
     # Optional: explicit palette definitions for sharing or manual colors
@@ -71,8 +71,8 @@ except ImportError:
     sys.exit(1)
 
 
-class NGResError(Exception):
-    """Custom exception for ngres errors."""
+class ProgearAssetsError(Exception):
+    """Custom exception for progear_assets errors."""
     pass
 
 
@@ -237,7 +237,7 @@ def load_wav_file(source_path, yaml_dir, target_rate=None):
         source_path = os.path.join(yaml_dir, source_path)
 
     if not os.path.exists(source_path):
-        raise NGResError(f"Audio file not found: {source_path}")
+        raise ProgearAssetsError(f"Audio file not found: {source_path}")
 
     try:
         with wave.open(source_path, 'rb') as w:
@@ -247,7 +247,7 @@ def load_wav_file(source_path, yaml_dir, target_rate=None):
             n_frames = w.getnframes()
             raw_data = w.readframes(n_frames)
     except Exception as e:
-        raise NGResError(f"Failed to load audio file {source_path}: {e}")
+        raise ProgearAssetsError(f"Failed to load audio file {source_path}: {e}")
 
     # Convert to samples (all normalized to 16-bit signed)
     if sample_width == 1:
@@ -261,7 +261,7 @@ def load_wav_file(source_path, yaml_dir, target_rate=None):
     elif sample_width == 3:
         # 24-bit signed - extract high 16 bits
         if len(raw_data) % 3 != 0:
-            raise NGResError(f"Invalid 24-bit WAV: data length {len(raw_data)} "
+            raise ProgearAssetsError(f"Invalid 24-bit WAV: data length {len(raw_data)} "
                            f"is not divisible by 3")
         n_samples = len(raw_data) // 3
         samples = []
@@ -280,7 +280,7 @@ def load_wav_file(source_path, yaml_dir, target_rate=None):
         samples = struct.unpack(f'<{len(raw_data)//4}i', raw_data)
         samples = [s >> 16 for s in samples]
     else:
-        raise NGResError(f"Unsupported sample width: {sample_width} bytes")
+        raise ProgearAssetsError(f"Unsupported sample width: {sample_width} bytes")
 
     # Convert stereo to mono
     if channels == 2:
@@ -363,7 +363,7 @@ def parse_frame_spec(spec):
                 if match:
                     start, end = int(match.group(1)), int(match.group(2))
                     if start > end:
-                        raise NGResError(f"Invalid frame range '{item}': "
+                        raise ProgearAssetsError(f"Invalid frame range '{item}': "
                                        f"start ({start}) > end ({end})")
                     result.extend(range(start, end + 1))
                 else:
@@ -376,12 +376,12 @@ def parse_frame_spec(spec):
         if match:
             start, end = int(match.group(1)), int(match.group(2))
             if start > end:
-                raise NGResError(f"Invalid frame range '{spec}': "
+                raise ProgearAssetsError(f"Invalid frame range '{spec}': "
                                f"start ({start}) > end ({end})")
             return list(range(start, end + 1))
         return [int(spec)]
 
-    raise NGResError(f"Invalid frame specification: {spec}")
+    raise ProgearAssetsError(f"Invalid frame specification: {spec}")
 
 
 def load_and_validate_image(source_path, yaml_dir):
@@ -391,12 +391,12 @@ def load_and_validate_image(source_path, yaml_dir):
         source_path = os.path.join(yaml_dir, source_path)
 
     if not os.path.exists(source_path):
-        raise NGResError(f"Source file not found: {source_path}")
+        raise ProgearAssetsError(f"Source file not found: {source_path}")
 
     try:
         img = Image.open(source_path)
     except Exception as e:
-        raise NGResError(f"Failed to load image {source_path}: {e}")
+        raise ProgearAssetsError(f"Failed to load image {source_path}: {e}")
 
     return img, source_path
 
@@ -457,7 +457,7 @@ def extract_frames(img, frame_width, frame_height, source_path):
     if is_animated:
         # Animated GIF: extract each animation frame
         if img_width != frame_width or img_height != frame_height:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"{source_path}: Animated GIF size {img_width}x{img_height} "
                 f"must match frame_size {frame_width}x{frame_height}"
             )
@@ -480,11 +480,11 @@ def extract_frames(img, frame_width, frame_height, source_path):
 
         # Validate dimensions for sprite sheet
         if img_width % frame_width != 0:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"{source_path}: Image width {img_width} is not divisible by frame width {frame_width}"
             )
         if img_height % frame_height != 0:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"{source_path}: Image height {img_height} is not divisible by frame height {frame_height}"
             )
 
@@ -667,20 +667,20 @@ def process_palette_def(pal_name, pal_def, yaml_dir):
             source_path = os.path.join(yaml_dir, source_path)
 
         if not os.path.exists(source_path):
-            raise NGResError(f"Palette '{pal_name}' source not found: {source_path}")
+            raise ProgearAssetsError(f"Palette '{pal_name}' source not found: {source_path}")
 
         try:
             img = Image.open(source_path)
             if img.mode != 'RGBA':
                 img = convert_to_rgba(img)
         except Exception as e:
-            raise NGResError(f"Failed to load palette source '{source_path}': {e}")
+            raise ProgearAssetsError(f"Failed to load palette source '{source_path}': {e}")
 
         # Build palette from image
         return build_palette_from_frames([img], max_colors=16, asset_name=pal_name)
 
     else:
-        raise NGResError(
+        raise ProgearAssetsError(
             f"Palette '{pal_name}' must have either 'colors' or 'source'"
         )
 
@@ -694,11 +694,11 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
     """
     name = asset_def.get('name')
     if not name:
-        raise NGResError("Visual asset missing 'name' field")
+        raise ProgearAssetsError("Visual asset missing 'name' field")
 
     source = asset_def.get('source')
     if not source:
-        raise NGResError(f"Visual asset '{name}' missing 'source' field")
+        raise ProgearAssetsError(f"Visual asset '{name}' missing 'source' field")
 
     # Palette can be:
     # - omitted: auto-generate from image, auto-assign index
@@ -712,7 +712,7 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
 
     # Validate max height
     if img_height > 512:
-        raise NGResError(
+        raise ProgearAssetsError(
             f"Visual asset '{name}': Height {img_height} exceeds maximum of 512 pixels"
         )
 
@@ -721,10 +721,10 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
     if frame_size:
         # Animated asset with frame_size
         if len(frame_size) != 2:
-            raise NGResError(f"Visual asset '{name}': frame_size must be [width, height]")
+            raise ProgearAssetsError(f"Visual asset '{name}': frame_size must be [width, height]")
         frame_width, frame_height = frame_size
         if frame_width % 16 != 0 or frame_height % 16 != 0:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"Visual asset '{name}': frame_size must be multiples of 16 (got {frame_width}x{frame_height})"
             )
     else:
@@ -733,11 +733,11 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
         frame_width = img_width
         frame_height = img_height
         if frame_width % 16 != 0:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"Visual asset '{name}': Image width {frame_width} must be multiple of 16"
             )
         if frame_height % 16 != 0:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"Visual asset '{name}': Image height {frame_height} must be multiple of 16"
             )
 
@@ -755,7 +755,7 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
             elif 'frames' in anim_spec:
                 frame_list = parse_frame_spec(anim_spec['frames'])
             else:
-                raise NGResError(
+                raise ProgearAssetsError(
                     f"Visual asset '{name}' animation '{anim_name}': missing 'frame' or 'frames'"
                 )
             speed = anim_spec.get('speed', 4)
@@ -768,7 +768,7 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
         # Validate frame indices
         for f in frame_list:
             if f < 0 or f >= frame_count:
-                raise NGResError(
+                raise ProgearAssetsError(
                     f"Visual asset '{name}' animation '{anim_name}': "
                     f"frame {f} out of range (0-{frame_count-1})"
                 )
@@ -799,7 +799,7 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
     elif isinstance(palette_ref, str):
         # Reference to explicit palette
         if palette_ref not in palette_registry:
-            raise NGResError(
+            raise ProgearAssetsError(
                 f"Visual asset '{name}' references unknown palette '{palette_ref}'"
             )
         palette_name = palette_ref
@@ -819,7 +819,7 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
         palette_idx = palette_ref
 
     else:
-        raise NGResError(
+        raise ProgearAssetsError(
             f"Visual asset '{name}': palette must be string (palette name) or int (index)"
         )
 
@@ -897,11 +897,11 @@ def process_sound_effect(sfx_def, yaml_dir, index, current_offset):
     """
     name = sfx_def.get('name')
     if not name:
-        raise NGResError("Sound effect missing 'name' field")
+        raise ProgearAssetsError("Sound effect missing 'name' field")
 
     source = sfx_def.get('source')
     if not source:
-        raise NGResError(f"Sound effect '{name}' missing 'source' field")
+        raise ProgearAssetsError(f"Sound effect '{name}' missing 'source' field")
 
     # ADPCM-A uses fixed 18500 Hz sample rate
     ADPCM_A_RATE = 18500
@@ -918,7 +918,7 @@ def process_sound_effect(sfx_def, yaml_dir, index, current_offset):
     stop_addr = (current_offset + len(adpcm_data) - 1) // 256
 
     if stop_addr > 0xFFFF:
-        raise NGResError(f"Sound effect '{name}' exceeds V-ROM address limit. "
+        raise ProgearAssetsError(f"Sound effect '{name}' exceeds V-ROM address limit. "
                         f"Total audio data ({stop_addr * 256} bytes) exceeds 16MB.")
 
     sfx_info = {
@@ -942,11 +942,11 @@ def process_music(music_def, yaml_dir, index, current_offset):
     """
     name = music_def.get('name')
     if not name:
-        raise NGResError("Music missing 'name' field")
+        raise ProgearAssetsError("Music missing 'name' field")
 
     source = music_def.get('source')
     if not source:
-        raise NGResError(f"Music '{name}' missing 'source' field")
+        raise ProgearAssetsError(f"Music '{name}' missing 'source' field")
 
     # ADPCM-B supports variable rate, default to 22050 Hz
     target_rate = music_def.get('sample_rate', 22050)
@@ -966,7 +966,7 @@ def process_music(music_def, yaml_dir, index, current_offset):
     stop_addr = (current_offset + len(adpcm_data) - 1) // 256
 
     if stop_addr > 0xFFFF:
-        raise NGResError(f"Music '{name}' exceeds V-ROM address limit. "
+        raise ProgearAssetsError(f"Music '{name}' exceeds V-ROM address limit. "
                         f"Total audio data ({stop_addr * 256} bytes) exceeds 16MB.")
 
     music_info = {
@@ -1006,7 +1006,7 @@ def parse_tmx_file(tmx_path, layer_name=None):
         tree = ET.parse(tmx_path)
         root = tree.getroot()
     except ET.ParseError as e:
-        raise NGResError(f"Failed to parse TMX file {tmx_path}: {e}")
+        raise ProgearAssetsError(f"Failed to parse TMX file {tmx_path}: {e}")
 
     # Get map dimensions
     map_width = int(root.get('width', 0))
@@ -1015,7 +1015,7 @@ def parse_tmx_file(tmx_path, layer_name=None):
     tile_height = int(root.get('tileheight', 16))
 
     if tile_width != 16 or tile_height != 16:
-        raise NGResError(f"TMX file {tmx_path}: tile size must be 16x16 (got {tile_width}x{tile_height})")
+        raise ProgearAssetsError(f"TMX file {tmx_path}: tile size must be 16x16 (got {tile_width}x{tile_height})")
 
     # Find tileset and get firstgid (the ID offset for this tileset)
     tileset_firstgid = 1
@@ -1032,9 +1032,9 @@ def parse_tmx_file(tmx_path, layer_name=None):
 
     if layer is None:
         if layer_name:
-            raise NGResError(f"TMX file {tmx_path}: layer '{layer_name}' not found")
+            raise ProgearAssetsError(f"TMX file {tmx_path}: layer '{layer_name}' not found")
         else:
-            raise NGResError(f"TMX file {tmx_path}: no tile layers found")
+            raise ProgearAssetsError(f"TMX file {tmx_path}: no tile layers found")
 
     # Get layer dimensions (may differ from map)
     layer_width = int(layer.get('width', map_width))
@@ -1043,11 +1043,11 @@ def parse_tmx_file(tmx_path, layer_name=None):
     # Parse tile data
     data_elem = layer.find('data')
     if data_elem is None:
-        raise NGResError(f"TMX file {tmx_path}: layer has no data element")
+        raise ProgearAssetsError(f"TMX file {tmx_path}: layer has no data element")
 
     encoding = data_elem.get('encoding', 'csv')
     if encoding != 'csv':
-        raise NGResError(f"TMX file {tmx_path}: only CSV encoding supported (got '{encoding}')")
+        raise ProgearAssetsError(f"TMX file {tmx_path}: only CSV encoding supported (got '{encoding}')")
 
     # Parse CSV data - tile IDs are 1-based in Tiled, 0 means empty
     csv_text = data_elem.text.strip()
@@ -1064,7 +1064,7 @@ def parse_tmx_file(tmx_path, layer_name=None):
                 tile_ids.append(tile_id - tileset_firstgid)
 
     if len(tile_ids) != layer_width * layer_height:
-        raise NGResError(
+        raise ProgearAssetsError(
             f"TMX file {tmx_path}: expected {layer_width * layer_height} tiles, got {len(tile_ids)}"
         )
 
@@ -1132,18 +1132,18 @@ def process_tilemap_asset(tilemap_def, yaml_dir, visual_assets_info):
     """
     name = tilemap_def.get('name')
     if not name:
-        raise NGResError("Tilemap missing 'name' field")
+        raise ProgearAssetsError("Tilemap missing 'name' field")
 
     source = tilemap_def.get('source')
     if not source:
-        raise NGResError(f"Tilemap '{name}' missing 'source' field")
+        raise ProgearAssetsError(f"Tilemap '{name}' missing 'source' field")
 
     # Resolve path
     if not os.path.isabs(source):
         source = os.path.join(yaml_dir, source)
 
     if not os.path.exists(source):
-        raise NGResError(f"Tilemap '{name}' source not found: {source}")
+        raise ProgearAssetsError(f"Tilemap '{name}' source not found: {source}")
 
     # Parse TMX file
     layer_name = tilemap_def.get('layer')
@@ -1158,7 +1158,7 @@ def process_tilemap_asset(tilemap_def, yaml_dir, visual_assets_info):
                 base_tile = asset['base_tile']
                 break
         else:
-            raise NGResError(f"Tilemap '{name}' references unknown tileset '{tileset_ref}'")
+            raise ProgearAssetsError(f"Tilemap '{name}' references unknown tileset '{tileset_ref}'")
 
     # Process tileset_palettes to build lookup table
     tileset_palettes = tilemap_def.get('tileset_palettes', [])
@@ -1269,11 +1269,11 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
     )
 
     lines = [
-        "// ngres_generated_assets.h - Generated by ngres",
+        "// progear_assets.h - Generated by progear_assets.py",
         "// DO NOT EDIT - This file is auto-generated from assets.yaml",
         "",
-        "#ifndef _NGRES_GENERATED_ASSETS_H_",
-        "#define _NGRES_GENERATED_ASSETS_H_",
+        "#ifndef _PROGEAR_ASSETS_H_",
+        "#define _PROGEAR_ASSETS_H_",
         "",
         "#include <visual.h>",
         "#include <palette.h>",
@@ -1525,7 +1525,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("}")
         lines.append("")
 
-    lines.append("#endif // _NGRES_GENERATED_ASSETS_H_")
+    lines.append("#endif // _PROGEAR_ASSETS_H_")
     lines.append("")
 
     with open(output_path, 'w') as f:
@@ -1539,7 +1539,7 @@ def load_yaml_config(yaml_path):
     """
     yaml_path = Path(yaml_path)
     if not yaml_path.exists():
-        raise NGResError(f"YAML file not found: {yaml_path}")
+        raise ProgearAssetsError(f"YAML file not found: {yaml_path}")
 
     yaml_dir = yaml_path.parent
 
@@ -1547,7 +1547,7 @@ def load_yaml_config(yaml_path):
         try:
             config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise NGResError(f"Invalid YAML in {yaml_path}: {e}")
+            raise ProgearAssetsError(f"Invalid YAML in {yaml_path}: {e}")
 
     if not config:
         return {}, yaml_dir
@@ -1634,7 +1634,7 @@ def main():
     parser.add_argument('--c2', default='sprites-c2.bin', help='C2 ROM output filename')
     parser.add_argument('--v1', default='audio-v1.bin', help='V1 ROM output filename (audio)')
     parser.add_argument('--m1-tables', default='audio-tables.bin', help='Z80 sample tables output')
-    parser.add_argument('--header', default='ngres_generated_assets.h', help='Header output filename')
+    parser.add_argument('--header', default='progear_assets.h', help='Header output filename')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
 
     args = parser.parse_args()
@@ -1642,7 +1642,7 @@ def main():
     # Load user YAML (required)
     try:
         user_config, yaml_dir = load_yaml_config(args.yaml_file)
-    except NGResError as e:
+    except ProgearAssetsError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -1655,7 +1655,7 @@ def main():
                 sdk_config, _ = load_yaml_config(args.sdk_assets)
                 if args.verbose:
                     print(f"Loaded SDK assets from {args.sdk_assets}")
-            except NGResError as e:
+            except ProgearAssetsError as e:
                 print(f"Error loading SDK assets: {e}", file=sys.stderr)
                 sys.exit(1)
         elif args.verbose:
@@ -1694,7 +1694,7 @@ def main():
             palette_registry['_next_index'] += 1
             if args.verbose:
                 print(f"Processed palette '{pal_name}': index {palette_registry[pal_name]['index']}")
-        except NGResError as e:
+        except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -1748,7 +1748,7 @@ def main():
 
             base_tile += tile_count
 
-        except NGResError as e:
+        except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -1774,7 +1774,7 @@ def main():
             if args.verbose:
                 print(f"Processed SFX '{sfx_info['name']}': {sfx_info['size']} bytes")
 
-        except NGResError as e:
+        except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -1792,7 +1792,7 @@ def main():
             if args.verbose:
                 print(f"Processed Music '{music_info['name']}': {music_info['size']} bytes @ {music_info['sample_rate']}Hz")
 
-        except NGResError as e:
+        except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -1810,7 +1810,7 @@ def main():
                 print(f"Processed Tilemap '{tilemap_info['name']}': "
                       f"{tilemap_info['width_tiles']}x{tilemap_info['height_tiles']} tiles")
 
-        except NGResError as e:
+        except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 

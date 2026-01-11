@@ -44,7 +44,7 @@ template/
 │   └── main.c           # Entry point and game loop
 ├── assets/
 │   └── checkerboard.png # Sample sprite (64x64 red/blue checkerboard)
-├── assets.yaml          # Asset definitions for ngres
+├── assets.yaml          # Asset definitions for progear_assets.py
 ├── Makefile
 └── README.md
 ```

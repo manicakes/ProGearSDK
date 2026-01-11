@@ -129,7 +129,7 @@ showcase/
 │   └── tilemap_demo/
 │       └── tilemap_demo.c/h   # Tilemap collision demo scene
 ├── assets/                    # Graphics and audio assets
-├── assets.yaml                # Asset definitions for ngres
+├── assets.yaml                # Asset definitions for progear_assets.py
 └── Makefile
 ```
 

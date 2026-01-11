@@ -743,7 +743,7 @@ ym_wait_data:
 
 
 ;;; === Sample Tables (fixed at 0x0800) ===
-;;; ngres will generate these at the known offset
+;;; progear_assets.py will generate these at the known offset
 ;;; The Makefile patches these after building the driver
 
     .org    0x0800

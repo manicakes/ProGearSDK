@@ -22,7 +22,7 @@
 #include <ngmath.h>
 #include <engine.h>
 #include <lighting.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 #define CAM_CIRCLE_SPEED   1
 #define CAM_DEFAULT_RADIUS FIX(24)
@@ -35,10 +35,10 @@
 #define LIGHTNING_MAX_INTERVAL  90        /* Maximum frames between strikes */
 
 /* Night preset values (from lighting.c) */
-#define NIGHT_TINT_R      (-8)
-#define NIGHT_TINT_G      (-5)
-#define NIGHT_TINT_B      12
-#define NIGHT_BRIGHTNESS  FIX_FROM_FLOAT(0.65)
+#define NIGHT_TINT_R     (-8)
+#define NIGHT_TINT_G     (-5)
+#define NIGHT_TINT_B     12
+#define NIGHT_BRIGHTNESS FIX_FROM_FLOAT(0.65)
 
 typedef struct BallDemoState {
     NGActorHandle brick;

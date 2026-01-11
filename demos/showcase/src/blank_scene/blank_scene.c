@@ -13,7 +13,7 @@
 #include <ui.h>
 #include <palette.h>
 #include <engine.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 typedef struct BlankSceneState {
     NGMenuHandle menu;

@@ -4,7 +4,7 @@
  */
 
 #include <progearsdk.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 int main(void) {
     NGEngineInit();

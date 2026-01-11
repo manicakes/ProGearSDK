@@ -17,7 +17,7 @@ BUILD_DIR = build
 GEN_DIR = $(BUILD_DIR)/gen
 
 # Asset pipeline
-NGRES = python3 $(TOOLS_PATH)/ngres.py
+PROGEAR_ASSETS = python3 $(TOOLS_PATH)/progear_assets.py
 ASSETS_YAML = assets.yaml
 SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
 
@@ -38,7 +38,7 @@ V1_ROM = $(BUILD_DIR)/$(GAME_NAME)-v1.bin
 ELF_FILE = $(BUILD_DIR)/$(GAME_NAME).elf
 
 # Generated files from asset pipeline
-GEN_ASSETS_H = $(GEN_DIR)/ngres_generated_assets.h
+GEN_ASSETS_H = $(GEN_DIR)/progear_assets.h
 GEN_C1 = $(GEN_DIR)/sprites-c1.bin
 GEN_C2 = $(GEN_DIR)/sprites-c2.bin
 GEN_V1 = $(GEN_DIR)/audio-v1.bin
@@ -66,12 +66,12 @@ assets: $(GEN_ASSETS_H)
 $(GEN_ASSETS_H): | $(GEN_DIR)
 	@if [ -f $(ASSETS_YAML) ]; then \
 		echo "Processing assets..."; \
-		$(NGRES) --sdk-assets $(SDK_ASSETS) $(ASSETS_YAML) -o $(GEN_DIR) --c1 sprites-c1.bin --c2 sprites-c2.bin --v1 audio-v1.bin --m1-tables audio-tables.bin -v; \
+		$(PROGEAR_ASSETS) --sdk-assets $(SDK_ASSETS) $(ASSETS_YAML) -o $(GEN_DIR) --c1 sprites-c1.bin --c2 sprites-c2.bin --v1 audio-v1.bin --m1-tables audio-tables.bin -v; \
 	else \
-		echo "No $(ASSETS_YAML) found, creating empty ngres_generated_assets.h"; \
-		echo "// ngres_generated_assets.h - No assets defined" > $(GEN_ASSETS_H); \
-		echo "#ifndef _NGRES_GENERATED_ASSETS_H_" >> $(GEN_ASSETS_H); \
-		echo "#define _NGRES_GENERATED_ASSETS_H_" >> $(GEN_ASSETS_H); \
+		echo "No $(ASSETS_YAML) found, creating empty progear_assets.h"; \
+		echo "// progear_assets.h - No assets defined" > $(GEN_ASSETS_H); \
+		echo "#ifndef _PROGEAR_ASSETS_H_" >> $(GEN_ASSETS_H); \
+		echo "#define _PROGEAR_ASSETS_H_" >> $(GEN_ASSETS_H); \
 		echo "#include <audio.h>" >> $(GEN_ASSETS_H); \
 		echo "#endif" >> $(GEN_ASSETS_H); \
 	fi

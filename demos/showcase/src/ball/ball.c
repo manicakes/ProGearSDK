@@ -10,7 +10,7 @@
 #include <camera.h>
 #include <palette.h>
 #include <physics.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 #define BALL_HALF_SIZE FIX(16) // 16 pixels (32x32 sprite)
 

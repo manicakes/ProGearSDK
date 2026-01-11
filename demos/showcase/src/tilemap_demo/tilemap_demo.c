@@ -17,7 +17,7 @@
 #include <arena.h>
 #include <actor.h>
 #include <engine.h>
-#include <ngres_generated_assets.h>
+#include <progear_assets.h>
 
 #define PLAYER_HALF_W FIX(6)
 #define PLAYER_HALF_H FIX(12)

@@ -4,7 +4,7 @@ This directory contains Python tools for building NeoGeo ROMs.
 
 ## Main Tools
 
-### ngres.py
+### progear_assets.py
 
 The primary asset pipeline tool. Processes `assets.yaml` to generate:
 - **C-ROM** (sprite graphics in NeoGeo tile format)
@@ -13,7 +13,7 @@ The primary asset pipeline tool. Processes `assets.yaml` to generate:
 
 ```bash
 # Usage
-python3 tools/ngres.py assets.yaml -o build/
+python3 tools/progear_assets.py assets.yaml -o build/
 
 # Or via Makefile
 make
