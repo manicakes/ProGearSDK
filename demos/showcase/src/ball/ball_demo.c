@@ -83,6 +83,70 @@ static u16 ball_demo_rand_range(u16 min, u16 max) {
     return (u16)(min + (ball_demo_rand() % (max - min + 1)));
 }
 
+static void update_lightning(void) {
+    if (state->lightning_timer > 0) {
+        state->lightning_timer--;
+    }
+    if (state->lightning_timer == 0) {
+        u8 flash_type = (u8)(ball_demo_rand() % 3);
+        if (flash_type == 0) {
+            NGLightingFlash(25, 25, 30, 4);
+        } else if (flash_type == 1) {
+            NGLightingFlash(20, 20, 25, 3);
+            NGLightingFlash(30, 30, 35, 6);
+        } else {
+            NGLightingFlash(12, 12, 18, 8);
+        }
+        state->lightning_timer =
+            ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
+    }
+}
+
+static void update_day_night_cycle(void) {
+    state->day_night_timer++;
+
+    /* Handle fade-out completion */
+    if (state->fading_to_day) {
+        state->fade_timer++;
+        if (state->fade_timer >= NIGHT_TRANSITION_FRAMES) {
+            state->fading_to_day = 0;
+            if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
+                NGLightingPop(state->night_layer);
+                state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+            }
+        }
+    }
+
+    /* Transition to night */
+    if (!state->is_night && !state->fading_to_day &&
+        state->day_night_timer >= NIGHT_MODE_CYCLE_FRAMES) {
+        state->is_night = 1;
+        state->day_night_timer = 0;
+        state->night_layer = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
+        NGLightingFadeTint(state->night_layer, NIGHT_TINT_R, NIGHT_TINT_G, NIGHT_TINT_B,
+                           NIGHT_TRANSITION_FRAMES);
+        NGLightingFadeBrightness(state->night_layer, NIGHT_BRIGHTNESS, NIGHT_TRANSITION_FRAMES);
+        state->lightning_timer =
+            ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
+    }
+    /* Transition to day */
+    else if (state->is_night && !state->fading_to_day &&
+             state->day_night_timer >= NIGHT_MODE_DURATION) {
+        state->is_night = 0;
+        state->fading_to_day = 1;
+        state->fade_timer = 0;
+        state->day_night_timer = 0;
+        if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
+            NGLightingFadeTint(state->night_layer, 0, 0, 0, NIGHT_TRANSITION_FRAMES);
+            NGLightingFadeBrightness(state->night_layer, FIX_ONE, NIGHT_TRANSITION_FRAMES);
+        }
+    }
+
+    if (state->is_night) {
+        update_lightning();
+    }
+}
+
 void BallDemoInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, BallDemoState);
     state->switch_target = 0;
@@ -235,73 +299,7 @@ u8 BallDemoUpdate(void) {
 
     if (!state->menu_open) {
         BallSystemUpdate(state->balls);
-
-        /* Day/night cycle logic */
-        state->day_night_timer++;
-
-        /* Handle fade-out completion (day transition) */
-        if (state->fading_to_day) {
-            state->fade_timer++;
-            if (state->fade_timer >= NIGHT_TRANSITION_FRAMES) {
-                state->fading_to_day = 0;
-                if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
-                    NGLightingPop(state->night_layer);
-                    state->night_layer = NG_LIGHTING_INVALID_HANDLE;
-                }
-            }
-        }
-
-        if (!state->is_night && !state->fading_to_day &&
-            state->day_night_timer >= NIGHT_MODE_CYCLE_FRAMES) {
-            /* Start transition to night mode */
-            state->is_night = 1;
-            state->day_night_timer = 0;
-            state->night_layer = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
-            NGLightingFadeTint(state->night_layer, NIGHT_TINT_R, NIGHT_TINT_G, NIGHT_TINT_B,
-                               NIGHT_TRANSITION_FRAMES);
-            NGLightingFadeBrightness(state->night_layer, NIGHT_BRIGHTNESS,
-                                     NIGHT_TRANSITION_FRAMES);
-            state->lightning_timer =
-                ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
-        } else if (state->is_night && !state->fading_to_day &&
-                   state->day_night_timer >= NIGHT_MODE_DURATION) {
-            /* Start transition back to day */
-            state->is_night = 0;
-            state->fading_to_day = 1;
-            state->fade_timer = 0;
-            state->day_night_timer = 0;
-            if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
-                NGLightingFadeTint(state->night_layer, 0, 0, 0, NIGHT_TRANSITION_FRAMES);
-                NGLightingFadeBrightness(state->night_layer, FIX_ONE, NIGHT_TRANSITION_FRAMES);
-            }
-        }
-
-        /* Lightning flashes during night */
-        if (state->is_night) {
-            if (state->lightning_timer > 0) {
-                state->lightning_timer--;
-            }
-            if (state->lightning_timer == 0) {
-                /* Trigger lightning flash - realistic multi-flash pattern */
-                u8 flash_type = (u8)(ball_demo_rand() % 3);
-                if (flash_type == 0) {
-                    /* Single bright flash */
-                    NGLightingFlash(25, 25, 30, 4);
-                } else if (flash_type == 1) {
-                    /* Double flash (second one slightly dimmer) */
-                    NGLightingFlash(20, 20, 25, 3);
-                    /* Note: The second flash would need a delayed trigger mechanism
-                       For simplicity, we'll just do a longer single flash */
-                    NGLightingFlash(30, 30, 35, 6);
-                } else {
-                    /* Distant flash (dimmer, longer) */
-                    NGLightingFlash(12, 12, 18, 8);
-                }
-                /* Schedule next lightning */
-                state->lightning_timer =
-                    ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
-            }
-        }
+        update_day_night_cycle();
     }
 
     return state->switch_target;
