@@ -10,6 +10,7 @@
 #include <fix.h>
 #include <scene.h>
 #include <palette.h>
+#include <lighting.h>
 #include <audio.h>
 #include <neogeo.h>
 
@@ -34,9 +35,6 @@
 
 #define CURSOR_BOUNCE_SPEED     3
 #define CURSOR_BOUNCE_AMPLITUDE 2
-
-#define DIM_ANIM_SPEED          2
-#define DIM_BACKUP_MAX_PALETTES 32
 
 typedef struct NGMenu {
     const NGVisualAsset *panel_asset;
@@ -77,14 +75,10 @@ typedef struct NGMenu {
     u8 normal_pal;
     u8 selected_pal;
 
-    u8 dim_target;
-    u8 dim_current;
-    u8 dim_start_pal;
-    u8 dim_end_pal;
+    u8 dim_amount;
     u8 panel_pal;
     u8 cursor_pal;
-    NGColor *pal_backup;
-    u8 backup_count;
+    NGLightingLayerHandle dim_layer;
 
     u8 sfx_move;
     u8 sfx_select;
@@ -154,55 +148,6 @@ static void draw_menu_text(NGMenu *menu) {
                 NGTextPrint(NGFixLayoutXY((u8)fix_x, (u8)item_y), pal, menu->items[i]);
             }
         }
-    }
-}
-
-static inline u8 is_menu_palette(NGMenu *menu, u8 pal) {
-    return pal == menu->panel_pal || pal == menu->cursor_pal;
-}
-
-static void backup_palettes(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0)
-        return;
-
-    u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
-         pal++) {
-        if (is_menu_palette(menu, pal))
-            continue;
-        NGPalBackup(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
-        backup_idx++;
-    }
-}
-
-static void apply_dimming(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0)
-        return;
-
-    u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
-         pal++) {
-        if (is_menu_palette(menu, pal))
-            continue;
-        NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
-        if (menu->dim_current > 0) {
-            NGPalFadeToBlack(pal, menu->dim_current);
-        }
-        backup_idx++;
-    }
-}
-
-static void restore_palettes(NGMenu *menu) {
-    if (!menu->pal_backup || menu->backup_count == 0)
-        return;
-
-    u8 backup_idx = 0;
-    for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal && backup_idx < menu->backup_count;
-         pal++) {
-        if (is_menu_palette(menu, pal))
-            continue;
-        NGPalRestore(pal, &menu->pal_backup[backup_idx * NG_PAL_SIZE]);
-        backup_idx++;
     }
 }
 
@@ -377,30 +322,10 @@ NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
     menu->normal_pal = 0;
     menu->selected_pal = 0;
 
-    menu->dim_target = dim_amount;
-    menu->dim_current = 0;
-    menu->dim_start_pal = 1;
-    menu->dim_end_pal = 63;
+    menu->dim_amount = dim_amount;
     menu->panel_pal = panel_asset->palette;
     menu->cursor_pal = cursor_asset->palette;
-    menu->pal_backup = 0;
-    menu->backup_count = 0;
-
-    if (dim_amount > 0) {
-        u8 count = 0;
-        for (u8 pal = menu->dim_start_pal; pal <= menu->dim_end_pal; pal++) {
-            if (is_menu_palette(menu, pal))
-                continue;
-            count++;
-            if (count >= DIM_BACKUP_MAX_PALETTES)
-                break;
-        }
-
-        if (count > 0) {
-            menu->backup_count = count;
-            menu->pal_backup = NG_ARENA_ALLOC_ARRAY(arena, NGColor, count * NG_PAL_SIZE);
-        }
-    }
+    menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
 
     menu->sfx_move = 0xFF;
     menu->sfx_select = 0xFF;
@@ -488,9 +413,14 @@ void NGMenuShow(NGMenuHandle menu) {
     NGSpringSnap(&menu->cursor_y_spring, FIX(cursor_offset));
     NGSpringSetTarget(&menu->cursor_y_spring, FIX(cursor_offset));
 
-    if (menu->dim_target > 0) {
-        backup_palettes(menu);
-        menu->dim_current = 0;
+    /* Create lighting layer for dimming effect */
+    if (menu->dim_amount > 0 && menu->dim_layer == NG_LIGHTING_INVALID_HANDLE) {
+        menu->dim_layer = NGLightingPush(NG_LIGHTING_PRIORITY_OVERLAY);
+        if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+            /* Animate brightness from 1.0 to target dim level */
+            fixed target_brightness = FIX_ONE - FIX(menu->dim_amount) / 31;
+            NGLightingFadeBrightness(menu->dim_layer, target_brightness, 8);
+        }
     }
 
     menu->panel_first_sprite = PANEL_SPRITE_BASE;
@@ -519,6 +449,11 @@ void NGMenuHide(NGMenuHandle menu) {
         clear_menu_text(menu);
         menu->text_visible = 0;
     }
+
+    /* Start fade-out animation on lighting layer */
+    if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+        NGLightingFadeBrightness(menu->dim_layer, FIX_ONE, 8);
+    }
 }
 
 void NGMenuUpdate(NGMenuHandle menu) {
@@ -528,27 +463,15 @@ void NGMenuUpdate(NGMenuHandle menu) {
     NGSpringUpdate(&menu->panel_y_spring);
     NGSpringUpdate(&menu->cursor_y_spring);
 
-    if (menu->dim_target > 0) {
-        u8 target = menu->visible ? menu->dim_target : 0;
-
-        if (menu->dim_current < target) {
-            menu->dim_current += DIM_ANIM_SPEED;
-            if (menu->dim_current > target)
-                menu->dim_current = target;
-            apply_dimming(menu);
-        } else if (menu->dim_current > target) {
-            if (menu->dim_current >= DIM_ANIM_SPEED) {
-                menu->dim_current -= DIM_ANIM_SPEED;
-            } else {
-                menu->dim_current = 0;
-            }
-            apply_dimming(menu);
-        }
-    }
-
-    if (!menu->visible && NGSpringSettled(&menu->panel_y_spring) && menu->dim_current == 0) {
+    /* Check if we can clean up after hiding */
+    u8 dim_done = (menu->dim_layer == NG_LIGHTING_INVALID_HANDLE) || !NGLightingIsAnimating();
+    if (!menu->visible && NGSpringSettled(&menu->panel_y_spring) && dim_done) {
         if (menu->showing) {
-            restore_palettes(menu);
+            /* Remove lighting layer when fully hidden */
+            if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+                NGLightingPop(menu->dim_layer);
+                menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
+            }
             hide_panel_sprites(menu);
             menu->panel_sprites_allocated = 0;
             NGActorRemoveFromScene(menu->cursor_actor);
@@ -658,9 +581,10 @@ u8 NGMenuIsVisible(NGMenuHandle menu) {
 u8 NGMenuIsAnimating(NGMenuHandle menu) {
     if (!menu)
         return 0;
-    // Animating if spring not settled OR dimming is still transitioning
-    u8 target = menu->visible ? menu->dim_target : 0;
-    return !NGSpringSettled(&menu->panel_y_spring) || menu->dim_current != target;
+    /* Animating if spring not settled OR lighting is fading */
+    u8 lighting_animating =
+        (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) && NGLightingIsAnimating();
+    return !NGSpringSettled(&menu->panel_y_spring) || lighting_animating;
 }
 
 u8 NGMenuGetSelection(NGMenuHandle menu) {
@@ -702,8 +626,10 @@ void NGMenuDestroy(NGMenuHandle menu) {
     if (!menu)
         return;
 
-    if (menu->dim_current > 0) {
-        restore_palettes(menu);
+    /* Remove lighting layer if active */
+    if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+        NGLightingPop(menu->dim_layer);
+        menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
     }
 
     if (menu->text_visible) {
