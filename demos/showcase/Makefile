@@ -5,7 +5,7 @@ GAME_NAME = mygame
 
 # MAME configuration - uses puzzledp driver for homebrew testing
 MAME_DRIVER = puzzledp
-NEOGEO_BIOS_PATH = ../../../bios
+NEOGEO_BIOS_PATH = ../../bios
 
 # === SDK Setup ===
 SDK_PATH = ../../sdk

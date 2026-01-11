@@ -21,10 +21,24 @@
 #include <color.h>
 #include <ngmath.h>
 #include <engine.h>
+#include <lighting.h>
 #include <ngres_generated_assets.h>
 
 #define CAM_CIRCLE_SPEED   1
 #define CAM_DEFAULT_RADIUS FIX(24)
+
+/* Night mode timing (at 60fps) */
+#define NIGHT_MODE_CYCLE_FRAMES (10 * 60) /* 10 seconds per day/night cycle */
+#define NIGHT_MODE_DURATION     (5 * 60)  /* Night lasts 5 seconds */
+#define NIGHT_TRANSITION_FRAMES 60        /* 1 second fade in/out */
+#define LIGHTNING_MIN_INTERVAL  30        /* Minimum frames between strikes */
+#define LIGHTNING_MAX_INTERVAL  90        /* Maximum frames between strikes */
+
+/* Night preset values (from lighting.c) */
+#define NIGHT_TINT_R      (-8)
+#define NIGHT_TINT_G      (-5)
+#define NIGHT_TINT_B      12
+#define NIGHT_BRIGHTNESS  FIX_FROM_FLOAT(0.65)
 
 typedef struct BallDemoState {
     NGActorHandle brick;
@@ -36,6 +50,15 @@ typedef struct BallDemoState {
     fixed cam_circle_radius;
     u8 menu_open;
     u8 switch_target;
+
+    /* Night mode state */
+    u16 day_night_timer;
+    u8 is_night;
+    u8 fading_to_day;
+    u16 fade_timer;
+    NGLightingLayerHandle night_layer;
+    u16 lightning_timer;
+    u16 rng_state;
 } BallDemoState;
 
 static BallDemoState *state;
@@ -50,12 +73,97 @@ static BallDemoState *state;
 #define MENU_BLANK_SCENE  7
 #define MENU_TILEMAP_DEMO 8
 
+/* Simple pseudo-random number generator */
+static u16 ball_demo_rand(void) {
+    state->rng_state = (u16)(state->rng_state * 25173 + 13849);
+    return state->rng_state;
+}
+
+static u16 ball_demo_rand_range(u16 min, u16 max) {
+    return (u16)(min + (ball_demo_rand() % (max - min + 1)));
+}
+
+static void update_lightning(void) {
+    if (state->lightning_timer > 0) {
+        state->lightning_timer--;
+    }
+    if (state->lightning_timer == 0) {
+        u8 flash_type = (u8)(ball_demo_rand() % 3);
+        if (flash_type == 0) {
+            NGLightingFlash(25, 25, 30, 4);
+        } else if (flash_type == 1) {
+            NGLightingFlash(20, 20, 25, 3);
+            NGLightingFlash(30, 30, 35, 6);
+        } else {
+            NGLightingFlash(12, 12, 18, 8);
+        }
+        state->lightning_timer =
+            ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
+    }
+}
+
+static void update_day_night_cycle(void) {
+    state->day_night_timer++;
+
+    /* Handle fade-out completion */
+    if (state->fading_to_day) {
+        state->fade_timer++;
+        if (state->fade_timer >= NIGHT_TRANSITION_FRAMES) {
+            state->fading_to_day = 0;
+            if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
+                NGLightingPop(state->night_layer);
+                state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+            }
+        }
+    }
+
+    /* Transition to night */
+    if (!state->is_night && !state->fading_to_day &&
+        state->day_night_timer >= NIGHT_MODE_CYCLE_FRAMES) {
+        state->is_night = 1;
+        state->day_night_timer = 0;
+        state->night_layer = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
+        NGLightingFadeTint(state->night_layer, NIGHT_TINT_R, NIGHT_TINT_G, NIGHT_TINT_B,
+                           NIGHT_TRANSITION_FRAMES);
+        NGLightingFadeBrightness(state->night_layer, NIGHT_BRIGHTNESS, NIGHT_TRANSITION_FRAMES);
+        state->lightning_timer =
+            ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
+        BallSystemSetGravity(state->balls, FIX(-1));
+    }
+    /* Transition to day */
+    else if (state->is_night && !state->fading_to_day &&
+             state->day_night_timer >= NIGHT_MODE_DURATION) {
+        state->is_night = 0;
+        state->fading_to_day = 1;
+        state->fade_timer = 0;
+        state->day_night_timer = 0;
+        if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
+            NGLightingFadeTint(state->night_layer, 0, 0, 0, NIGHT_TRANSITION_FRAMES);
+            NGLightingFadeBrightness(state->night_layer, FIX_ONE, NIGHT_TRANSITION_FRAMES);
+        }
+        BallSystemSetGravity(state->balls, FIX(1));
+    }
+
+    if (state->is_night) {
+        update_lightning();
+    }
+}
+
 void BallDemoInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, BallDemoState);
     state->switch_target = 0;
     state->menu_open = 0;
     state->cam_angle = 0;
     state->cam_circle_radius = CAM_DEFAULT_RADIUS;
+
+    /* Initialize night mode state */
+    state->day_night_timer = 0;
+    state->is_night = 0;
+    state->fading_to_day = 0;
+    state->fade_timer = 0;
+    state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+    state->lightning_timer = 0;
+    state->rng_state = 12345;
 
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
@@ -193,6 +301,7 @@ u8 BallDemoUpdate(void) {
 
     if (!state->menu_open) {
         BallSystemUpdate(state->balls);
+        update_day_night_cycle();
     }
 
     return state->switch_target;
@@ -200,6 +309,12 @@ u8 BallDemoUpdate(void) {
 
 void BallDemoCleanup(void) {
     NGMusicStop();
+
+    /* Clean up lighting */
+    if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
+        NGLightingPop(state->night_layer);
+        state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+    }
 
     NGFixClear(0, 3, 40, 1);
 
