@@ -6,6 +6,7 @@
 
 #include <engine.h>
 #include <arena.h>
+#include <progear_assets.h>
 
 #include "demo_ids.h"
 #include "ball/ball_demo.h"

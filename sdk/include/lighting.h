@@ -335,4 +335,116 @@ u8 NGLightingIsAnimating(void);
 
 /** @} */
 
+/** @defgroup lightingprebakedsetup Pre-baked Preset Setup
+ *  @{
+ */
+
+/**
+ * Function pointer type for applying pre-baked palette step.
+ */
+typedef void (*NGLightingApplyStepFn)(u8 preset_id, u8 step);
+
+/**
+ * Function pointer type for getting preset info.
+ */
+typedef const void *(*NGLightingGetInfoFn)(u8 preset_id);
+
+/**
+ * Register pre-baked preset functions.
+ *
+ * Called automatically by NGLightingInit() via NGLightingInitPresets().
+ * Games with lighting_presets in assets.yaml provide a strong NGLightingInitPresets()
+ * that overrides the SDK's weak default.
+ */
+void NGLightingRegisterPrebaked(NGLightingApplyStepFn apply_fn, NGLightingGetInfoFn info_fn);
+
+/**
+ * Initialize pre-baked lighting presets.
+ *
+ * Called automatically by NGLightingInit(). Games with lighting_presets
+ * defined in assets.yaml provide a strong symbol that overrides this weak default.
+ */
+void NGLightingInitPresets(void);
+
+/** @} */
+
+/** @defgroup lightingprebaked Pre-baked Presets
+ *  @brief Zero-CPU lighting transitions using ROM-based palette data.
+ *
+ *  Pre-baked presets are defined in assets.yaml under lighting_presets.
+ *  The asset compiler generates interpolated palette variants at build time,
+ *  so runtime only needs to copy data - no math required.
+ *
+ *  Design constraint: presets fade from/to baseline palettes only.
+ *  To transition between presets (e.g., night → sunset):
+ *  1. Pop the current preset (fades back to baseline)
+ *  2. Push the new preset (fades from baseline)
+ *
+ *  Usage:
+ *  ```c
+ *  // Push night preset with 2-second fade
+ *  NGLightingLayerHandle night = NGLightingPushPreset(NG_LIGHTING_PREBAKED_NIGHT, 120);
+ *
+ *  // In game loop - call each frame to advance fade
+ *  NGLightingUpdatePrebakedFade();
+ *
+ *  // Later: pop with fade-out
+ *  NGLightingPopPreset(night, 60);
+ *
+ *  // Instant apply (no fade) - pass 0 for frames
+ *  NGLightingLayerHandle dim = NGLightingPushPreset(NG_LIGHTING_PREBAKED_MENU_DIM, 0);
+ *  ```
+ *  @{
+ */
+
+/**
+ * Push a pre-baked lighting preset with optional fade-in animation.
+ *
+ * Backs up current palette state and applies the preset. If fade_frames > 0,
+ * the transition animates through pre-computed interpolation steps.
+ * Call NGLightingUpdatePrebakedFade() each frame to advance the animation.
+ *
+ * @param preset_id Preset index (NG_LIGHTING_PREBAKED_*)
+ * @param fade_frames Fade duration (0 = instant apply)
+ * @return Layer handle for later pop, or NG_LIGHTING_INVALID_HANDLE on error
+ */
+NGLightingLayerHandle NGLightingPushPreset(u8 preset_id, u16 fade_frames);
+
+/**
+ * Pop a pre-baked preset with optional fade-out animation.
+ *
+ * Fades back to the baseline palettes that were saved when the preset was pushed.
+ * If fade_frames > 0, animates through steps in reverse.
+ *
+ * @param handle Layer handle from NGLightingPushPreset()
+ * @param fade_frames Fade duration (0 = instant restore)
+ */
+void NGLightingPopPreset(NGLightingLayerHandle handle, u16 fade_frames);
+
+/**
+ * Update pre-baked fade animation.
+ *
+ * Call once per frame. Advances fade-in or fade-out animations and
+ * copies the appropriate pre-computed palette step to palette RAM.
+ *
+ * @return 1 if fade is still active, 0 if complete or not running
+ */
+u8 NGLightingUpdatePrebakedFade(void);
+
+/**
+ * Check if a pre-baked fade animation is currently running.
+ *
+ * @return 1 if fading, 0 otherwise
+ */
+u8 NGLightingIsPrebakedFading(void);
+
+/**
+ * Get the currently active pre-baked preset.
+ *
+ * @return Preset ID, or 0xFF if no preset is active
+ */
+u8 NGLightingGetActivePreset(void);
+
+/** @} */
+
 #endif // LIGHTING_H

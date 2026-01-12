@@ -34,12 +34,6 @@
 #define LIGHTNING_MIN_INTERVAL  30        /* Minimum frames between strikes */
 #define LIGHTNING_MAX_INTERVAL  90        /* Maximum frames between strikes */
 
-/* Night preset values (from lighting.c) */
-#define NIGHT_TINT_R     (-8)
-#define NIGHT_TINT_G     (-5)
-#define NIGHT_TINT_B     12
-#define NIGHT_BRIGHTNESS FIX_FROM_FLOAT(0.65)
-
 typedef struct BallDemoState {
     NGActorHandle brick;
     NGParallaxHandle brick_pattern;
@@ -54,9 +48,7 @@ typedef struct BallDemoState {
     /* Night mode state */
     u16 day_night_timer;
     u8 is_night;
-    u8 fading_to_day;
-    u16 fade_timer;
-    NGLightingLayerHandle night_layer;
+    NGLightingLayerHandle night_preset;
     u16 lightning_timer;
     u16 rng_state;
 } BallDemoState;
@@ -105,46 +97,38 @@ static void update_lightning(void) {
 static void update_day_night_cycle(void) {
     state->day_night_timer++;
 
-    /* Handle fade-out completion */
-    if (state->fading_to_day) {
-        state->fade_timer++;
-        if (state->fade_timer >= NIGHT_TRANSITION_FRAMES) {
-            state->fading_to_day = 0;
-            if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
-                NGLightingPop(state->night_layer);
-                state->night_layer = NG_LIGHTING_INVALID_HANDLE;
-            }
-        }
+    /* Update pre-baked fade animation */
+    NGLightingUpdatePrebakedFade();
+
+    /* Check if fade-out completed (transitioning back to day) */
+    if (state->is_night && state->night_preset == NG_LIGHTING_INVALID_HANDLE) {
+        /* Fade completed, now fully day */
+        state->is_night = 0;
     }
 
     /* Transition to night */
-    if (!state->is_night && !state->fading_to_day &&
+    if (!state->is_night && !NGLightingIsPrebakedFading() &&
         state->day_night_timer >= NIGHT_MODE_CYCLE_FRAMES) {
         state->is_night = 1;
         state->day_night_timer = 0;
-        state->night_layer = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
-        NGLightingFadeTint(state->night_layer, NIGHT_TINT_R, NIGHT_TINT_G, NIGHT_TINT_B,
-                           NIGHT_TRANSITION_FRAMES);
-        NGLightingFadeBrightness(state->night_layer, NIGHT_BRIGHTNESS, NIGHT_TRANSITION_FRAMES);
+        /* Use pre-baked night preset - zero CPU palette transforms! */
+        state->night_preset =
+            NGLightingPushPreset(NG_LIGHTING_PREBAKED_NIGHT, NIGHT_TRANSITION_FRAMES);
         state->lightning_timer =
             ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
         BallSystemSetGravity(state->balls, FIX(-1));
     }
     /* Transition to day */
-    else if (state->is_night && !state->fading_to_day &&
+    else if (state->is_night && !NGLightingIsPrebakedFading() &&
              state->day_night_timer >= NIGHT_MODE_DURATION) {
-        state->is_night = 0;
-        state->fading_to_day = 1;
-        state->fade_timer = 0;
         state->day_night_timer = 0;
-        if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
-            NGLightingFadeTint(state->night_layer, 0, 0, 0, NIGHT_TRANSITION_FRAMES);
-            NGLightingFadeBrightness(state->night_layer, FIX_ONE, NIGHT_TRANSITION_FRAMES);
-        }
+        /* Pop preset with fade - animates back to original palettes */
+        NGLightingPopPreset(state->night_preset, NIGHT_TRANSITION_FRAMES);
+        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
         BallSystemSetGravity(state->balls, FIX(1));
     }
 
-    if (state->is_night) {
+    if (state->is_night && !NGLightingIsPrebakedFading()) {
         update_lightning();
     }
 }
@@ -159,9 +143,7 @@ void BallDemoInit(void) {
     /* Initialize night mode state */
     state->day_night_timer = 0;
     state->is_night = 0;
-    state->fading_to_day = 0;
-    state->fade_timer = 0;
-    state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+    state->night_preset = NG_LIGHTING_INVALID_HANDLE;
     state->lightning_timer = 0;
     state->rng_state = 12345;
 
@@ -310,10 +292,10 @@ u8 BallDemoUpdate(void) {
 void BallDemoCleanup(void) {
     NGMusicStop();
 
-    /* Clean up lighting */
-    if (state->night_layer != NG_LIGHTING_INVALID_HANDLE) {
-        NGLightingPop(state->night_layer);
-        state->night_layer = NG_LIGHTING_INVALID_HANDLE;
+    /* Clean up lighting - instant pop (no fade) */
+    if (state->night_preset != NG_LIGHTING_INVALID_HANDLE) {
+        NGLightingPopPreset(state->night_preset, 0);
+        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
     }
 
     NGFixClear(0, 3, 40, 1);
