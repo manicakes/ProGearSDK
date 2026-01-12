@@ -114,6 +114,8 @@ format-check:
 	@echo "Formatting OK."
 
 # Static analysis with cppcheck
+# Note: __CPPCHECK__ is defined to enable compatible fallbacks for GCC-specific
+# syntax (inline assembly, register variables) that cppcheck cannot parse.
 lint:
 	@echo "Running static analysis on SDK..."
 	@cppcheck --enable=warning,performance,portability \
@@ -121,6 +123,7 @@ lint:
 		--suppress=unusedFunction \
 		--error-exitcode=1 \
 		--inline-suppr \
+		-D__CPPCHECK__ \
 		-I$(INC_DIR) \
 		$(C_SOURCES)
 	@echo "Static analysis OK."

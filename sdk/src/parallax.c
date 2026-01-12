@@ -72,9 +72,21 @@ u8 _NGParallaxGetZ(NGParallaxHandle handle) {
     return parallax_layers[handle].z;
 }
 
+/**
+ * Main parallax rendering function.
+ * Uses optimized indexed VRAM addressing for faster writes.
+ * "move.w X,d(An)" is faster than "move.w X,xxx.L" per NeoGeo dev wiki.
+ */
 static void draw_parallax(Parallax *plx, u16 first_sprite) {
     if (!plx->visible || !plx->asset)
         return;
+
+    /* Declare VRAM base register once - reused for all VRAM operations */
+#ifdef __CPPCHECK__
+    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
+#else
+    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
+#endif
 
     const NGVisualAsset *asset = plx->asset;
 
@@ -122,7 +134,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     u8 zoom = NGCameraGetZoom();
     u8 zoom_changed = (zoom != plx->last_zoom);
 
-    // Detect sprite reallocation (render queue changed sprite indices)
+    /* Detect sprite reallocation (render queue changed sprite indices) */
     if (plx->tiles_loaded && plx->hw_sprite_first != first_sprite) {
         plx->tiles_loaded = 0;
     }
@@ -131,39 +143,39 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
 
-            NG_REG_VRAMADDR = SCB1_BASE + (spr * 64);
-            NG_REG_VRAMMOD = 1;
+            vram_base[0] = SCB1_BASE + (spr * 64); /* VRAMADDR */
+            vram_base[2] = 1;                      /* VRAMMOD */
 
             u8 asset_col = col % asset_cols;
 
             for (u8 row = 0; row < num_rows; row++) {
                 u8 asset_row = row % asset_rows;
                 u16 tile_idx = (u16)(asset->base_tile + (asset_col * asset_rows) + asset_row);
-                NG_REG_VRAMDATA = tile_idx & 0xFFFF;
+                vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA */
                 u16 attr = ((u16)plx->palette << 8) | 0x01;
-                NG_REG_VRAMDATA = attr;
+                vram_base[1] = attr; /* VRAMDATA */
             }
 
             for (u8 row = num_rows; row < 32; row++) {
-                NG_REG_VRAMDATA = 0;
-                NG_REG_VRAMDATA = 0;
+                vram_base[1] = 0;
+                vram_base[1] = 0;
             }
         }
 
         u16 shrink = NGCameraGetShrink();
-        NG_REG_VRAMADDR = SCB2_BASE + first_sprite;
-        NG_REG_VRAMMOD = 1;
+        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
-            NG_REG_VRAMDATA = shrink;
+            vram_base[1] = shrink;
         }
 
-        // Start one tile left of screen for bidirectional scroll buffer
+        /* Start one tile left of screen for bidirectional scroll buffer */
         s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
-        NG_REG_VRAMMOD = 1;
+        vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+        vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             s16 x = (s16)((col * tile_w) - tile_w);
-            NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
+            vram_base[1] = (u16)((x & 0x1FF) << 7);
         }
 
         plx->hw_sprite_first = first_sprite;
@@ -174,26 +186,26 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
         plx->leftmost = first_sprite;
         s16 tile_width_zoomed = (s16)((TILE_SIZE * zoom) >> 4);
-        // Start scroll_offset mid-range for immediate bidirectional scrolling
+        /* Start scroll_offset mid-range for immediate bidirectional scrolling */
         plx->scroll_offset = SCROLL_FIX(tile_width_zoomed);
         plx->last_scroll_px = FIX_INT(parallax_offset_x);
     }
 
     if (zoom_changed) {
         u16 shrink = NGCameraGetShrink();
-        NG_REG_VRAMADDR = SCB2_BASE + first_sprite;
-        NG_REG_VRAMMOD = 1;
+        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
-            NG_REG_VRAMDATA = shrink;
+            vram_base[1] = shrink;
         }
 
         if (infinite_width) {
             s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
-            NG_REG_VRAMMOD = 1;
+            vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+            vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 s16 x = (s16)((col * tile_w) - tile_w);
-                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
+                vram_base[1] = (u16)((x & 0x1FF) << 7);
             }
             plx->leftmost = first_sprite;
             plx->scroll_offset = SCROLL_FIX((TILE_SIZE * zoom) >> 4);
@@ -203,7 +215,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         plx->last_zoom = zoom;
     }
 
-    // Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
+    /* Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter */
     u16 shrink = NGCameraGetShrink();
     u8 v_shrink = (u8)(shrink & 0xFF);
     u16 adjusted_rows = (u16)(((u16)num_rows * v_shrink + 254) / 255);
@@ -213,7 +225,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         adjusted_rows = 32;
     u8 height_bits = (u8)adjusted_rows;
 
-    // NeoGeo Y: 496 at top of screen, decreasing goes down
+    /* NeoGeo Y: 496 at top of screen, decreasing goes down */
     s16 y_val = 496 - base_y;
     if (y_val < 0)
         y_val += 512;
@@ -222,10 +234,10 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
     u16 scb3_val = ((u16)y_val << 7) | height_bits;
 
     if (scb3_val != plx->last_scb3) {
-        NG_REG_VRAMADDR = SCB3_BASE + first_sprite;
-        NG_REG_VRAMMOD = 1;
+        vram_base[0] = SCB3_BASE + first_sprite;
+        vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
-            NG_REG_VRAMDATA = scb3_val;
+            vram_base[1] = scb3_val;
         }
         plx->last_scb3 = scb3_val;
     }
@@ -242,13 +254,13 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
             plx->scroll_offset = (s16)(plx->scroll_offset - (pixel_diff << SCROLL_FRAC_BITS));
 
-            // Scrolling RIGHT: wrap leftmost sprite to right
+            /* Scrolling RIGHT: wrap leftmost sprite to right */
             while (plx->scroll_offset <= 0) {
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
-                s16 x = (s16)(NG_REG_VRAMDATA >> 7);
+                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x + total_width);
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
-                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                vram_base[1] = (u16)((x & 0x1FF) << 7);
                 plx->leftmost++;
                 if (plx->leftmost >= first_sprite + num_cols) {
                     plx->leftmost = first_sprite;
@@ -256,40 +268,40 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
                 plx->scroll_offset += tile_width_fixed;
             }
 
-            // Scrolling LEFT: wrap rightmost sprite to left
+            /* Scrolling LEFT: wrap rightmost sprite to left */
             while (plx->scroll_offset > tile_width_fixed * 2) {
                 if (plx->leftmost <= first_sprite) {
                     plx->leftmost = first_sprite + num_cols;
                 }
                 plx->leftmost--;
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
-                s16 x = (s16)(NG_REG_VRAMDATA >> 7);
+                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x - total_width);
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + plx->leftmost);
-                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                vram_base[1] = (u16)((x & 0x1FF) << 7);
                 plx->scroll_offset -= tile_width_fixed;
             }
 
-            NG_REG_VRAMMOD = 1;
+            vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 u16 spr = first_sprite + col;
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
-                s16 x = (s16)(NG_REG_VRAMDATA >> 7);
+                vram_base[0] = (u16)(SCB4_BASE + spr);
+                s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x - pixel_diff);
-                NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
-                NG_REG_VRAMDATA = (vu16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(SCB4_BASE + spr);
+                vram_base[1] = (u16)((x & 0x1FF) << 7);
             }
         }
     } else {
         s16 base_x = (s16)(plx->viewport_x - FIX_INT(parallax_offset_x));
 
         if (base_x != plx->last_base_x || zoom_changed) {
-            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + first_sprite);
-            NG_REG_VRAMMOD = 1;
+            vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+            vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
                 s16 x_pos = (s16)(base_x + col_offset);
-                NG_REG_VRAMDATA = (vu16)((x_pos & 0x1FF) << 7);
+                vram_base[1] = (u16)((x_pos & 0x1FF) << 7);
             }
             plx->last_base_x = base_x;
         }
@@ -369,11 +381,11 @@ void NGParallaxRemoveFromScene(NGParallaxHandle handle) {
     u8 was_in_scene = plx->in_scene;
     plx->in_scene = 0;
 
+    /* Clear sprite heights using optimized indexed VRAM addressing */
     if (plx->hw_sprite_count > 0) {
-        for (u8 i = 0; i < plx->hw_sprite_count; i++) {
-            NG_REG_VRAMADDR = (vu16)(SCB3_BASE + plx->hw_sprite_first + i);
-            NG_REG_VRAMDATA = 0;
-        }
+        NG_VRAM_DECLARE_BASE();
+        NG_VRAM_SETUP_FAST(SCB3_BASE + plx->hw_sprite_first, 1);
+        NG_VRAM_CLEAR_FAST(plx->hw_sprite_count);
     }
 
     if (was_in_scene) {
