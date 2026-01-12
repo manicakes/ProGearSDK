@@ -13,6 +13,7 @@
 #include <lighting.h>
 #include <audio.h>
 #include <neogeo.h>
+#include <sprite.h>
 
 #define MENU_ITEM_HEIGHT     8
 #define MENU_TEXT_OFFSET_X   3
@@ -151,11 +152,6 @@ static void draw_menu_text(NGMenu *menu) {
     }
 }
 
-#define SCB1_BASE 0x0000
-#define SCB2_BASE 0x8000
-#define SCB3_BASE 0x8200
-#define SCB4_BASE 0x8400
-
 static u8 calc_panel_height(u8 item_count) {
     u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
     u16 content_height_px = (u16)((text_fix_rows * 8) + 8);
@@ -188,17 +184,12 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     u8 palette = asset->palette;
     u8 num_cols = asset->width_tiles;
 
-    s16 y_val = 496 - screen_y;
-    if (y_val < 0)
-        y_val += 512;
-    y_val &= 0x1FF;
-
-    u16 scb3_val = ((u16)y_val << 7) | (actual_height & 0x3F);
+    u16 scb3_val = NGSpriteSCB3(screen_y, actual_height);
 
     for (u8 col = 0; col < num_cols; col++) {
         u16 spr = first_sprite + col;
 
-        NG_REG_VRAMADDR = SCB1_BASE + (spr * 64);
+        NG_REG_VRAMADDR = NG_SCB1_BASE + (spr * 64);
         NG_REG_VRAMMOD = 1;
 
         u8 row_out = 0;
@@ -244,18 +235,18 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
             row_out++;
         }
 
-        // Write shrink value to SCB2 (no shrink = 0x0FFF)
-        NG_REG_VRAMADDR = SCB2_BASE + spr;
-        NG_REG_VRAMDATA = 0x0FFF;
+        // Write shrink value to SCB2 (no shrink)
+        NG_REG_VRAMADDR = NG_SCB2_BASE + spr;
+        NG_REG_VRAMDATA = NG_SPRITE_SHRINK_NONE;
 
         // Write Y position and height to SCB3
-        NG_REG_VRAMADDR = SCB3_BASE + spr;
+        NG_REG_VRAMADDR = NG_SCB3_BASE + spr;
         NG_REG_VRAMDATA = scb3_val;
 
         // Write X position to SCB4
         s16 x_pos = (s16)(screen_x + (col * 16));
-        NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
-        NG_REG_VRAMDATA = (vu16)((x_pos & 0x1FF) << 7);
+        NG_REG_VRAMADDR = (vu16)(NG_SCB4_BASE + spr);
+        NG_REG_VRAMDATA = NGSpriteSCB4(x_pos);
     }
 }
 
@@ -263,11 +254,7 @@ static void hide_panel_sprites(NGMenu *menu) {
     if (!menu->panel_sprites_allocated)
         return;
 
-    for (u8 col = 0; col < PANEL_COLS; col++) {
-        u16 spr = menu->panel_first_sprite + col;
-        NG_REG_VRAMADDR = SCB3_BASE + spr;
-        NG_REG_VRAMDATA = 0;
-    }
+    NGSpriteHideRange(menu->panel_first_sprite, PANEL_COLS);
 }
 
 NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,

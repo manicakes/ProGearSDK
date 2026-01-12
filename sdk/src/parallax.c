@@ -7,14 +7,11 @@
 #include <parallax.h>
 #include <camera.h>
 #include <neogeo.h>
+#include <sprite.h>
 
 #define SCREEN_WIDTH             320
 #define SCREEN_HEIGHT            224
 #define TILE_SIZE                16
-#define SCB1_BASE                0x0000
-#define SCB2_BASE                0x8000
-#define SCB3_BASE                0x8200
-#define SCB4_BASE                0x8400
 #define MAX_COLUMNS_PER_PARALLAX 42
 
 typedef struct {
@@ -143,8 +140,8 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
 
-            vram_base[0] = SCB1_BASE + (spr * 64); /* VRAMADDR */
-            vram_base[2] = 1;                      /* VRAMMOD */
+            vram_base[0] = NG_SCB1_BASE + (spr * 64); /* VRAMADDR */
+            vram_base[2] = 1;                         /* VRAMMOD */
 
             u8 asset_col = col % asset_cols;
 
@@ -163,7 +160,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         }
 
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[0] = NG_SCB2_BASE + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = shrink;
@@ -171,11 +168,11 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
         /* Start one tile left of screen for bidirectional scroll buffer */
         s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-        vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             s16 x = (s16)((col * tile_w) - tile_w);
-            vram_base[1] = (u16)((x & 0x1FF) << 7);
+            vram_base[1] = NGSpriteSCB4(x);
         }
 
         plx->hw_sprite_first = first_sprite;
@@ -193,7 +190,7 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
     if (zoom_changed) {
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[0] = NG_SCB2_BASE + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = shrink;
@@ -201,11 +198,11 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
         if (infinite_width) {
             s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-            vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
             vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 s16 x = (s16)((col * tile_w) - tile_w);
-                vram_base[1] = (u16)((x & 0x1FF) << 7);
+                vram_base[1] = NGSpriteSCB4(x);
             }
             plx->leftmost = first_sprite;
             plx->scroll_offset = SCROLL_FIX((TILE_SIZE * zoom) >> 4);
@@ -215,26 +212,14 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
         plx->last_zoom = zoom;
     }
 
-    /* Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter */
+    /* Adjust height for zoom: at reduced zoom, shrunk graphics are shorter */
     u16 shrink = NGCameraGetShrink();
-    u8 v_shrink = (u8)(shrink & 0xFF);
-    u16 adjusted_rows = (u16)(((u16)num_rows * v_shrink + 254) / 255);
-    if (adjusted_rows < 1)
-        adjusted_rows = 1;
-    if (adjusted_rows > 32)
-        adjusted_rows = 32;
-    u8 height_bits = (u8)adjusted_rows;
+    u8 height_bits = NGSpriteAdjustedHeight(num_rows, (u8)(shrink & 0xFF));
 
-    /* NeoGeo Y: 496 at top of screen, decreasing goes down */
-    s16 y_val = 496 - base_y;
-    if (y_val < 0)
-        y_val += 512;
-    y_val &= 0x1FF;
-
-    u16 scb3_val = ((u16)y_val << 7) | height_bits;
+    u16 scb3_val = NGSpriteSCB3(base_y, height_bits);
 
     if (scb3_val != plx->last_scb3) {
-        vram_base[0] = SCB3_BASE + first_sprite;
+        vram_base[0] = NG_SCB3_BASE + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = scb3_val;
@@ -256,11 +241,11 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
 
             /* Scrolling RIGHT: wrap leftmost sprite to right */
             while (plx->scroll_offset <= 0) {
-                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                vram_base[0] = (u16)(NG_SCB4_BASE + plx->leftmost);
                 s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x + total_width);
-                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
-                vram_base[1] = (u16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(NG_SCB4_BASE + plx->leftmost);
+                vram_base[1] = NGSpriteSCB4(x);
                 plx->leftmost++;
                 if (plx->leftmost >= first_sprite + num_cols) {
                     plx->leftmost = first_sprite;
@@ -274,34 +259,34 @@ static void draw_parallax(Parallax *plx, u16 first_sprite) {
                     plx->leftmost = first_sprite + num_cols;
                 }
                 plx->leftmost--;
-                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
+                vram_base[0] = (u16)(NG_SCB4_BASE + plx->leftmost);
                 s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x - total_width);
-                vram_base[0] = (u16)(SCB4_BASE + plx->leftmost);
-                vram_base[1] = (u16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(NG_SCB4_BASE + plx->leftmost);
+                vram_base[1] = NGSpriteSCB4(x);
                 plx->scroll_offset -= tile_width_fixed;
             }
 
             vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 u16 spr = first_sprite + col;
-                vram_base[0] = (u16)(SCB4_BASE + spr);
+                vram_base[0] = (u16)(NG_SCB4_BASE + spr);
                 s16 x = (s16)(vram_base[1] >> 7);
                 x = (s16)(x - pixel_diff);
-                vram_base[0] = (u16)(SCB4_BASE + spr);
-                vram_base[1] = (u16)((x & 0x1FF) << 7);
+                vram_base[0] = (u16)(NG_SCB4_BASE + spr);
+                vram_base[1] = NGSpriteSCB4(x);
             }
         }
     } else {
         s16 base_x = (s16)(plx->viewport_x - FIX_INT(parallax_offset_x));
 
         if (base_x != plx->last_base_x || zoom_changed) {
-            vram_base[0] = (u16)(SCB4_BASE + first_sprite);
+            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
             vram_base[2] = 1;
             for (u8 col = 0; col < num_cols; col++) {
                 s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
                 s16 x_pos = (s16)(base_x + col_offset);
-                vram_base[1] = (u16)((x_pos & 0x1FF) << 7);
+                vram_base[1] = NGSpriteSCB4(x_pos);
             }
             plx->last_base_x = base_x;
         }
@@ -381,11 +366,9 @@ void NGParallaxRemoveFromScene(NGParallaxHandle handle) {
     u8 was_in_scene = plx->in_scene;
     plx->in_scene = 0;
 
-    /* Clear sprite heights using optimized indexed VRAM addressing */
+    /* Clear sprite heights to hide sprites */
     if (plx->hw_sprite_count > 0) {
-        NG_VRAM_DECLARE_BASE();
-        NG_VRAM_SETUP_FAST(SCB3_BASE + plx->hw_sprite_first, 1);
-        NG_VRAM_CLEAR_FAST(plx->hw_sprite_count);
+        NGSpriteHideRange(plx->hw_sprite_first, plx->hw_sprite_count);
     }
 
     if (was_in_scene) {

@@ -7,15 +7,11 @@
 #include <actor.h>
 #include <camera.h>
 #include <neogeo.h>
+#include <sprite.h>
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 224
 #define TILE_SIZE     16
-
-#define SCB1_BASE 0x0000
-#define SCB2_BASE 0x8000
-#define SCB3_BASE 0x8200
-#define SCB4_BASE 0x8400
 
 typedef struct {
     const NGVisualAsset *asset;
@@ -168,8 +164,8 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
             u16 spr = first_sprite + col;
             u8 src_col = col % asset->width_tiles;
 
-            vram_base[0] = SCB1_BASE + (spr * 64); /* VRAMADDR */
-            vram_base[2] = 1;                      /* VRAMMOD */
+            vram_base[0] = NG_SCB1_BASE + (spr * 64); /* VRAMADDR */
+            vram_base[2] = 1;                         /* VRAMMOD */
 
             for (u8 row = 0; row < rows; row++) {
                 u8 src_row = row % asset->height_tiles;
@@ -206,7 +202,7 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
 
     /* SCB2: Shrink values (upper nibble = H, lower byte = V, $0FFF = full) */
     if (first_draw || zoom_changed) {
-        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[0] = NG_SCB2_BASE + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < cols; col++) {
             vram_base[1] = shrink;
@@ -215,40 +211,26 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
 
     /* SCB3: Y position and height, SCB4: X position */
     if (first_draw || zoom_changed || position_changed) {
-        /* Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
-         * than the display window causing garbage. Reduce proportionally. */
-        u8 v_shrink = (u8)(shrink & 0xFF);
-        u16 adjusted_rows = (u16)(((u16)rows * v_shrink + 254) / 255); /* Ceiling division */
-        if (adjusted_rows < 1)
-            adjusted_rows = 1;
-        if (adjusted_rows > 32)
-            adjusted_rows = 32;
-        u8 height_bits = (u8)adjusted_rows;
+        /* Adjust height for zoom: at reduced zoom, shrunk graphics are shorter */
+        u8 height_bits = NGSpriteAdjustedHeight(rows, (u8)(shrink & 0xFF));
 
-        /* NeoGeo Y: 496 at top of screen, decreasing goes down */
-        s16 y_val = 496 - screen_y;
-        if (y_val < 0)
-            y_val += 512;
-        y_val &= 0x1FF;
-
-        /* First sprite is "driving", subsequent sprites are "driven" via sticky bit.
-         * Per wiki: sticky bit (bit 6) causes sprite to inherit Y/height from previous. */
-        u16 scb3_driving = ((u16)y_val << 7) | height_bits;
-        u16 scb3_sticky = 0x40; /* Sticky bit only - inherits Y/height from driving sprite */
+        /* First sprite is "driving", subsequent sprites are "driven" via sticky bit */
+        u16 scb3_driving = NGSpriteSCB3(screen_y, height_bits);
+        u16 scb3_sticky = NGSpriteSCB3Sticky();
 
         for (u8 col = 0; col < cols; col++) {
             u16 spr = first_sprite + col;
 
             /* SCB3: Y position (bits 15-7), sticky (bit 6), height (bits 5-0) */
-            vram_base[0] = SCB3_BASE + spr;
+            vram_base[0] = NG_SCB3_BASE + spr;
             vram_base[1] = (col == 0) ? scb3_driving : scb3_sticky;
 
             /* SCB4: X position (bits 15-7) */
             s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
-            s16 x_pos = (s16)((screen_x + col_offset) & 0x1FF);
+            s16 x_pos = (s16)(screen_x + col_offset);
 
-            vram_base[0] = (u16)(SCB4_BASE + spr);
-            vram_base[1] = (u16)(x_pos << 7);
+            vram_base[0] = (u16)(NG_SCB4_BASE + spr);
+            vram_base[1] = NGSpriteSCB4(x_pos);
         }
 
         actor->last_screen_x = screen_x;
@@ -356,11 +338,9 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
     u8 was_in_scene = actor->in_scene;
     actor->in_scene = 0;
 
-    /* Clear sprite heights using optimized indexed VRAM addressing */
+    /* Clear sprite heights to hide sprites */
     if (actor->hw_sprite_count > 0) {
-        NG_VRAM_DECLARE_BASE();
-        NG_VRAM_SETUP_FAST(SCB3_BASE + actor->hw_sprite_first, 1);
-        NG_VRAM_CLEAR_FAST(actor->hw_sprite_count);
+        NGSpriteHideRange(actor->hw_sprite_first, actor->hw_sprite_count);
     }
 
     if (was_in_scene) {
