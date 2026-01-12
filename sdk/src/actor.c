@@ -101,9 +101,25 @@ void _NGActorSystemUpdate(void) {
     }
 }
 
+/**
+ * Render an actor to VRAM.
+ * Uses optimized indexed VRAM addressing for faster writes.
+ * SCB register layout per wiki.neogeodev.org/Sprites:
+ * - SCB1: Tile index + attributes (palette, flip)
+ * - SCB2: Shrink (upper nibble = H, lower byte = V, $0FFF = full size)
+ * - SCB3: Y position (496-Y)<<7 | sticky<<6 | height
+ * - SCB4: X position << 7
+ */
 static void draw_actor(Actor *actor, u16 first_sprite) {
     if (!actor->visible || !actor->asset)
         return;
+
+    /* Declare VRAM base register for optimized indexed addressing */
+#ifdef __CPPCHECK__
+    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
+#else
+    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
+#endif
 
     const NGVisualAsset *asset = actor->asset;
 
@@ -146,37 +162,38 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         actor->tiles_dirty = 1;
     }
 
+    /* SCB1: Write tile indices and attributes (palette, flip bits) */
     if (first_draw || actor->tiles_dirty) {
         for (u8 col = 0; col < cols; col++) {
             u16 spr = first_sprite + col;
             u8 src_col = col % asset->width_tiles;
 
-            NG_REG_VRAMADDR = SCB1_BASE + (spr * 64);
-            NG_REG_VRAMMOD = 1;
+            vram_base[0] = SCB1_BASE + (spr * 64); /* VRAMADDR */
+            vram_base[2] = 1;                      /* VRAMMOD */
 
             for (u8 row = 0; row < rows; row++) {
                 u8 src_row = row % asset->height_tiles;
                 u8 tile_col = (u8)(actor->h_flip ? (asset->width_tiles - 1 - src_col) : src_col);
                 u8 tile_row = (u8)(actor->v_flip ? (asset->height_tiles - 1 - src_row) : src_row);
 
-                // Column-major layout: each column is height_tiles sequential tiles
+                /* Column-major layout: each column is height_tiles sequential tiles */
                 u16 tile_idx = (u16)(asset->base_tile + frame_offset +
                                      (tile_col * asset->height_tiles) + tile_row);
 
-                NG_REG_VRAMDATA = tile_idx & 0xFFFF;
+                vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA: tile index */
 
-                // Default h_flip=1 for correct display, inverted when user flips
+                /* Default h_flip=1 for correct display, inverted when user flips */
                 u16 attr = ((u16)actor->palette << 8);
                 if (actor->v_flip)
                     attr |= 0x02;
                 if (!actor->h_flip)
                     attr |= 0x01;
-                NG_REG_VRAMDATA = attr;
+                vram_base[1] = attr; /* VRAMDATA: attributes */
             }
 
             for (u8 row = rows; row < 32; row++) {
-                NG_REG_VRAMDATA = 0;
-                NG_REG_VRAMDATA = 0;
+                vram_base[1] = 0;
+                vram_base[1] = 0;
             }
         }
 
@@ -187,43 +204,51 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         actor->tiles_dirty = 0;
     }
 
+    /* SCB2: Shrink values (upper nibble = H, lower byte = V, $0FFF = full) */
     if (first_draw || zoom_changed) {
+        vram_base[0] = SCB2_BASE + first_sprite;
+        vram_base[2] = 1;
         for (u8 col = 0; col < cols; col++) {
-            u16 spr = first_sprite + col;
-            NG_REG_VRAMADDR = SCB2_BASE + spr;
-            NG_REG_VRAMDATA = shrink;
+            vram_base[1] = shrink;
         }
     }
 
+    /* SCB3: Y position and height, SCB4: X position */
     if (first_draw || zoom_changed || position_changed) {
-        // Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
-        // than the display window causing garbage. Reduce proportionally.
+        /* Adjust height_bits for zoom: at reduced zoom, shrunk graphics are shorter
+         * than the display window causing garbage. Reduce proportionally. */
         u8 v_shrink = (u8)(shrink & 0xFF);
-        u16 adjusted_rows = (u16)(((u16)rows * v_shrink + 254) / 255); // Ceiling division
+        u16 adjusted_rows = (u16)(((u16)rows * v_shrink + 254) / 255); /* Ceiling division */
         if (adjusted_rows < 1)
             adjusted_rows = 1;
         if (adjusted_rows > 32)
             adjusted_rows = 32;
         u8 height_bits = (u8)adjusted_rows;
 
-        s16 y_val = 496 - screen_y; // NeoGeo Y: 496 at top, decreasing goes down
+        /* NeoGeo Y: 496 at top of screen, decreasing goes down */
+        s16 y_val = 496 - screen_y;
         if (y_val < 0)
             y_val += 512;
         y_val &= 0x1FF;
 
+        /* First sprite is "driving", subsequent sprites are "driven" via sticky bit.
+         * Per wiki: sticky bit (bit 6) causes sprite to inherit Y/height from previous. */
+        u16 scb3_driving = ((u16)y_val << 7) | height_bits;
+        u16 scb3_sticky = 0x40; /* Sticky bit only - inherits Y/height from driving sprite */
+
         for (u8 col = 0; col < cols; col++) {
             u16 spr = first_sprite + col;
-            u8 chain = (col > 0) ? 1 : 0;
 
-            u16 scb3 = ((u16)y_val << 7) | (chain << 6) | height_bits;
-            NG_REG_VRAMADDR = SCB3_BASE + spr;
-            NG_REG_VRAMDATA = scb3;
+            /* SCB3: Y position (bits 15-7), sticky (bit 6), height (bits 5-0) */
+            vram_base[0] = SCB3_BASE + spr;
+            vram_base[1] = (col == 0) ? scb3_driving : scb3_sticky;
 
+            /* SCB4: X position (bits 15-7) */
             s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
             s16 x_pos = (s16)((screen_x + col_offset) & 0x1FF);
 
-            NG_REG_VRAMADDR = (vu16)(SCB4_BASE + spr);
-            NG_REG_VRAMDATA = (vu16)(x_pos << 7);
+            vram_base[0] = (u16)(SCB4_BASE + spr);
+            vram_base[1] = (u16)(x_pos << 7);
         }
 
         actor->last_screen_x = screen_x;
@@ -331,11 +356,11 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
     u8 was_in_scene = actor->in_scene;
     actor->in_scene = 0;
 
+    /* Clear sprite heights using optimized indexed VRAM addressing */
     if (actor->hw_sprite_count > 0) {
-        for (u8 i = 0; i < actor->hw_sprite_count; i++) {
-            NG_REG_VRAMADDR = (vu16)(SCB3_BASE + actor->hw_sprite_first + i);
-            NG_REG_VRAMDATA = 0;
-        }
+        NG_VRAM_DECLARE_BASE();
+        NG_VRAM_SETUP_FAST(SCB3_BASE + actor->hw_sprite_first, 1);
+        NG_VRAM_CLEAR_FAST(actor->hw_sprite_count);
     }
 
     if (was_in_scene) {

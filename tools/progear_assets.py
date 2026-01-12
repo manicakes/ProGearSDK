@@ -887,6 +887,149 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
 
 
 # ============================================================================
+# Lighting Preset Processing
+# ============================================================================
+
+def apply_lighting_transform(colors, brightness=1.0, tint=(0, 0, 0), saturation=1.0):
+    """
+    Apply lighting transform to a palette (list of (r5, g5, b5) tuples).
+    Returns transformed palette.
+
+    brightness: 0.0-2.0 (1.0 = normal)
+    tint: (r, g, b) shift values (-31 to +31)
+    saturation: 0.0-1.0 (1.0 = normal, 0.0 = grayscale)
+    """
+    result = []
+    for i, color in enumerate(colors):
+        if i == 0:
+            # Keep transparent marker unchanged
+            result.append(color)
+            continue
+
+        r, g, b = color
+        if r < 0:  # Sentinel value for transparent
+            result.append(color)
+            continue
+
+        # Apply saturation (desaturate toward gray)
+        if saturation < 1.0:
+            # Luminance: R*0.299 + G*0.587 + B*0.114
+            lum = int(r * 0.299 + g * 0.587 + b * 0.114)
+            r = int(lum + (r - lum) * saturation)
+            g = int(lum + (g - lum) * saturation)
+            b = int(lum + (b - lum) * saturation)
+
+        # Apply brightness
+        r = int(r * brightness)
+        g = int(g * brightness)
+        b = int(b * brightness)
+
+        # Apply tint
+        r = r + tint[0]
+        g = g + tint[1]
+        b = b + tint[2]
+
+        # Clamp to valid range
+        r = max(0, min(31, r))
+        g = max(0, min(31, g))
+        b = max(0, min(31, b))
+
+        result.append((r, g, b))
+
+    return result
+
+
+def interpolate_palettes(start_colors, end_colors, step, total_steps):
+    """
+    Interpolate between two palettes at a given step.
+    step: 0 = start, total_steps = end
+    """
+    t = step / total_steps if total_steps > 0 else 1.0
+    result = []
+
+    for i, (start, end) in enumerate(zip(start_colors, end_colors)):
+        if i == 0:
+            # Keep transparent marker
+            result.append(start)
+            continue
+
+        if start[0] < 0 or end[0] < 0:  # Sentinel values
+            result.append(start)
+            continue
+
+        r = int(start[0] + (end[0] - start[0]) * t)
+        g = int(start[1] + (end[1] - start[1]) * t)
+        b = int(start[2] + (end[2] - start[2]) * t)
+
+        result.append((r, g, b))
+
+    return result
+
+
+def process_lighting_presets(presets_config, palette_registry):
+    """
+    Process lighting presets and generate pre-baked palette variants.
+
+    For each preset, generates fade_steps intermediate palettes between
+    the original and the fully-applied preset.
+
+    Returns: dict of {preset_name: {palette_name: [step0_colors, step1_colors, ...]}}
+    """
+    presets = {}
+
+    for preset_name, preset_def in presets_config.items():
+        brightness = preset_def.get('brightness', 1.0)
+        tint = preset_def.get('tint', [0, 0, 0])
+        saturation = preset_def.get('saturation', 1.0)
+        fade_steps = preset_def.get('fade_steps', 1)
+
+        if len(tint) != 3:
+            raise ProgearAssetsError(
+                f"Lighting preset '{preset_name}': tint must be [r, g, b]"
+            )
+
+        presets[preset_name] = {
+            'brightness': brightness,
+            'tint': tuple(tint),
+            'saturation': saturation,
+            'fade_steps': fade_steps,
+            'palettes': {},  # {palette_name: [[step0], [step1], ...]}
+        }
+
+        # Generate pre-baked palettes for each registered palette
+        for pal_name, pal_info in palette_registry.items():
+            if pal_name.startswith('_'):  # Skip internal keys
+                continue
+
+            original_colors = pal_info['colors']
+
+            # Apply full transform to get end state
+            end_colors = apply_lighting_transform(
+                original_colors,
+                brightness=brightness,
+                tint=tuple(tint),
+                saturation=saturation
+            )
+
+            # Generate fade steps (step 0 = original, step N = full effect)
+            # We include step 0 and all intermediate steps up to and including full effect
+            steps = []
+            for step in range(fade_steps + 1):
+                if step == 0:
+                    steps.append(original_colors)
+                elif step == fade_steps:
+                    steps.append(end_colors)
+                else:
+                    steps.append(interpolate_palettes(
+                        original_colors, end_colors, step, fade_steps
+                    ))
+
+            presets[preset_name]['palettes'][pal_name] = steps
+
+    return presets
+
+
+# ============================================================================
 # Audio Asset Processing
 # ============================================================================
 
@@ -1258,7 +1401,8 @@ def generate_z80_sample_tables(sfx_info_list, music_info_list):
     return bytes(sfx_table + music_table)
 
 
-def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap_info, output_path):
+def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap_info,
+                    lighting_presets, output_path):
     """Generate C header file with asset definitions."""
     # Check if SDK UI assets are present (needed to decide on includes)
     asset_names = {asset['name'] for asset in assets_info}
@@ -1284,6 +1428,10 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
     # Include ui.h if we're generating SDK UI wrapper functions
     if has_sdk_ui_wrappers:
         lines.append("#include <ui.h>")
+
+    # Include lighting.h if we have lighting presets
+    if lighting_presets:
+        lines.append("#include <lighting.h>")
 
     lines.append("")
 
@@ -1489,6 +1637,153 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("};")
             lines.append("")
 
+    # === Lighting Presets ===
+    if lighting_presets:
+        lines.append("// === Lighting Presets ===")
+        lines.append("// Pre-baked palette variants for zero-CPU lighting transitions")
+        lines.append("")
+
+        # Generate preset index constants
+        for i, preset_name in enumerate(sorted(lighting_presets.keys())):
+            const_name = f"NG_LIGHTING_PREBAKED_{preset_name.upper()}"
+            lines.append(f"#define {const_name} {i}")
+        lines.append("")
+
+        # Preset info struct
+        lines.append("/** Pre-baked lighting preset info */")
+        lines.append("typedef struct {")
+        lines.append("    const char *name;")
+        lines.append("    u8 fade_steps;      /**< Number of fade steps (0 = final only) */")
+        lines.append("    u8 palette_count;   /**< Number of palettes with variants */")
+        lines.append("} NGLightingPresetInfo;")
+        lines.append("")
+
+        # Generate palette data for each preset
+        # Sort palettes by index for consistent output
+        palette_items = [
+            (name, info) for name, info in palette_registry.items()
+            if not name.startswith('_')
+        ]
+        palette_items.sort(key=lambda x: x[1]['index'])
+
+        for preset_name, preset_data in sorted(lighting_presets.items()):
+            fade_steps = preset_data['fade_steps']
+            lines.append(f"// Preset: {preset_name} ({fade_steps} fade steps)")
+
+            # For each palette, generate all fade step variants
+            for pal_name, pal_info in palette_items:
+                if pal_name not in preset_data['palettes']:
+                    continue
+
+                steps = preset_data['palettes'][pal_name]
+
+                # Generate array of palette variants for this preset/palette combo
+                # Format: [step0][16], [step1][16], ... [stepN][16]
+                array_name = f"_lighting_{preset_name}_{pal_name}"
+                lines.append(f"static const u16 {array_name}[{len(steps)}][16] = {{")
+
+                for step_idx, step_colors in enumerate(steps):
+                    step_line = "    {"
+                    for i in range(16):
+                        if i < len(step_colors):
+                            r, g, b = step_colors[i]
+                            if r < 0:  # Sentinel for transparent
+                                color = 0x8000
+                            else:
+                                color = rgb5_to_neogeo_color(r, g, b)
+                        else:
+                            color = 0x0000
+                        if i == 0:
+                            color = 0x8000  # Reference/transparent
+                        step_line += f"0x{color:04X}, "
+                    step_line += "},"
+                    lines.append(step_line)
+
+                lines.append("};")
+                lines.append("")
+
+            # Generate lookup struct for this preset
+            lines.append(f"/** Palette lookup for {preset_name} preset */")
+            lines.append("typedef struct {")
+            lines.append("    u8 palette_index;")
+            lines.append(f"    const u16 (*steps)[16];")
+            lines.append(f"}} _NGLightingPreset_{preset_name}_Entry;")
+            lines.append("")
+
+            # Entry array
+            entries = []
+            for pal_name, pal_info in palette_items:
+                if pal_name in preset_data['palettes']:
+                    entries.append((pal_name, pal_info['index']))
+
+            lines.append(f"static const _NGLightingPreset_{preset_name}_Entry "
+                         f"_lighting_preset_{preset_name}_palettes[] = {{")
+            for pal_name, pal_idx in entries:
+                array_name = f"_lighting_{preset_name}_{pal_name}"
+                lines.append(f"    {{ {pal_idx}, {array_name} }},")
+            lines.append("};")
+            lines.append("")
+
+        # Generate preset info array
+        lines.append("/** Pre-baked lighting preset metadata */")
+        lines.append("static const NGLightingPresetInfo _lighting_presets[] = {")
+        for preset_name in sorted(lighting_presets.keys()):
+            preset_data = lighting_presets[preset_name]
+            pal_count = len([p for p in palette_items if p[0] in preset_data['palettes']])
+            lines.append(f"    {{ \"{preset_name}\", {preset_data['fade_steps']}, {pal_count} }},")
+        lines.append("};")
+        lines.append("")
+
+        # Generate static function to apply a preset at a specific fade step
+        lines.append("/**")
+        lines.append(" * Apply a pre-baked lighting preset at a specific fade step.")
+        lines.append(" * This copies pre-computed palette data directly to palette RAM - zero math!")
+        lines.append(" */")
+        lines.append("static void _NGLightingApplyPrebakedStepImpl(u8 preset_id, u8 step) {")
+        lines.append("    switch (preset_id) {")
+
+        for i, preset_name in enumerate(sorted(lighting_presets.keys())):
+            preset_data = lighting_presets[preset_name]
+            const_name = f"NG_LIGHTING_PREBAKED_{preset_name.upper()}"
+            entries_name = f"_lighting_preset_{preset_name}_palettes"
+            entry_count = len([p for p in palette_items if p[0] in preset_data['palettes']])
+            fade_steps = preset_data['fade_steps']
+
+            lines.append(f"    case {const_name}:")
+            lines.append(f"        if (step > {fade_steps}) step = {fade_steps};")
+            lines.append(f"        for (u8 i = 0; i < {entry_count}; i++) {{")
+            lines.append(f"            NGPalSet({entries_name}[i].palette_index,")
+            lines.append(f"                     {entries_name}[i].steps[step]);")
+            lines.append("        }")
+            lines.append("        break;")
+
+        lines.append("    }")
+        lines.append("}")
+        lines.append("")
+
+        # Generate static function to get preset info
+        lines.append("static const void* _NGLightingGetPrebakedInfoImpl(u8 preset_id) {")
+        lines.append(f"    if (preset_id >= {len(lighting_presets)}) return 0;")
+        lines.append("    return &_lighting_presets[preset_id];")
+        lines.append("}")
+        lines.append("")
+
+        # Generate init function - provides strong symbol to override SDK weak default
+        # Uses __attribute__((weak)) so linker deduplicates when header is included in multiple TUs
+        lines.append("/**")
+        lines.append(" * Initialize pre-baked lighting presets.")
+        lines.append(" * Called automatically by NGLightingInit() (via NGEngineInit()).")
+        lines.append(" */")
+        lines.append("__attribute__((weak)) void NGLightingInitPresets(void) {")
+        lines.append("    NGLightingRegisterPrebaked(_NGLightingApplyPrebakedStepImpl,")
+        lines.append("                               _NGLightingGetPrebakedInfoImpl);")
+        lines.append("}")
+        lines.append("")
+
+        # Generate count constant
+        lines.append(f"#define NG_LIGHTING_PREBAKED_COUNT {len(lighting_presets)}")
+        lines.append("")
+
     # === SDK Default Wrapper Functions ===
     # Generate convenience wrappers if SDK UI assets are present
     asset_names = {asset['name'] for asset in assets_info}
@@ -1558,27 +1853,27 @@ def load_yaml_config(yaml_path):
     # Resolve palette sources
     for pal_name, pal_def in config.get('palettes', {}).items():
         if 'source' in pal_def and not os.path.isabs(pal_def['source']):
-            pal_def['source'] = str(yaml_dir / pal_def['source'])
+            pal_def['source'] = str((yaml_dir / pal_def['source']).resolve())
 
     # Resolve visual asset sources
     for asset in config.get('visual_assets', []):
         if 'source' in asset and not os.path.isabs(asset['source']):
-            asset['source'] = str(yaml_dir / asset['source'])
+            asset['source'] = str((yaml_dir / asset['source']).resolve())
 
     # Resolve sound effect sources
     for sfx in config.get('sound_effects', []):
         if 'source' in sfx and not os.path.isabs(sfx['source']):
-            sfx['source'] = str(yaml_dir / sfx['source'])
+            sfx['source'] = str((yaml_dir / sfx['source']).resolve())
 
     # Resolve music sources
     for music in config.get('music', []):
         if 'source' in music and not os.path.isabs(music['source']):
-            music['source'] = str(yaml_dir / music['source'])
+            music['source'] = str((yaml_dir / music['source']).resolve())
 
     # Resolve tilemap sources
     for tilemap in config.get('tilemaps', []):
         if 'source' in tilemap and not os.path.isabs(tilemap['source']):
-            tilemap['source'] = str(yaml_dir / tilemap['source'])
+            tilemap['source'] = str((yaml_dir / tilemap['source']).resolve())
 
     return config, yaml_dir
 
@@ -1594,11 +1889,16 @@ def merge_configs(base_config, additional_config):
         'sound_effects': [],
         'music': [],
         'tilemaps': [],
+        'lighting_presets': {},
     }
 
     # Merge palettes (dict merge, additional overwrites base on conflict)
     merged['palettes'].update(base_config.get('palettes', {}))
     merged['palettes'].update(additional_config.get('palettes', {}))
+
+    # Merge lighting presets (dict merge, additional overwrites base on conflict)
+    merged['lighting_presets'].update(base_config.get('lighting_presets', {}))
+    merged['lighting_presets'].update(additional_config.get('lighting_presets', {}))
 
     # Merge lists (base first, then additional)
     merged['visual_assets'] = (
@@ -1676,6 +1976,7 @@ def main():
     sound_effects_config = config.get('sound_effects', [])
     music_config = config.get('music', [])
     tilemaps_config = config.get('tilemaps', [])
+    lighting_presets_config = config.get('lighting_presets', {})
 
     # Initialize palette registry
     # Indices 0-1 reserved for system, start auto-assignment at 2
@@ -1748,6 +2049,25 @@ def main():
 
             base_tile += tile_count
 
+        except ProgearAssetsError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # =========================================================================
+    # Process Lighting Presets (after all palettes are registered)
+    # =========================================================================
+    lighting_presets = {}
+    if lighting_presets_config:
+        try:
+            lighting_presets = process_lighting_presets(
+                lighting_presets_config, palette_registry
+            )
+            if args.verbose:
+                for preset_name, preset_data in lighting_presets.items():
+                    pal_count = len(preset_data['palettes'])
+                    steps = preset_data['fade_steps']
+                    print(f"Processed lighting preset '{preset_name}': "
+                          f"{steps} fade steps, {pal_count} palettes")
         except ProgearAssetsError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
@@ -1854,7 +2174,8 @@ def main():
 
     # Generate header
     header_path = output_dir / args.header
-    generate_header(assets_info, palette_registry, sfx_info_list, music_info_list, tilemap_info_list, header_path)
+    generate_header(assets_info, palette_registry, sfx_info_list, music_info_list,
+                    tilemap_info_list, lighting_presets, header_path)
 
     # Count palettes (excluding internal keys)
     palette_count = len([k for k in palette_registry.keys() if not k.startswith('_')])
@@ -1872,6 +2193,8 @@ def main():
         print(f"       {len(music_info_list)} music tracks")
     if tilemap_info_list:
         print(f"       {len(tilemap_info_list)} tilemaps")
+    if lighting_presets:
+        print(f"       {len(lighting_presets)} lighting presets")
 
 
 if __name__ == '__main__':

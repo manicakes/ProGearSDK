@@ -89,7 +89,19 @@ tilemaps:
     layer: "Ground"              # Layer name in Tiled
     tileset: tiles_simple        # Visual asset for tileset graphics
     collision_layer: "Collision" # Optional: separate collision layer
+
+# Lighting presets (pre-baked palette variants for zero-CPU transitions)
+# Use for ambient effects that need smooth fades (day/night, weather)
+# For quick overlays like menu dimming, use the runtime layer system instead
+lighting_presets:
+  night:
+    brightness: 0.65             # 0.0-2.0, default 1.0
+    tint: [-8, -5, 12]           # RGB shift (-31 to +31 each)
+    saturation: 1.0              # 0.0-1.0, default 1.0
+    fade_steps: 16               # Interpolation steps for smooth fades
 ```
+
+Pre-baked presets are automatically initialized by `NGEngineInit()`.
 
 ### Tilemap Workflow
 

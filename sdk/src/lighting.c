@@ -77,14 +77,29 @@ static struct {
     s16 additive_tint_r;
     s16 additive_tint_g;
     s16 additive_tint_b;
+
+    /* Pre-baked preset state */
+    u8 prebaked_handle;       /* Handle for active preset (0xFF = none) */
+    u8 prebaked_preset_id;    /* Current preset ID */
+    u8 prebaked_fading;       /* Is a fade animation in progress? */
+    u8 prebaked_fade_out;     /* Fading out (pop) vs fading in (push)? */
+    u8 prebaked_current_step; /* Current fade step */
+    u8 prebaked_max_steps;    /* Total steps in preset */
+    u16 prebaked_frames_remaining;
+    u16 prebaked_frames_per_step;
+    u16 prebaked_frame_counter;
 } g_lighting;
 
 /* Forward declarations */
 static void backup_palettes(void);
 static void restore_palettes(void);
 static void resolve_palettes(void);
+static void apply_prebaked_step(u8 preset_id, u8 step);
 static void recalc_combined_transform(void);
 static s16 clamp_tint(s16 val);
+
+/* Weak default - games with lighting_presets in assets.yaml provide a strong definition */
+__attribute__((weak)) void NGLightingInitPresets(void) {}
 
 void NGLightingInit(void) {
     for (u8 i = 0; i < NG_LIGHTING_MAX_LAYERS; i++) {
@@ -94,6 +109,13 @@ void NGLightingInit(void) {
     g_lighting.initialized = 1;
     g_lighting.backup_valid = 0;
     g_lighting.backup_count = 0;
+
+    /* Initialize pre-baked preset state */
+    g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+    g_lighting.prebaked_fading = 0;
+
+    /* Register pre-baked presets if available (provided by progear_assets.h) */
+    NGLightingInitPresets();
 }
 
 void NGLightingReset(void) {
@@ -160,10 +182,15 @@ void NGLightingPop(NGLightingLayerHandle handle) {
         }
     }
 
-    /* If no layers active, restore original palettes */
+    /* If no layers active, restore to appropriate state */
     if (!any_active && g_lighting.backup_valid) {
-        restore_palettes();
-        g_lighting.backup_valid = 0;
+        /* If a pre-baked preset is active, re-apply it */
+        if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+            apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
+        } else {
+            restore_palettes();
+            g_lighting.backup_valid = 0;
+        }
         g_lighting.dirty = 0;
     }
 }
@@ -428,8 +455,15 @@ void NGLightingUpdate(void) {
         }
 
         if (!any_active && g_lighting.backup_valid) {
-            restore_palettes();
-            g_lighting.backup_valid = 0;
+            /* If a pre-baked preset is active, re-apply it instead of
+             * restoring to original palettes */
+            if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+                apply_prebaked_step(g_lighting.prebaked_preset_id,
+                                    g_lighting.prebaked_current_step);
+            } else {
+                restore_palettes();
+                g_lighting.backup_valid = 0;
+            }
             g_lighting.dirty = 0;
             return;
         }
@@ -674,4 +708,175 @@ static void resolve_palettes(void) {
             dest[c] = NG_RGB5((u8)tr, (u8)tg, (u8)tb);
         }
     }
+}
+
+/* === Pre-baked preset functions === */
+
+/* Function pointers for pre-baked preset operations.
+ * These are set by NGLightingRegisterPrebaked(), which is called
+ * automatically by generated code in progear_assets.h. */
+static NGLightingApplyStepFn g_prebaked_apply_fn = 0;
+static NGLightingGetInfoFn g_prebaked_info_fn = 0;
+
+void NGLightingRegisterPrebaked(NGLightingApplyStepFn apply_fn, NGLightingGetInfoFn info_fn) {
+    g_prebaked_apply_fn = apply_fn;
+    g_prebaked_info_fn = info_fn;
+}
+
+static void apply_prebaked_step(u8 preset_id, u8 step) {
+    if (g_prebaked_apply_fn) {
+        g_prebaked_apply_fn(preset_id, step);
+    }
+}
+
+static const void *get_prebaked_info(u8 preset_id) {
+    if (g_prebaked_info_fn) {
+        return g_prebaked_info_fn(preset_id);
+    }
+    return 0;
+}
+
+NGLightingLayerHandle NGLightingPushPreset(u8 preset_id, u16 fade_frames) {
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+        return NG_LIGHTING_INVALID_HANDLE;
+    }
+
+    const void *info_ptr = get_prebaked_info(preset_id);
+    if (!info_ptr) {
+        return NG_LIGHTING_INVALID_HANDLE;
+    }
+
+    /* Extract fade_steps from NGLightingPresetInfo (byte after name pointer) */
+    const u8 *info_bytes = (const u8 *)info_ptr;
+    u8 fade_steps = info_bytes[sizeof(void *)];
+    if (fade_steps == 0) {
+        fade_steps = 1;
+    }
+
+    if (!g_lighting.backup_valid) {
+        backup_palettes();
+        g_lighting.backup_valid = 1;
+    }
+
+    g_lighting.prebaked_handle = NG_LIGHTING_MAX_LAYERS;
+    g_lighting.prebaked_preset_id = preset_id;
+    g_lighting.prebaked_max_steps = fade_steps;
+
+    if (fade_frames == 0) {
+        g_lighting.prebaked_fading = 0;
+        g_lighting.prebaked_current_step = fade_steps;
+        apply_prebaked_step(preset_id, fade_steps);
+    } else {
+        g_lighting.prebaked_fading = 1;
+        g_lighting.prebaked_fade_out = 0;
+        g_lighting.prebaked_current_step = 0;
+        g_lighting.prebaked_frames_remaining = fade_frames;
+        g_lighting.prebaked_frames_per_step =
+            (fade_frames >= fade_steps) ? fade_frames / (u16)fade_steps : 1;
+        g_lighting.prebaked_frame_counter = 0;
+        apply_prebaked_step(preset_id, 0);
+    }
+
+    return g_lighting.prebaked_handle;
+}
+
+void NGLightingPopPreset(NGLightingLayerHandle handle, u16 fade_frames) {
+    /* Validate handle */
+    if (handle != g_lighting.prebaked_handle) {
+        return; /* Not the active preset */
+    }
+
+    if (g_lighting.prebaked_handle == NG_LIGHTING_INVALID_HANDLE) {
+        return; /* No preset active */
+    }
+
+    if (fade_frames == 0) {
+        /* Instant restore */
+        restore_palettes();
+        g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+        g_lighting.prebaked_fading = 0;
+        g_lighting.backup_valid = 0;
+    } else {
+        /* Start fade-out animation */
+        g_lighting.prebaked_fading = 1;
+        g_lighting.prebaked_fade_out = 1;
+        g_lighting.prebaked_frames_remaining = fade_frames;
+
+        /* Calculate frames per step based on current position */
+        u8 steps_to_fade = g_lighting.prebaked_current_step;
+        if (steps_to_fade == 0) {
+            steps_to_fade = 1;
+        }
+
+        if (fade_frames >= steps_to_fade) {
+            g_lighting.prebaked_frames_per_step = fade_frames / (u16)steps_to_fade;
+        } else {
+            g_lighting.prebaked_frames_per_step = 1;
+        }
+        g_lighting.prebaked_frame_counter = 0;
+    }
+}
+
+u8 NGLightingUpdatePrebakedFade(void) {
+    if (!g_lighting.prebaked_fading) {
+        return 0;
+    }
+
+    /* Increment frame counter */
+    g_lighting.prebaked_frame_counter++;
+
+    /* Check if it's time to advance to next step */
+    if (g_lighting.prebaked_frame_counter >= g_lighting.prebaked_frames_per_step) {
+        g_lighting.prebaked_frame_counter = 0;
+
+        if (g_lighting.prebaked_fade_out) {
+            /* Fading out - decrement step */
+            if (g_lighting.prebaked_current_step > 0) {
+                g_lighting.prebaked_current_step--;
+                apply_prebaked_step(g_lighting.prebaked_preset_id,
+                                    g_lighting.prebaked_current_step);
+            }
+        } else {
+            /* Fading in - increment step */
+            if (g_lighting.prebaked_current_step < g_lighting.prebaked_max_steps) {
+                g_lighting.prebaked_current_step++;
+                apply_prebaked_step(g_lighting.prebaked_preset_id,
+                                    g_lighting.prebaked_current_step);
+            }
+        }
+    }
+
+    /* Decrement frames remaining */
+    if (g_lighting.prebaked_frames_remaining > 0) {
+        g_lighting.prebaked_frames_remaining--;
+    }
+
+    /* Check if fade is complete */
+    if (g_lighting.prebaked_frames_remaining == 0) {
+        g_lighting.prebaked_fading = 0;
+
+        if (g_lighting.prebaked_fade_out) {
+            /* Fade-out complete - restore original palettes */
+            restore_palettes();
+            g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+            g_lighting.backup_valid = 0;
+        } else {
+            /* Fade-in complete - snap to final step */
+            apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_max_steps);
+        }
+        return 0;
+    }
+
+    return 1;
+}
+
+u8 NGLightingIsPrebakedFading(void) {
+    return g_lighting.prebaked_fading;
+}
+
+u8 NGLightingGetActivePreset(void) {
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+        return g_lighting.prebaked_preset_id;
+    }
+    return 0xFF;
 }

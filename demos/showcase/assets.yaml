@@ -94,3 +94,11 @@ tilemaps:
     layer: "Ground"
     tileset: tiles_simple
     default_palette: 16  # NGPAL_TILES_SIMPLE
+
+# Game-specific lighting presets - pre-baked palette variants
+# Night transition with smooth fade animation
+lighting_presets:
+  night:
+    brightness: 0.65
+    tint: [-8, -5, 12]  # Blue-ish night tint (RGB shift)
+    fade_steps: 16  # Smooth day-to-night transition
