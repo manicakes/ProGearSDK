@@ -187,7 +187,7 @@ See @ref actorlife and @ref actorappear for all functions.
 
 ### Scene (scene.h)
 
-The scene manages all actors and parallax layers, handling updates and rendering.
+The scene manages all actors and backdrop layers, handling updates and rendering.
 
 ```c
 // Initialize scene system (NGEngineInit does this)
@@ -203,7 +203,7 @@ NGSceneReset();
 
 ### Camera System (camera.h)
 
-The camera controls what portion of the game world is visible on screen. Actors and parallax layers automatically follow the camera.
+The camera controls what portion of the game world is visible on screen. Actors and backdrop layers automatically follow the camera.
 
 **Coordinate System**:
 - World origin (0,0) is at top-left
@@ -286,22 +286,22 @@ NGCameraScreenToWorld(screen_x, screen_y, &world_x, &world_y);
 
 See @ref camsys and @ref camutil for all functions.
 
-### Tilemaps (tilemap.h)
+### Terrain (terrain.h)
 
-Tile-based world rendering with built-in collision detection. Ideal for platformers, RPGs, and any game with large scrolling levels.
+Tile-based terrain rendering with built-in collision detection. Ideal for platformers, RPGs, and any game with large scrolling levels.
 
 ```c
-#include <tilemap.h>
+#include <terrain.h>
 #include <progear_assets.h>
 
-// Create tilemap from asset (generated from Tiled TMX file)
-NGTilemapHandle level = NGTilemapCreate(&NGTilemapAsset_level1);
+// Create terrain from asset (generated from Tiled TMX file via tilemaps: section)
+NGTerrainHandle level = NGTerrainCreate(&NGTerrainAsset_level1);
 
 // Add to scene at world position with Z-index
-NGTilemapAddToScene(level, FIX(0), FIX(0), 0);
+NGTerrainAddToScene(level, FIX(0), FIX(0), 0);
 
 // In game loop - query collision at a point
-u8 flags = NGTilemapGetCollision(level, player_x, player_y);
+u8 flags = NGTerrainGetCollision(level, player_x, player_y);
 if (flags & NG_TILE_HAZARD) {
     // Player touched a hazard tile
     take_damage();
@@ -309,12 +309,12 @@ if (flags & NG_TILE_HAZARD) {
 
 // Test AABB overlap with tiles
 u8 tile_flags;
-if (NGTilemapTestAABB(level, x, y, half_w, half_h, &tile_flags)) {
+if (NGTerrainTestAABB(level, x, y, half_w, half_h, &tile_flags)) {
     // Overlapping solid tiles
 }
 
 // Full collision resolution with position correction
-u8 hit = NGTilemapResolveAABB(level,
+u8 hit = NGTerrainResolveAABB(level,
     &player_x, &player_y,    // Position (modified on collision)
     FIX(8), FIX(8),          // Half-size of hitbox
     &vel_x, &vel_y);         // Velocity (zeroed on collision)
@@ -327,13 +327,13 @@ if (hit & NG_COLL_LEFT || hit & NG_COLL_RIGHT) {
     // Hit a wall
 }
 
-// Get tilemap dimensions
+// Get terrain dimensions
 u16 world_width, world_height;
-NGTilemapGetDimensions(level, &world_width, &world_height);
+NGTerrainGetDimensions(level, &world_width, &world_height);
 
 // Cleanup
-NGTilemapRemoveFromScene(level);
-NGTilemapDestroy(level);
+NGTerrainRemoveFromScene(level);
+NGTerrainDestroy(level);
 ```
 
 **Collision Flags** (set in Tiled as custom tile properties):
@@ -343,53 +343,53 @@ NGTilemapDestroy(level);
 - `NG_TILE_LADDER` - Climbable tile
 - `NG_TILE_TRIGGER` - Triggers callback
 
-**Resolution Flags** (returned by NGTilemapResolveAABB):
+**Resolution Flags** (returned by NGTerrainResolveAABB):
 - `NG_COLL_LEFT` - Hit tile on left
 - `NG_COLL_RIGHT` - Hit tile on right
 - `NG_COLL_TOP` - Hit tile above (head bump)
 - `NG_COLL_BOTTOM` - Hit tile below (landed)
 
-See @ref tilemaplife and @ref tilemapcoll for all functions.
+See @ref terrainlife and @ref terraincoll for all functions.
 
-### Parallax Layers (parallax.h)
+### Backdrops (backdrop.h)
 
-Hardware-accelerated tilemap scrolling using NeoGeo's sprite system. Parallax layers automatically follow the camera with configurable scroll rates.
+Scrolling background and foreground layers using NeoGeo's sprite system. Backdrops automatically follow the camera with configurable parallax scroll rates.
 
 ```c
-#include <parallax.h>
+#include <backdrop.h>
 #include <progear_assets.h>
 
-// Create parallax layer from visual asset
-NGParallaxHandle bg = NGParallaxCreate(
+// Create backdrop from visual asset
+NGBackdropHandle bg = NGBackdropCreate(
     &NGVisualAsset_background,
-    NG_PARALLAX_WIDTH_INFINITE,  // Infinite width for seamless scrolling
+    NG_BACKDROP_WIDTH_INFINITE,  // Infinite width for seamless scrolling
     0,                            // Use asset height
     FIX_FROM_FLOAT(0.5),         // Horizontal parallax (0.5 = half camera speed)
     FIX_FROM_FLOAT(0.5)          // Vertical parallax
 );
 
 // Add to scene at viewport position with Z-index
-NGParallaxAddToScene(bg, 0, 0, 0);  // Z=0, furthest back
+NGBackdropAddToScene(bg, 0, 0, 0);  // Z=0, furthest back
 
 // Create multiple layers for depth
-NGParallaxHandle mid = NGParallaxCreate(&NGVisualAsset_midground, ...);
-NGParallaxAddToScene(mid, 0, 50, 1);  // Z=1, in front of bg
+NGBackdropHandle mid = NGBackdropCreate(&NGVisualAsset_midground, ...);
+NGBackdropAddToScene(mid, 0, 50, 1);  // Z=1, in front of bg
 
-NGParallaxHandle fg = NGParallaxCreate(&NGVisualAsset_foreground, ...);
-NGParallaxAddToScene(fg, 0, 100, 2);  // Z=2, closest
+NGBackdropHandle fg = NGBackdropCreate(&NGVisualAsset_foreground, ...);
+NGBackdropAddToScene(fg, 0, 100, 2);  // Z=2, closest
 
 // Cleanup
-NGParallaxRemoveFromScene(bg);
-NGParallaxDestroy(bg);
+NGBackdropRemoveFromScene(bg);
+NGBackdropDestroy(bg);
 ```
 
-**Parallax Values**:
+**Parallax Scroll Rates**:
 - `FIX_FROM_FLOAT(0.0)` - Static, doesn't move
 - `FIX_FROM_FLOAT(0.25)` - Slow, distant background
 - `FIX_FROM_FLOAT(0.5)` - Medium, mid-ground
 - `FIX_ONE` - 1:1 with camera, same as game objects
 
-See @ref parallaxlife for all functions.
+See @ref backdroplife for all functions.
 
 ### Lighting Effects (lighting.h)
 
@@ -590,7 +590,7 @@ See @ref fixed1616, @ref vec2, and @ref trig for all functions.
 ## Asset Pipeline
 
 The `progear_assets.py` tool processes `assets.yaml` to generate:
-- C-ROM graphics (sprite and parallax layer tiles)
+- C-ROM graphics (sprite and backdrop layer tiles)
 - V-ROM data (ADPCM audio)
 - Palette data
 - C header with asset definitions
@@ -700,12 +700,12 @@ for (;;) {
 | Resource | Limit | Notes |
 |----------|-------|-------|
 | Screen | 320x224 pixels | Use `NG_CAM_VIEWPORT_WIDTH`, `NG_CAM_VIEWPORT_HEIGHT` |
-| Sprites | 381 total | Hardware sprites (used by parallax layers too) |
+| Sprites | 381 total | Hardware sprites (used by backdrop layers too) |
 | Sprites/line | 96 | Maximum sprites on any scanline |
 | Fix layer | 40x32 tiles | 28 rows visible on screen |
 | Palettes | 256 x 16 colors | 0-15 typically for fix, 16-255 for sprites |
 | Colors | 65536 | 15-bit RGB + dark bit |
-| C-ROM tiles | 65536 max | Sprite/parallax graphics |
+| C-ROM tiles | 65536 max | Sprite/backdrop graphics |
 | S-ROM tiles | 8192 max | Fix layer graphics |
 
 ## Building

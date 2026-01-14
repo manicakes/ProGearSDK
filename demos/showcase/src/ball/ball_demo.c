@@ -10,7 +10,7 @@
 #include <neogeo.h>
 #include <fix.h>
 #include <scene.h>
-#include <parallax.h>
+#include <backdrop.h>
 #include <actor.h>
 #include <input.h>
 #include <camera.h>
@@ -36,8 +36,8 @@
 
 typedef struct BallDemoState {
     NGActorHandle brick;
-    NGParallaxHandle brick_pattern;
-    NGParallaxHandle brick_shadow;
+    NGBackdropHandle brick_pattern;
+    NGBackdropHandle brick_shadow;
     BallSystemHandle balls;
     NGMenuHandle menu;
     angle_t cam_angle;
@@ -150,15 +150,15 @@ void BallDemoInit(void) {
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
     // Match brick asset size to avoid sprite limits
-    state->brick_pattern = NGParallaxCreate(&NGVisualAsset_brick_pattern, 336, 256,
+    state->brick_pattern = NGBackdropCreate(&NGVisualAsset_brick_pattern, 336, 256,
                                             FIX_FROM_FLOAT(0.8), FIX_FROM_FLOAT(0.8));
-    NGParallaxAddToScene(state->brick_pattern, 0, 0, 4);
+    NGBackdropAddToScene(state->brick_pattern, 0, 0, 4);
 
     // Shadow moves slower than camera for depth effect
-    state->brick_shadow = NGParallaxCreate(
+    state->brick_shadow = NGBackdropCreate(
         &NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
         NGVisualAsset_brick_shadow.height_pixels, FIX_FROM_FLOAT(0.9), FIX_FROM_FLOAT(0.9));
-    NGParallaxAddToScene(state->brick_shadow, 8, 8, 5);
+    NGBackdropAddToScene(state->brick_shadow, 8, 8, 5);
 
     state->brick = NGActorCreate(&NGVisualAsset_brick, 0, 0);
     NGActorAddToScene(state->brick, FIX(0), FIX(0), 10);
@@ -305,11 +305,11 @@ void BallDemoCleanup(void) {
     NGActorRemoveFromScene(state->brick);
     NGActorDestroy(state->brick);
 
-    NGParallaxRemoveFromScene(state->brick_shadow);
-    NGParallaxDestroy(state->brick_shadow);
+    NGBackdropRemoveFromScene(state->brick_shadow);
+    NGBackdropDestroy(state->brick_shadow);
 
-    NGParallaxRemoveFromScene(state->brick_pattern);
-    NGParallaxDestroy(state->brick_pattern);
+    NGBackdropRemoveFromScene(state->brick_pattern);
+    NGBackdropDestroy(state->brick_pattern);
 
     NGMenuDestroy(state->menu);
 

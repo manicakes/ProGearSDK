@@ -6,8 +6,8 @@
 
 #include <scene.h>
 #include <actor.h>
-#include <parallax.h>
-#include <tilemap.h>
+#include <backdrop.h>
+#include <terrain.h>
 #include <camera.h>
 #include <neogeo.h>
 
@@ -18,9 +18,9 @@ typedef struct {
 } RenderEntry;
 
 #define RENDER_TYPE_ACTOR    0
-#define RENDER_TYPE_PARALLAX 1
-#define RENDER_TYPE_TILEMAP  2
-#define MAX_RENDER_ENTRIES   (NG_ACTOR_MAX + NG_PARALLAX_MAX + NG_TILEMAP_MAX)
+#define RENDER_TYPE_BACKDROP 1
+#define RENDER_TYPE_TERRAIN  2
+#define MAX_RENDER_ENTRIES   (NG_ACTOR_MAX + NG_BACKDROP_MAX + 1)
 
 static RenderEntry render_queue[MAX_RENDER_ENTRIES];
 static u8 render_count;
@@ -37,6 +37,11 @@ static u16 hw_sprite_last_ui_max;
 #define HW_SPRITE_MAX     380
 #define HW_SPRITE_UI_BASE 350
 
+// Scene terrain state
+static NGTerrainHandle scene_terrain = NG_TERRAIN_INVALID;
+static u8 terrain_z;
+static u8 terrain_in_scene;
+
 extern void _NGActorSystemInit(void);
 extern void _NGActorSystemUpdate(void);
 extern u8 _NGActorIsInScene(NGActorHandle handle);
@@ -45,20 +50,18 @@ extern u8 _NGActorIsScreenSpace(NGActorHandle handle);
 extern void NGActorDraw(NGActorHandle handle, u16 first_sprite);
 extern u8 NGActorGetSpriteCount(NGActorHandle handle);
 
-extern void _NGParallaxSystemInit(void);
-extern void _NGParallaxSystemUpdate(void);
-extern u8 _NGParallaxIsInScene(NGParallaxHandle handle);
-extern u8 _NGParallaxGetZ(NGParallaxHandle handle);
-extern void NGParallaxDraw(NGParallaxHandle handle, u16 first_sprite);
-extern u8 NGParallaxGetSpriteCount(NGParallaxHandle handle);
-extern void NGParallaxDestroy(NGParallaxHandle handle);
+extern void _NGBackdropSystemInit(void);
+extern void _NGBackdropSystemUpdate(void);
+extern u8 _NGBackdropIsInScene(NGBackdropHandle handle);
+extern u8 _NGBackdropGetZ(NGBackdropHandle handle);
+extern void NGBackdropDraw(NGBackdropHandle handle, u16 first_sprite);
+extern u8 NGBackdropGetSpriteCount(NGBackdropHandle handle);
+extern void NGBackdropDestroy(NGBackdropHandle handle);
 extern void NGActorDestroy(NGActorHandle handle);
 
-extern void _NGTilemapSystemInit(void);
-extern u8 _NGTilemapIsInScene(NGTilemapHandle handle);
-extern u8 _NGTilemapGetZ(NGTilemapHandle handle);
-extern void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite);
-extern u8 NGTilemapGetSpriteCount(NGTilemapHandle handle);
+extern void _NGTerrainSystemInit(void);
+extern void NGTerrainDraw(NGTerrainHandle handle, u16 first_sprite);
+extern u8 NGTerrainGetSpriteCount(NGTerrainHandle handle);
 
 static void clear_unused_sprites(u16 current, u16 last_max) {
     if (current >= last_max)
@@ -108,25 +111,24 @@ static void build_render_queue(void) {
         }
     }
 
-    for (s8 i = 0; i < NG_PARALLAX_MAX; i++) {
-        if (_NGParallaxIsInScene(i)) {
+    for (s8 i = 0; i < NG_BACKDROP_MAX; i++) {
+        if (_NGBackdropIsInScene(i)) {
             if (render_count < MAX_RENDER_ENTRIES) {
-                render_queue[render_count].type = RENDER_TYPE_PARALLAX;
+                render_queue[render_count].type = RENDER_TYPE_BACKDROP;
                 render_queue[render_count].handle = i;
-                render_queue[render_count].z = _NGParallaxGetZ(i);
+                render_queue[render_count].z = _NGBackdropGetZ(i);
                 render_count++;
             }
         }
     }
 
-    for (s8 i = 0; i < NG_TILEMAP_MAX; i++) {
-        if (_NGTilemapIsInScene(i)) {
-            if (render_count < MAX_RENDER_ENTRIES) {
-                render_queue[render_count].type = RENDER_TYPE_TILEMAP;
-                render_queue[render_count].handle = i;
-                render_queue[render_count].z = _NGTilemapGetZ(i);
-                render_count++;
-            }
+    // Add terrain if active
+    if (terrain_in_scene && scene_terrain != NG_TERRAIN_INVALID) {
+        if (render_count < MAX_RENDER_ENTRIES) {
+            render_queue[render_count].type = RENDER_TYPE_TERRAIN;
+            render_queue[render_count].handle = scene_terrain;
+            render_queue[render_count].z = terrain_z;
+            render_count++;
         }
     }
 
@@ -135,8 +137,12 @@ static void build_render_queue(void) {
 
 void NGSceneInit(void) {
     _NGActorSystemInit();
-    _NGParallaxSystemInit();
-    _NGTilemapSystemInit();
+    _NGBackdropSystemInit();
+    _NGTerrainSystemInit();
+
+    scene_terrain = NG_TERRAIN_INVALID;
+    terrain_z = 0;
+    terrain_in_scene = 0;
 
     render_count = 0;
     render_queue_dirty = 1;
@@ -161,7 +167,7 @@ void NGSceneUpdate(void) {
 
     NGCameraUpdate();
     _NGActorSystemUpdate();
-    _NGParallaxSystemUpdate();
+    _NGBackdropSystemUpdate();
 }
 
 void NGSceneDraw(void) {
@@ -191,13 +197,13 @@ void NGSceneDraw(void) {
                 NGActorDraw(entry->handle, hw_sprite_next);
                 hw_sprite_next += sprite_count;
             }
-        } else if (entry->type == RENDER_TYPE_PARALLAX) {
-            u8 sprite_count = NGParallaxGetSpriteCount(entry->handle);
-            NGParallaxDraw(entry->handle, hw_sprite_next);
+        } else if (entry->type == RENDER_TYPE_BACKDROP) {
+            u8 sprite_count = NGBackdropGetSpriteCount(entry->handle);
+            NGBackdropDraw(entry->handle, hw_sprite_next);
             hw_sprite_next += sprite_count;
-        } else if (entry->type == RENDER_TYPE_TILEMAP) {
-            u8 sprite_count = NGTilemapGetSpriteCount(entry->handle);
-            NGTilemapDraw(entry->handle, hw_sprite_next);
+        } else if (entry->type == RENDER_TYPE_TERRAIN) {
+            u8 sprite_count = NGTerrainGetSpriteCount(entry->handle);
+            NGTerrainDraw(entry->handle, hw_sprite_next);
             hw_sprite_next += sprite_count;
         }
     }
@@ -231,12 +237,15 @@ void NGSceneReset(void) {
         NGActorDestroy(i);
     }
 
-    for (s8 i = 0; i < NG_PARALLAX_MAX; i++) {
-        NGParallaxDestroy(i);
+    for (s8 i = 0; i < NG_BACKDROP_MAX; i++) {
+        NGBackdropDestroy(i);
     }
 
-    for (s8 i = 0; i < NG_TILEMAP_MAX; i++) {
-        NGTilemapDestroy(i);
+    // Clear terrain
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainDestroy(scene_terrain);
+        scene_terrain = NG_TERRAIN_INVALID;
+        terrain_in_scene = 0;
     }
 
     NG_REG_VRAMADDR = 0x8200;
@@ -252,4 +261,110 @@ void NGSceneReset(void) {
     hw_sprite_last_max = HW_SPRITE_FIRST;
     hw_sprite_ui_next = HW_SPRITE_UI_BASE;
     hw_sprite_last_ui_max = HW_SPRITE_UI_BASE;
+}
+
+/* === Terrain API Implementation === */
+
+void NGSceneSetTerrain(const struct NGTerrainAsset *asset) {
+    // Clear existing terrain if any
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainDestroy(scene_terrain);
+    }
+
+    if (!asset) {
+        scene_terrain = NG_TERRAIN_INVALID;
+        terrain_in_scene = 0;
+        render_queue_dirty = 1;
+        return;
+    }
+
+    scene_terrain = NGTerrainCreate(asset);
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        terrain_in_scene = 1;
+        terrain_z = 0;
+        // Add to scene at origin - this sets tm->in_scene flag needed for rendering
+        NGTerrainAddToScene(scene_terrain, 0, 0, terrain_z);
+        NGTerrainSetVisible(scene_terrain, 1);
+    }
+}
+
+void NGSceneClearTerrain(void) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainDestroy(scene_terrain);
+        scene_terrain = NG_TERRAIN_INVALID;
+        terrain_in_scene = 0;
+        render_queue_dirty = 1;
+    }
+}
+
+void NGSceneSetTerrainPos(fixed x, fixed y) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainSetPos(scene_terrain, x, y);
+    }
+}
+
+void NGSceneSetTerrainZ(u8 z) {
+    if (terrain_z != z) {
+        terrain_z = z;
+        if (terrain_in_scene) {
+            render_queue_dirty = 1;
+        }
+    }
+}
+
+void NGSceneSetTerrainVisible(u8 visible) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainSetVisible(scene_terrain, visible);
+    }
+}
+
+void NGSceneGetTerrainBounds(u16 *width, u16 *height) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainGetDimensions(scene_terrain, width, height);
+    } else {
+        if (width)
+            *width = 0;
+        if (height)
+            *height = 0;
+    }
+}
+
+u8 NGSceneGetCollisionAt(fixed x, fixed y) {
+    if (scene_terrain == NG_TERRAIN_INVALID)
+        return 0;
+    return NGTerrainGetCollision(scene_terrain, x, y);
+}
+
+u8 NGSceneTestCollision(fixed x, fixed y, fixed half_w, fixed half_h, u8 *flags_out) {
+    if (scene_terrain == NG_TERRAIN_INVALID) {
+        if (flags_out)
+            *flags_out = 0;
+        return 0;
+    }
+    return NGTerrainTestAABB(scene_terrain, x, y, half_w, half_h, flags_out);
+}
+
+u8 NGSceneResolveCollision(fixed *x, fixed *y, fixed half_w, fixed half_h, fixed *vel_x,
+                           fixed *vel_y) {
+    if (scene_terrain == NG_TERRAIN_INVALID)
+        return 0;
+    return NGTerrainResolveAABB(scene_terrain, x, y, half_w, half_h, vel_x, vel_y);
+}
+
+u8 NGSceneGetTileAt(u16 tile_x, u16 tile_y) {
+    if (scene_terrain == NG_TERRAIN_INVALID)
+        return 0;
+    return NGTerrainGetTileAt(scene_terrain, tile_x, tile_y);
+}
+
+void NGSceneSetTileAt(u16 tile_x, u16 tile_y, u8 tile_index) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainSetTile(scene_terrain, tile_x, tile_y, tile_index);
+    }
+}
+
+void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision) {
+    if (scene_terrain != NG_TERRAIN_INVALID) {
+        NGTerrainSetCollision(scene_terrain, tile_x, tile_y, collision);
+    }
 }

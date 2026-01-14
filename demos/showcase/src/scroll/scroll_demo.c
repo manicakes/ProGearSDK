@@ -9,7 +9,7 @@
 #include <neogeo.h>
 #include <fix.h>
 #include <scene.h>
-#include <parallax.h>
+#include <backdrop.h>
 #include <input.h>
 #include <camera.h>
 #include <arena.h>
@@ -22,9 +22,9 @@
 #define BOB_AMPLITUDE 10
 
 typedef struct ScrollDemoState {
-    NGParallaxHandle back;
-    NGParallaxHandle middle;
-    NGParallaxHandle front;
+    NGBackdropHandle back;
+    NGBackdropHandle middle;
+    NGBackdropHandle front;
     NGMenuHandle menu;
     s16 scroll_x;
     s8 scroll_dir;
@@ -51,19 +51,19 @@ void ScrollDemoInit(void) {
     state->scroll_dir = 1;
     state->bob_phase = 0;
 
-    state->back = NGParallaxCreate(&NGVisualAsset_back_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+    state->back = NGBackdropCreate(&NGVisualAsset_back_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
                                    FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25));
-    NGParallaxAddToScene(state->back, 0, 0, 0);
+    NGBackdropAddToScene(state->back, 0, 0, 0);
 
-    state->middle = NGParallaxCreate(&NGVisualAsset_middle_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+    state->middle = NGBackdropCreate(&NGVisualAsset_middle_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
                                      FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
     s16 middle_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20);
-    NGParallaxAddToScene(state->middle, 0, middle_y, 1);
+    NGBackdropAddToScene(state->middle, 0, middle_y, 1);
 
-    state->front = NGParallaxCreate(&NGVisualAsset_front_layer, NG_PARALLAX_WIDTH_INFINITE, 0,
+    state->front = NGBackdropCreate(&NGVisualAsset_front_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
                                     FIX_ONE, FIX_ONE);
     s16 front_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_front_layer.height_pixels);
-    NGParallaxAddToScene(state->front, 0, front_y, 2);
+    NGBackdropAddToScene(state->front, 0, front_y, 2);
 
     // Menu uses palette fade, no sprite limit issues
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
@@ -167,14 +167,14 @@ u8 ScrollDemoUpdate(void) {
 void ScrollDemoCleanup(void) {
     NGFixClear(0, 3, 40, 1);
 
-    NGParallaxRemoveFromScene(state->front);
-    NGParallaxDestroy(state->front);
+    NGBackdropRemoveFromScene(state->front);
+    NGBackdropDestroy(state->front);
 
-    NGParallaxRemoveFromScene(state->middle);
-    NGParallaxDestroy(state->middle);
+    NGBackdropRemoveFromScene(state->middle);
+    NGBackdropDestroy(state->middle);
 
-    NGParallaxRemoveFromScene(state->back);
-    NGParallaxDestroy(state->back);
+    NGBackdropRemoveFromScene(state->back);
+    NGBackdropDestroy(state->back);
 
     NGMenuDestroy(state->menu);
 

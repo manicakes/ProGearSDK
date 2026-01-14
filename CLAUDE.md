@@ -42,7 +42,7 @@ sdk/
 └── build/        # Output: libprogearsdk.a
 ```
 
-Key modules: `actor.h` (sprites), `scene.h` (world management), `camera.h` (viewport), `tilemap.h` (tile-based levels with collision), `input.h` (controller), `physics.h` (rigid body), `ngmath.h` (fixed-point math), `lighting.h` (palette effects), `audio.h` (ADPCM sound/music)
+Key modules: `actor.h` (sprites), `scene.h` (world management), `camera.h` (viewport), `terrain.h` (tile-based levels with collision), `input.h` (controller), `physics.h` (rigid body), `ngmath.h` (fixed-point math), `lighting.h` (palette effects), `audio.h` (ADPCM sound/music)
 
 ### Fixed-Point Math
 
@@ -57,7 +57,7 @@ The 68000 has no FPU. All positions and physics use fixed-point:
 Assets are defined in `assets.yaml` and processed by `tools/progear_assets.py`:
 - Visual sprites generate C-ROM data and `progear_assets.h`
 - Audio samples generate V-ROM data
-- Tilemaps (Tiled TMX format) generate collision and tile data
+- Terrain (from `tilemaps:` section, Tiled TMX format) generates collision and tile data
 - Lighting presets pre-bake palette variants
 
 Generated header is included as `<progear_assets.h>` and contains `NGVisualAsset_*` structs.
@@ -83,4 +83,4 @@ demos/showcase/
 - `u8`, `u16`, `u32`: unsigned integers
 - `s8`, `s16`, `s32`: signed integers
 - `fixed`, `fixed16`: fixed-point types
-- `NGActorHandle`, `NGTilemapHandle`: opaque handles to SDK objects
+- `NGActorHandle`, `NGTerrainHandle`: opaque handles to SDK objects

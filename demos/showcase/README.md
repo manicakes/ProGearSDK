@@ -49,7 +49,7 @@ The default scene demonstrating multiple SDK features working together.
 
 **Features demonstrated:**
 - `actor.h` - Animated ball sprites with physics
-- `parallax.h` - Layered background with shadow effect
+- `backdrop.h` - Layered background with shadow effect
 - `physics.h` - Ball collision and bouncing
 - `camera.h` - Circular camera motion and zoom effects
 - `audio.h` - Background music (ADPCM-B) and sound effects (ADPCM-A)
@@ -71,12 +71,12 @@ Every 10 seconds the scene transitions between day and night mode. During night 
 
 ### Scroll Demo
 
-Demonstrates the parallax scrolling system with multiple layers at different depths.
+Demonstrates the backdrop scrolling system with multiple layers at different depths.
 
 **Features demonstrated:**
-- `parallax.h` - Three-layer parallax scrolling (back, middle, front)
+- `backdrop.h` - Three-layer parallax scrolling (back, middle, front)
 - `camera.h` - Auto-scrolling camera with vertical bobbing
-- `scene.h` - Z-ordering of parallax layers
+- `scene.h` - Z-ordering of backdrop layers
 
 **Menu options:**
 - Toggle Zoom - Switch between zoom levels
@@ -93,13 +93,13 @@ A minimal scene template showing the basic structure for a ProGearSDK applicatio
 
 This scene serves as a starting point for new development.
 
-### Tilemap Demo
+### Terrain Demo
 
-A platformer-style demo showcasing the tilemap system with collision detection.
+A platformer-style demo showcasing the terrain system with collision detection.
 
 **Features demonstrated:**
-- `tilemap.h` - Tile-based world rendering with viewport windowing
-- `tilemap.h` - AABB collision resolution with solid tiles
+- `terrain.h` - Tile-based terrain rendering with viewport windowing
+- `terrain.h` - AABB collision resolution with solid tiles
 - `camera.h` - Camera following the player with bounds clamping
 - `input.h` - Platformer controls (move, jump)
 
@@ -109,9 +109,9 @@ A platformer-style demo showcasing the tilemap system with collision detection.
 
 **Gameplay features:**
 - Variable jump height (tap for short hop, hold for full jump)
-- Smooth collision resolution against tilemap
+- Smooth collision resolution against terrain
 - Camera tracks player position
-- World bounds from tilemap dimensions
+- World bounds from terrain dimensions
 
 ## Project Structure
 
@@ -123,11 +123,11 @@ showcase/
 │   │   ├── ball.c/h           # Ball physics system
 │   │   └── ball_demo.c/h      # Ball demo scene
 │   ├── scroll/
-│   │   └── scroll_demo.c/h    # Parallax scroll demo scene
+│   │   └── scroll_demo.c/h    # Backdrop scroll demo scene
 │   ├── blank_scene/
 │   │   └── blank_scene.c/h    # Minimal blank scene
 │   └── tilemap_demo/
-│       └── tilemap_demo.c/h   # Tilemap collision demo scene
+│       └── tilemap_demo.c/h   # Terrain collision demo scene
 ├── assets/                    # Graphics and audio assets
 ├── assets.yaml                # Asset definitions for progear_assets.py
 └── Makefile

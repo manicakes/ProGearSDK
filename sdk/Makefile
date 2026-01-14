@@ -41,7 +41,7 @@ C_SOURCES = $(SRC_DIR)/fix.c \
             $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/scene.c \
             $(SRC_DIR)/actor.c \
-            $(SRC_DIR)/parallax.c \
+            $(SRC_DIR)/backdrop.c \
             $(SRC_DIR)/input.c \
             $(SRC_DIR)/ngmath.c \
             $(SRC_DIR)/physics.c \
@@ -51,7 +51,7 @@ C_SOURCES = $(SRC_DIR)/fix.c \
             $(SRC_DIR)/ui.c \
             $(SRC_DIR)/audio.c \
             $(SRC_DIR)/engine.c \
-            $(SRC_DIR)/tilemap.c
+            $(SRC_DIR)/terrain.c
 
 ASM_SOURCES = $(SRC_DIR)/crt0.s
 

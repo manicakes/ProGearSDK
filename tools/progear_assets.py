@@ -1422,7 +1422,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         "#include <visual.h>",
         "#include <palette.h>",
         "#include <audio.h>",
-        "#include <tilemap.h>",
+        "#include <terrain.h>",
     ]
 
     # Include ui.h if we're generating SDK UI wrapper functions
@@ -1582,9 +1582,10 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("};")
             lines.append("")
 
-    # === Tilemap Assets ===
+    # === Terrain Assets (from tilemaps section in YAML) ===
     if tilemap_info:
-        lines.append("// === Tilemaps ===")
+        lines.append("// === Terrain Assets ===")
+        lines.append("// Generated from 'tilemaps' section in assets.yaml")
         lines.append("")
 
         for tm in tilemap_info:
@@ -1621,8 +1622,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("};")
             lines.append("")
 
-            # NGTilemapAsset struct
-            lines.append(f"static const NGTilemapAsset NGTilemapAsset_{name} = {{")
+            # NGTerrainAsset struct
+            lines.append(f"static const NGTerrainAsset NGTerrainAsset_{name} = {{")
             lines.append(f"    .name = \"{name}\",")
             lines.append(f"    .width_tiles = {tm['width_tiles']},")
             lines.append(f"    .height_tiles = {tm['height_tiles']},")

@@ -82,7 +82,7 @@ music:
     sample_rate: 22050  # Optional, default 22050
     loop: true          # Optional, default false
 
-# Tilemaps (from Tiled TMX files)
+# Terrain (from Tiled TMX files)
 tilemaps:
   - name: level1
     source: assets/level1.tmx    # Tiled TMX file
@@ -103,7 +103,7 @@ lighting_presets:
 
 Pre-baked presets are automatically initialized by `NGEngineInit()`.
 
-### Tilemap Workflow
+### Terrain Workflow
 
 1. **Create tileset**: Design 16x16 tiles in your image editor, define as a visual asset
 2. **Create map in Tiled**: Import tileset, paint your level
@@ -114,7 +114,7 @@ Pre-baked presets are automatically initialized by `NGEngineInit()`.
    - `ladder` (bool) - Climbable
 4. **Export TMX**: Save in Tiled's native format
 5. **Reference in assets.yaml**: Add to `tilemaps` section
-6. **Use in code**: `NGTilemapCreate(&NGTilemapAsset_level1)`
+6. **Use in code**: `NGTerrainCreate(&NGTerrainAsset_level1)`
 
 ## NeoGeo ROM Formats
 

@@ -9,7 +9,7 @@
 #include <neogeo.h>
 #include <fix.h>
 #include <input.h>
-#include <tilemap.h>
+#include <scene.h>
 #include <camera.h>
 #include <palette.h>
 #include <color.h>
@@ -32,14 +32,11 @@
 #define COYOTE_FRAMES      6                    // Frames after leaving ground you can still jump
 #define JUMP_BUFFER_FRAMES 6                    // Frames before landing a jump press is remembered
 
-// Level dimensions in pixels (from tilemap asset: 60x14 tiles)
-#define LEVEL_WIDTH_PX  (NGTilemapAsset_tilemap_demo_level.width_tiles * 16)
-#define LEVEL_HEIGHT_PX (NGTilemapAsset_tilemap_demo_level.height_tiles * 16)
-
 typedef struct TilemapDemoState {
     NGMenuHandle menu;
     NGActorHandle player;
-    NGTilemapHandle tilemap;
+    u16 level_width;
+    u16 level_height;
     fixed player_x;
     fixed player_y;
     fixed player_vel_x;
@@ -70,8 +67,9 @@ void TilemapDemoInit(void) {
 
     NGPalSet(NGPAL_TILES_SIMPLE, NGPal_tiles_simple);
 
-    state->tilemap = NGTilemapCreate(&NGTilemapAsset_tilemap_demo_level);
-    NGTilemapAddToScene(state->tilemap, 0, 0, 0);
+    // Set the scene's terrain
+    NGSceneSetTerrain(&NGTerrainAsset_tilemap_demo_level);
+    NGSceneGetTerrainBounds(&state->level_width, &state->level_height);
 
     // Ground is at row 12 (y=192), start above it
     state->player_x = FIX(80);
@@ -90,7 +88,7 @@ void TilemapDemoInit(void) {
     NGCameraTrackActor(state->player);
     NGCameraSetDeadzone(80, 40);
     NGCameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));
-    NGCameraSetBounds(LEVEL_WIDTH_PX, LEVEL_HEIGHT_PX);
+    NGCameraSetBounds(state->level_width, state->level_height);
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
     NGMenuSetTitle(state->menu, "TILEMAP DEMO");
@@ -197,17 +195,17 @@ u8 TilemapDemoUpdate(void) {
             state->player_vel_y = MAX_FALL_SPEED;
         }
 
-        u8 coll =
-            NGTilemapResolveAABB(state->tilemap, &state->player_x, &state->player_y, PLAYER_HALF_W,
-                                 PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
+        // Resolve collision against the scene's terrain
+        u8 coll = NGSceneResolveCollision(&state->player_x, &state->player_y, PLAYER_HALF_W,
+                                          PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
         state->on_ground = (coll & NG_COLL_BOTTOM) ? 1 : 0;
 
         if (state->player_x < PLAYER_HALF_W) {
             state->player_x = PLAYER_HALF_W;
             state->player_vel_x = 0;
         }
-        if (state->player_x > FIX(LEVEL_WIDTH_PX) - PLAYER_HALF_W) {
-            state->player_x = FIX(LEVEL_WIDTH_PX) - PLAYER_HALF_W;
+        if (state->player_x > FIX(state->level_width) - PLAYER_HALF_W) {
+            state->player_x = FIX(state->level_width) - PLAYER_HALF_W;
             state->player_vel_x = 0;
         }
 
@@ -232,8 +230,8 @@ void TilemapDemoCleanup(void) {
     NGActorRemoveFromScene(state->player);
     NGActorDestroy(state->player);
 
-    NGTilemapRemoveFromScene(state->tilemap);
-    NGTilemapDestroy(state->tilemap);
+    // Clear the scene's terrain
+    NGSceneClearTerrain();
 
     NGMenuDestroy(state->menu);
 

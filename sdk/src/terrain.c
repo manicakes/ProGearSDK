@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <tilemap.h>
+#include <terrain.h>
 #include <camera.h>
 #include <neogeo.h>
 #include <sprite.h>
@@ -13,7 +13,7 @@
 #define SCREEN_HEIGHT 224
 
 typedef struct {
-    const NGTilemapAsset *asset;
+    const NGTerrainAsset *asset;
     fixed world_x, world_y;
     u8 z;
     u8 visible;
@@ -36,38 +36,38 @@ typedef struct {
 
     // Cycling offset for efficient horizontal scroll (sprite reuse)
     u8 leftmost_sprite_offset;
-} Tilemap;
+} Terrain;
 
-static Tilemap tilemaps[NG_TILEMAP_MAX];
+static Terrain terrains[NG_TERRAIN_MAX];
 
 extern void _NGSceneMarkRenderQueueDirty(void);
 
-void _NGTilemapSystemInit(void) {
-    for (u8 i = 0; i < NG_TILEMAP_MAX; i++) {
-        tilemaps[i].active = 0;
-        tilemaps[i].in_scene = 0;
+void _NGTerrainSystemInit(void) {
+    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+        terrains[i].active = 0;
+        terrains[i].in_scene = 0;
     }
 }
 
-u8 _NGTilemapIsInScene(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+u8 _NGTerrainIsInScene(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    return tilemaps[handle].active && tilemaps[handle].in_scene;
+    return terrains[handle].active && terrains[handle].in_scene;
 }
 
-u8 _NGTilemapGetZ(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+u8 _NGTerrainGetZ(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    return tilemaps[handle].z;
+    return terrains[handle].z;
 }
 
 /**
  * Load tile data for a single column into VRAM.
  * Uses optimized indexed VRAM addressing for faster writes.
  */
-static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 num_rows,
+static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows,
                               volatile u16 *vram_base) {
-    const NGTilemapAsset *asset = tm->asset;
+    const NGTerrainAsset *asset = tm->asset;
 
     /* Use indexed addressing - faster than absolute long addressing.
      * "move.w X,d(An)" loads faster than "move.w X,xxx.L" */
@@ -75,17 +75,17 @@ static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 n
     vram_base[2] = 1;                                /* VRAMMOD */
 
     for (u8 row = 0; row < num_rows; row++) {
-        s16 tilemap_row = tm->viewport_row + row;
+        s16 terrain_row = tm->viewport_row + row;
 
-        if (tilemap_col < 0 || tilemap_col >= asset->width_tiles || tilemap_row < 0 ||
-            tilemap_row >= asset->height_tiles) {
+        if (terrain_col < 0 || terrain_col >= asset->width_tiles || terrain_row < 0 ||
+            terrain_row >= asset->height_tiles) {
             /* Out of bounds - empty tile (2 consecutive zero writes) */
             vram_base[1] = 0;
             vram_base[1] = 0;
             continue;
         }
 
-        u16 tile_array_idx = (u16)(tilemap_row * asset->width_tiles + tilemap_col);
+        u16 tile_array_idx = (u16)(terrain_row * asset->width_tiles + terrain_col);
         u8 tile_idx = asset->tile_data[tile_array_idx];
         u16 crom_tile = asset->base_tile + tile_idx;
 
@@ -107,11 +107,11 @@ static void load_column_tiles(Tilemap *tm, u16 sprite_idx, s16 tilemap_col, u8 n
 }
 
 /**
- * Main tilemap rendering function.
+ * Main terrain rendering function.
  * Uses optimized indexed VRAM addressing throughout for faster writes.
  * "move.w X,d(An)" is faster than "move.w X,xxx.L" per NeoGeo dev wiki.
  */
-static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
+static void draw_terrain(Terrain *tm, u16 first_sprite) {
     if (!tm->visible || !tm->asset)
         return;
 
@@ -139,10 +139,10 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
     u8 num_rows = (u8)((view_height / NG_TILE_SIZE) + 2);
 
-    if (num_cols > NG_TILEMAP_MAX_COLS)
-        num_cols = NG_TILEMAP_MAX_COLS;
-    if (num_rows > NG_TILEMAP_MAX_ROWS)
-        num_rows = NG_TILEMAP_MAX_ROWS;
+    if (num_cols > NG_TERRAIN_MAX_COLS)
+        num_cols = NG_TERRAIN_MAX_COLS;
+    if (num_rows > NG_TERRAIN_MAX_ROWS)
+        num_rows = NG_TERRAIN_MAX_ROWS;
 
     u8 zoom_changed = (zoom != tm->last_zoom);
 
@@ -159,8 +159,8 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
 
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
-            s16 tilemap_col = first_col + col;
-            load_column_tiles(tm, spr, tilemap_col, num_rows, vram_base);
+            s16 terrain_col = first_col + col;
+            load_column_tiles(tm, spr, terrain_col, num_rows, vram_base);
         }
 
         u16 shrink = NGCameraGetShrink();
@@ -235,8 +235,8 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
         for (u8 col = 0; col < num_cols; col++) {
             u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
             u16 spr = first_sprite + sprite_offset;
-            s16 tilemap_col = first_col + col;
-            load_column_tiles(tm, spr, tilemap_col, num_rows, vram_base);
+            s16 terrain_col = first_col + col;
+            load_column_tiles(tm, spr, terrain_col, num_rows, vram_base);
         }
         tm->last_viewport_row = first_row;
     }
@@ -273,21 +273,21 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     }
 }
 
-NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset) {
+NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     if (!asset)
-        return NG_TILEMAP_INVALID;
+        return NG_TERRAIN_INVALID;
 
-    NGTilemapHandle handle = NG_TILEMAP_INVALID;
-    for (u8 i = 0; i < NG_TILEMAP_MAX; i++) {
-        if (!tilemaps[i].active) {
+    NGTerrainHandle handle = NG_TERRAIN_INVALID;
+    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+        if (!terrains[i].active) {
             handle = i;
             break;
         }
     }
-    if (handle == NG_TILEMAP_INVALID)
-        return NG_TILEMAP_INVALID;
+    if (handle == NG_TERRAIN_INVALID)
+        return NG_TERRAIN_INVALID;
 
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     tm->asset = asset;
     tm->world_x = 0;
     tm->world_y = 0;
@@ -311,10 +311,10 @@ NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset) {
     return handle;
 }
 
-void NGTilemapAddToScene(NGTilemapHandle handle, fixed world_x, fixed world_y, u8 z) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u8 z) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -327,10 +327,10 @@ void NGTilemapAddToScene(NGTilemapHandle handle, fixed world_x, fixed world_y, u
     _NGSceneMarkRenderQueueDirty();
 }
 
-void NGTilemapRemoveFromScene(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -347,17 +347,17 @@ void NGTilemapRemoveFromScene(NGTilemapHandle handle) {
     }
 }
 
-void NGTilemapDestroy(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainDestroy(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    NGTilemapRemoveFromScene(handle);
-    tilemaps[handle].active = 0;
+    NGTerrainRemoveFromScene(handle);
+    terrains[handle].active = 0;
 }
 
-void NGTilemapSetPos(NGTilemapHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -365,10 +365,10 @@ void NGTilemapSetPos(NGTilemapHandle handle, fixed world_x, fixed world_y) {
     tm->world_y = world_y;
 }
 
-void NGTilemapSetZ(NGTilemapHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainSetZ(NGTerrainHandle handle, u8 z) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active)
         return;
     if (tm->z != z) {
@@ -379,24 +379,24 @@ void NGTilemapSetZ(NGTilemapHandle handle, u8 z) {
     }
 }
 
-void NGTilemapSetVisible(NGTilemapHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainSetVisible(NGTerrainHandle handle, u8 visible) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active)
         return;
     tm->visible = visible ? 1 : 0;
 }
 
-void NGTilemapGetDimensions(NGTilemapHandle handle, u16 *width_out, u16 *height_out) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX) {
+void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_out) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX) {
         if (width_out)
             *width_out = 0;
         if (height_out)
             *height_out = 0;
         return;
     }
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset) {
         if (width_out)
             *width_out = 0;
@@ -410,10 +410,10 @@ void NGTilemapGetDimensions(NGTilemapHandle handle, u16 *width_out, u16 *height_
         *height_out = tm->asset->height_tiles * NG_TILE_SIZE;
 }
 
-u8 NGTilemapGetCollision(NGTilemapHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+u8 NGTerrainGetCollision(NGTerrainHandle handle, fixed world_x, fixed world_y) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
         return 0;
 
@@ -429,10 +429,10 @@ u8 NGTilemapGetCollision(NGTilemapHandle handle, fixed world_x, fixed world_y) {
     return tm->asset->collision_data[idx];
 }
 
-u8 NGTilemapGetTileAt(NGTilemapHandle handle, u16 tile_x, u16 tile_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+u8 NGTerrainGetTileAt(NGTerrainHandle handle, u16 tile_x, u16 tile_y) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset)
         return 0;
 
@@ -444,11 +444,11 @@ u8 NGTilemapGetTileAt(NGTilemapHandle handle, u16 tile_x, u16 tile_y) {
     return tm->asset->tile_data[idx];
 }
 
-u8 NGTilemapTestAABB(NGTilemapHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
+u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
                      u8 *flags_out) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
         return 0;
 
@@ -480,11 +480,11 @@ u8 NGTilemapTestAABB(NGTilemapHandle handle, fixed x, fixed y, fixed half_w, fix
     return (result & NG_TILE_SOLID) ? 1 : 0;
 }
 
-u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
+u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
                         fixed *vel_x, fixed *vel_y) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return NG_COLL_NONE;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
         return NG_COLL_NONE;
 
@@ -588,7 +588,7 @@ u8 NGTilemapResolveAABB(NGTilemapHandle handle, fixed *x, fixed *y, fixed half_w
 }
 
 // TODO: Implement runtime tile modification (requires RAM copy support)
-void NGTilemapSetTile(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
+void NGTerrainSetTile(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
     (void)handle;
     (void)tile_x;
     (void)tile_y;
@@ -596,43 +596,43 @@ void NGTilemapSetTile(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 tile_in
 }
 
 // TODO: Implement runtime collision modification (requires RAM copy support)
-void NGTilemapSetCollision(NGTilemapHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
+void NGTerrainSetCollision(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
     (void)handle;
     (void)tile_x;
     (void)tile_y;
     (void)collision;
 }
 
-void NGTilemapDraw(NGTilemapHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+void NGTerrainDraw(NGTerrainHandle handle, u16 first_sprite) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->in_scene)
         return;
 
-    draw_tilemap(tm, first_sprite);
+    draw_terrain(tm, first_sprite);
 }
 
-u8 NGTilemapGetSpriteCount(NGTilemapHandle handle) {
-    if (handle < 0 || handle >= NG_TILEMAP_MAX)
+u8 NGTerrainGetSpriteCount(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return 0;
-    Tilemap *tm = &tilemaps[handle];
+    Terrain *tm = &terrains[handle];
     if (!tm->active || !tm->asset)
         return 0;
 
     u8 zoom = NGCameraGetZoom();
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;
     u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
-    if (num_cols > NG_TILEMAP_MAX_COLS)
-        num_cols = NG_TILEMAP_MAX_COLS;
+    if (num_cols > NG_TERRAIN_MAX_COLS)
+        num_cols = NG_TERRAIN_MAX_COLS;
 
     return num_cols;
 }
 
-/* Internal: collect palettes from all tilemaps in scene into bitmask */
-void _NGTilemapCollectPalettes(u8 *palette_mask) {
-    for (u8 i = 0; i < NG_TILEMAP_MAX; i++) {
-        Tilemap *tm = &tilemaps[i];
+/* Internal: collect palettes from all terrains in scene into bitmask */
+void _NGTerrainCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+        Terrain *tm = &terrains[i];
         if (!tm->active || !tm->in_scene || !tm->asset)
             continue;
 

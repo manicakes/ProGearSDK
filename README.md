@@ -254,8 +254,8 @@ Beyond scenes, actors, and cameras, ProGearSDK provides:
 
 | Module | Purpose |
 |--------|---------|
-| `tilemap.h` | Tile-based world rendering with collision |
-| `parallax.h` | Scrolling background layers with depth |
+| `terrain.h` | Tile-based terrain rendering with collision |
+| `backdrop.h` | Scrolling background layers with parallax depth |
 | `physics.h` | 2D rigid body simulation and collision |
 | `input.h` | Controller input with edge detection |
 | `fix.h` | Text rendering on the 40x32 tile overlay |
@@ -266,11 +266,11 @@ Beyond scenes, actors, and cameras, ProGearSDK provides:
 | `ngmath.h` | Fixed-point math and trigonometry |
 | `arena.h` | Fast zero-fragmentation memory allocation |
 
-## Tilemaps
+## Terrain
 
-ProGearSDK supports tile-based world rendering for platformers, RPGs, and other games with large scrolling levels. The tilemap system efficiently renders only visible tiles and provides built-in collision detection.
+ProGearSDK supports tile-based terrain rendering for platformers, RPGs, and other games with large scrolling levels. The terrain system efficiently renders only visible tiles and provides built-in collision detection.
 
-### Creating a Tilemap
+### Creating Terrain
 
 Design levels in [Tiled](https://www.mapeditor.org/) (the industry-standard tilemap editor), then reference them in `assets.yaml`:
 
@@ -282,23 +282,23 @@ tilemaps:
     tileset: tiles_simple
 ```
 
-### Using Tilemaps in Code
+### Using Terrain in Code
 
 ```c
-#include <tilemap.h>
+#include <terrain.h>
 #include <progear_assets.h>
 
-// Create tilemap from asset
-NGTilemapHandle level = NGTilemapCreate(&NGTilemapAsset_level1);
+// Create terrain from asset
+NGTerrainHandle level = NGTerrainCreate(&NGTerrainAsset_level1);
 
 // Add to scene at world origin
-NGTilemapAddToScene(level, FIX(0), FIX(0), 0);
+NGTerrainAddToScene(level, FIX(0), FIX(0), 0);
 
 // In game loop - collision detection
 fixed player_x, player_y, vel_x, vel_y;
 
 // Resolve collision and get collision flags
-u8 hit = NGTilemapResolveAABB(level,
+u8 hit = NGTerrainResolveAABB(level,
     &player_x, &player_y,    // Position (modified on collision)
     FIX(8), FIX(8),          // Half-size of player hitbox
     &vel_x, &vel_y);         // Velocity (zeroed on collision)

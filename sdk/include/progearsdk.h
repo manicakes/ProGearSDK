@@ -37,13 +37,13 @@
 #include <visual.h>
 #include <actor.h>
 #include <scene.h>
+#include <terrain.h>
 
 /* Camera system */
 #include <camera.h>
 
-/* World rendering */
-#include <parallax.h>
-#include <tilemap.h>
+/* Backdrops (parallax background layers) */
+#include <backdrop.h>
 
 /* Physics */
 #include <physics.h>
