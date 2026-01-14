@@ -422,6 +422,15 @@ void NGMenuShow(NGMenuHandle menu) {
     s16 cursor_y = panel_y + NGSpringGetInt(&menu->cursor_y_spring);
     NGActorAddToScene(menu->cursor_actor, FIX(cursor_x), FIX(cursor_y), NG_MENU_Z_INDEX + 1);
 
+    /* Restore menu palettes to original values.
+     * UI elements should be exempt from lighting effects. */
+    if (menu->panel_asset && menu->panel_asset->palette_data) {
+        NGPalSet(menu->panel_pal, menu->panel_asset->palette_data);
+    }
+    if (menu->cursor_asset && menu->cursor_asset->palette_data) {
+        NGPalSet(menu->cursor_pal, menu->cursor_asset->palette_data);
+    }
+
     menu->showing = 1;
     menu->text_dirty = 1;
 }
@@ -470,6 +479,15 @@ void NGMenuUpdate(NGMenuHandle menu) {
     }
 
     if (menu->visible) {
+        /* Keep menu palettes at original values.
+         * Must be done every frame since lighting system may overwrite them. */
+        if (menu->panel_asset && menu->panel_asset->palette_data) {
+            NGPalSet(menu->panel_pal, menu->panel_asset->palette_data);
+        }
+        if (menu->cursor_asset && menu->cursor_asset->palette_data) {
+            NGPalSet(menu->cursor_pal, menu->cursor_asset->palette_data);
+        }
+
         if (menu->blink_count > 0) {
             menu->blink_timer--;
             if (menu->blink_timer == 0) {

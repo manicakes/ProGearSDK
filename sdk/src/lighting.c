@@ -615,6 +615,13 @@ static void resolve_palettes(void) {
     if (g_lighting.backup_count == 0)
         return;
 
+    /* Skip when a pre-baked preset is active.
+     * Pre-baked presets have correct colors computed at build time.
+     * The backup contains original colors, so applying transforms here
+     * would overwrite the pre-baked colors with wrong values. */
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE)
+        return;
+
     /* Pre-compute combined tint (normal + additive) - moved outside all loops */
     const s16 total_tint_r = g_lighting.combined_tint_r + g_lighting.additive_tint_r;
     const s16 total_tint_g = g_lighting.combined_tint_g + g_lighting.additive_tint_g;
