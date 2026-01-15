@@ -234,18 +234,25 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
             NG_REG_VRAMDATA = 0;
             row_out++;
         }
+    }
 
-        // Write shrink value to SCB2 (no shrink)
-        NG_REG_VRAMADDR = NG_SCB2_BASE + spr;
+    // Batch SCB2 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost
+    NG_REG_VRAMADDR = NG_SCB2_BASE + first_sprite;
+    NG_REG_VRAMMOD = 1;
+    for (u8 col = 0; col < num_cols; col++) {
         NG_REG_VRAMDATA = NG_SPRITE_SHRINK_NONE;
+    }
 
-        // Write Y position and height to SCB3
-        NG_REG_VRAMADDR = NG_SCB3_BASE + spr;
+    // Batch SCB3 writes - Y position and height
+    NG_REG_VRAMADDR = NG_SCB3_BASE + first_sprite;
+    for (u8 col = 0; col < num_cols; col++) {
         NG_REG_VRAMDATA = scb3_val;
+    }
 
-        // Write X position to SCB4
+    // Batch SCB4 writes - X positions
+    NG_REG_VRAMADDR = (vu16)(NG_SCB4_BASE + first_sprite);
+    for (u8 col = 0; col < num_cols; col++) {
         s16 x_pos = (s16)(screen_x + (col * 16));
-        NG_REG_VRAMADDR = (vu16)(NG_SCB4_BASE + spr);
         NG_REG_VRAMDATA = NGSpriteSCB4(x_pos);
     }
 }

@@ -196,8 +196,9 @@ u8 TilemapDemoUpdate(void) {
         }
 
         // Resolve collision against the scene's terrain
-        u8 coll = NGSceneResolveCollision(&state->player_x, &state->player_y, PLAYER_HALF_W,
-                                          PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
+        u8 coll =
+            NGSceneResolveCollision(&state->player_x, &state->player_y, PLAYER_HALF_W,
+                                    PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
         state->on_ground = (coll & NG_COLL_BOTTOM) ? 1 : 0;
 
         if (state->player_x < PLAYER_HALF_W) {

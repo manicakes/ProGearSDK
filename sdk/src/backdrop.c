@@ -234,18 +234,12 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
 
         if (pixel_diff != 0) {
             s16 tile_width_zoomed = (s16)((TILE_SIZE * zoom) >> 4);
-            s16 total_width = num_cols * tile_width_zoomed;
             s16 tile_width_fixed = SCROLL_FIX(tile_width_zoomed);
 
             bd->scroll_offset = (s16)(bd->scroll_offset - (pixel_diff << SCROLL_FRAC_BITS));
 
-            /* Scrolling RIGHT: wrap leftmost sprite to right */
+            /* Handle wraps - just update leftmost pointer, no VRAM reads needed */
             while (bd->scroll_offset <= 0) {
-                vram_base[0] = (u16)(NG_SCB4_BASE + bd->leftmost);
-                s16 x = (s16)(vram_base[1] >> 7);
-                x = (s16)(x + total_width);
-                vram_base[0] = (u16)(NG_SCB4_BASE + bd->leftmost);
-                vram_base[1] = NGSpriteSCB4(x);
                 bd->leftmost++;
                 if (bd->leftmost >= first_sprite + num_cols) {
                     bd->leftmost = first_sprite;
@@ -253,27 +247,24 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
                 bd->scroll_offset += tile_width_fixed;
             }
 
-            /* Scrolling LEFT: wrap rightmost sprite to left */
             while (bd->scroll_offset > tile_width_fixed * 2) {
                 if (bd->leftmost <= first_sprite) {
                     bd->leftmost = first_sprite + num_cols;
                 }
                 bd->leftmost--;
-                vram_base[0] = (u16)(NG_SCB4_BASE + bd->leftmost);
-                s16 x = (s16)(vram_base[1] >> 7);
-                x = (s16)(x - total_width);
-                vram_base[0] = (u16)(NG_SCB4_BASE + bd->leftmost);
-                vram_base[1] = NGSpriteSCB4(x);
                 bd->scroll_offset -= tile_width_fixed;
             }
 
+            /* Calculate X positions mathematically from scroll state.
+             * Eliminates VRAM reads - enables batched sequential writes. */
+            s16 base_left_x = (s16)(SCROLL_INT(bd->scroll_offset) - 2 * tile_width_zoomed);
+            u8 leftmost_offset = (u8)(bd->leftmost - first_sprite);
+
+            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
             vram_base[2] = 1;
-            for (u8 col = 0; col < num_cols; col++) {
-                u16 spr = first_sprite + col;
-                vram_base[0] = (u16)(NG_SCB4_BASE + spr);
-                s16 x = (s16)(vram_base[1] >> 7);
-                x = (s16)(x - pixel_diff);
-                vram_base[0] = (u16)(NG_SCB4_BASE + spr);
+            for (u8 buf = 0; buf < num_cols; buf++) {
+                u8 screen_col = (u8)((buf - leftmost_offset + num_cols) % num_cols);
+                s16 x = (s16)(base_left_x + screen_col * tile_width_zoomed);
                 vram_base[1] = NGSpriteSCB4(x);
             }
         }
