@@ -218,18 +218,19 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         u16 scb3_driving = NGSpriteSCB3(screen_y, height_bits);
         u16 scb3_sticky = NGSpriteSCB3Sticky();
 
+        /* SCB3: Y position - write all values with auto-increment */
+        vram_base[0] = NG_SCB3_BASE + first_sprite;
+        vram_base[2] = 1;
         for (u8 col = 0; col < cols; col++) {
-            u16 spr = first_sprite + col;
-
-            /* SCB3: Y position (bits 15-7), sticky (bit 6), height (bits 5-0) */
-            vram_base[0] = NG_SCB3_BASE + spr;
             vram_base[1] = (col == 0) ? scb3_driving : scb3_sticky;
+        }
 
-            /* SCB4: X position (bits 15-7) */
+        /* SCB4: X position - write all values with auto-increment */
+        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
+        vram_base[2] = 1;
+        for (u8 col = 0; col < cols; col++) {
             s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
             s16 x_pos = (s16)(screen_x + col_offset);
-
-            vram_base[0] = (u16)(NG_SCB4_BASE + spr);
             vram_base[1] = NGSpriteSCB4(x_pos);
         }
 

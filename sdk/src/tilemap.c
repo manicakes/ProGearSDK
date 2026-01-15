@@ -262,13 +262,14 @@ static void draw_tilemap(Tilemap *tm, u16 first_sprite) {
     s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
     base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
+    /* Write SCB4 sequentially with auto-increment.
+     * Reverse the circular buffer mapping: for each sprite index,
+     * compute which visual column it represents on screen. */
     vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
     vram_base[2] = 1;
-    for (u8 col = 0; col < num_cols; col++) {
-        u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
-        s16 x = (s16)(base_screen_x + (col * tile_w));
-
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite + sprite_offset);
+    for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
+        u8 visual_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
+        s16 x = (s16)(base_screen_x + (visual_col * tile_w));
         vram_base[1] = NGSpriteSCB4(x);
     }
 }
