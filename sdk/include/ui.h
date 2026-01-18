@@ -139,8 +139,17 @@ void NGMenuHide(NGMenuHandle menu);
 void NGMenuUpdate(NGMenuHandle menu);
 
 /**
- * Draw menu to screen (call once per frame during vblank).
- * Renders panel sprite and updates fix layer text.
+ * Check if menu needs a fix layer VRAM update.
+ * Fix layer tiles persist once written, so we only need to write
+ * when text first appears or when content changes (selection, blink).
+ * @param menu Menu handle
+ * @return 1 if VRAM update needed, 0 otherwise
+ */
+u8 NGMenuNeedsDraw(NGMenuHandle menu);
+
+/**
+ * Draw menu to screen (call during vblank when NGMenuNeedsDraw returns true).
+ * Updates fix layer text. Only writes to VRAM when content has changed.
  * @param menu Menu handle
  */
 void NGMenuDraw(NGMenuHandle menu);

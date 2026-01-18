@@ -134,13 +134,13 @@ static void draw_menu_text(NGMenu *menu) {
     s16 fix_x = menu->viewport_x / 8 + MENU_TEXT_OFFSET_X;
     s16 fix_y = menu->viewport_y / 8 + MENU_TITLE_OFFSET_Y;
 
-    if (menu->title && fix_y >= 0 && fix_y < 28) {
+    if (menu->title && fix_y >= 0 && fix_y <= NG_FIX_VISIBLE_BOTTOM) {
         NGTextPrint(NGFixLayoutXY((u8)fix_x, (u8)fix_y), menu->normal_pal, menu->title);
     }
 
     for (u8 i = 0; i < menu->item_count; i++) {
         s16 item_y = (s16)(fix_y + MENU_TEXT_OFFSET_Y + i);
-        if (item_y >= 0 && item_y < 28) {
+        if (item_y >= 0 && item_y <= NG_FIX_VISIBLE_BOTTOM) {
             if (i == menu->selection && menu->blink_count > 0 && !menu->blink_on) {
                 NGFixClear((u8)fix_x, (u8)item_y, 12, 1);
             } else {
@@ -568,6 +568,21 @@ void NGMenuUpdate(NGMenuHandle menu) {
     }
 
     NGActorSetPos(menu->cursor_actor, FIX(cursor_x), FIX(cursor_y));
+}
+
+u8 NGMenuNeedsDraw(NGMenuHandle menu) {
+    if (!menu || !menu->showing)
+        return 0;
+
+    u8 panel_arrived = menu->visible && NGSpringSettled(&menu->panel_y_spring);
+
+    // Need to draw if: panel just arrived and text not shown yet, OR text is dirty
+    if (panel_arrived && !menu->text_visible)
+        return 1;
+    if (menu->text_visible && menu->text_dirty)
+        return 1;
+
+    return 0;
 }
 
 void NGMenuDraw(NGMenuHandle menu) {

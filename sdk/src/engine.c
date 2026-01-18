@@ -38,6 +38,13 @@ void NGEngineInit(void) {
 void NGEngineFrameStart(void) {
     NGWaitVBlank();
     NGWatchdogKick();
+
+    // Draw menu text immediately after vblank while VRAM is safe to write.
+    // Fix layer tiles persist in VRAM, so we only write when content changes.
+    if (g_active_menu && NGMenuNeedsDraw(g_active_menu)) {
+        NGMenuDraw(g_active_menu);
+    }
+
     NGArenaReset(&ng_arena_frame);
     NGInputUpdate();
 }
@@ -46,10 +53,6 @@ void NGEngineFrameEnd(void) {
     NGLightingUpdate();
     NGSceneUpdate();
     NGSceneDraw();
-
-    if (g_active_menu) {
-        NGMenuDraw(g_active_menu);
-    }
 }
 
 void NGEngineSetActiveMenu(NGMenuHandle menu) {
