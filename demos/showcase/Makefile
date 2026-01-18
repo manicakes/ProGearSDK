@@ -18,8 +18,15 @@ GEN_DIR = $(BUILD_DIR)/gen
 
 # Asset pipeline
 PROGEAR_ASSETS = python3 $(TOOLS_PATH)/progear_assets.py
+NEO_ROM = python3 $(TOOLS_PATH)/neo_rom.py
 ASSETS_YAML = assets.yaml
 SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
+
+# NeoSD .neo file metadata (override as needed)
+NEO_NAME ?= $(GAME_NAME)
+NEO_MANU ?= Homebrew
+NEO_YEAR ?= 2024
+NEO_NGH ?= 9999
 
 # === Compiler Flags ===
 CFLAGS = $(SDK_CFLAGS) -I$(GEN_DIR) -Isrc
@@ -47,6 +54,7 @@ S_ROM = $(BUILD_DIR)/$(GAME_NAME)-s1.bin
 C1_ROM = $(BUILD_DIR)/$(GAME_NAME)-c1.bin
 C2_ROM = $(BUILD_DIR)/$(GAME_NAME)-c2.bin
 V1_ROM = $(BUILD_DIR)/$(GAME_NAME)-v1.bin
+NEO_FILE = $(BUILD_DIR)/$(GAME_NAME).neo
 ELF_FILE = $(BUILD_DIR)/$(GAME_NAME).elf
 
 # Generated files from asset pipeline
@@ -57,7 +65,7 @@ GEN_V1 = $(GEN_DIR)/audio-v1.bin
 GEN_M1_TABLES = $(GEN_DIR)/audio-tables.bin
 
 # === Build Rules ===
-.PHONY: all clean mame assets sdk
+.PHONY: all clean mame neo assets sdk
 
 all: sdk $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
 	@echo ""
@@ -156,6 +164,27 @@ $(V1_ROM): $(GEN_ASSETS_H) | $(BUILD_DIR)
 	elif [ ! -f $@ ]; then \
 		dd if=/dev/zero of=$@ bs=1K count=512 2>/dev/null; \
 	fi
+
+# === NeoSD .neo Target ===
+neo: all $(NEO_FILE)
+	@echo ""
+	@echo "NeoSD ROM created: $(NEO_FILE)"
+	@ls -la $(NEO_FILE)
+
+$(NEO_FILE): $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
+	@echo "Creating NeoSD .neo file..."
+	$(NEO_ROM) -o $@ \
+		--p1 $(P_ROM) \
+		--s1 $(S_ROM) \
+		--m1 $(M_ROM) \
+		--v1 $(V1_ROM) \
+		--c1 $(C1_ROM) \
+		--c2 $(C2_ROM) \
+		--name "$(NEO_NAME)" \
+		--manufacturer "$(NEO_MANU)" \
+		--year $(NEO_YEAR) \
+		--ngh $(NEO_NGH) \
+		-v
 
 # === MAME Target ===
 mame: all $(BUILD_DIR)/$(MAME_DRIVER).zip
