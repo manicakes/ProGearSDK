@@ -193,7 +193,7 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
         NG_REG_VRAMMOD = 1;
 
         u8 row_out = 0;
-        u16 attr = ((u16)palette << 8) | 0x01;
+        u16 attr = (u16)((u16)palette << 8);
 
         for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
             u16 tile = get_panel_tile(asset, col, r);

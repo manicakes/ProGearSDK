@@ -149,7 +149,7 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
                 u8 asset_row = row % asset_rows;
                 u16 tile_idx = (u16)(asset->base_tile + (asset_col * asset_rows) + asset_row);
                 vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA */
-                u16 attr = ((u16)bd->palette << 8) | 0x01;
+                u16 attr = (u16)((u16)bd->palette << 8);
                 vram_base[1] = attr; /* VRAMDATA */
             }
 

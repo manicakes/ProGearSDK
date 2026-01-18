@@ -95,7 +95,7 @@ static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 n
         }
 
         vram_base[1] = crom_tile & 0xFFFF;
-        u16 attr = ((u16)palette << 8) | 0x01;
+        u16 attr = (u16)((u16)palette << 8);
         vram_base[1] = attr;
     }
 
