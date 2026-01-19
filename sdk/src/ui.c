@@ -257,6 +257,22 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     }
 }
 
+static void update_panel_position(NGMenu *menu, s16 screen_y) {
+    /* Only update SCB3 (Y position) - tiles don't change during animation.
+     * This is much faster than rewriting all SCB1 tile data every frame. */
+    u16 first_sprite = menu->panel_first_sprite;
+    u8 num_cols = menu->panel_asset->width_tiles;
+    u8 actual_height = menu->panel_height_tiles;
+
+    u16 scb3_val = NGSpriteSCB3(screen_y, actual_height);
+
+    NG_REG_VRAMADDR = NG_SCB3_BASE + first_sprite;
+    NG_REG_VRAMMOD = 1;
+    for (u8 col = 0; col < num_cols; col++) {
+        NG_REG_VRAMDATA = scb3_val;
+    }
+}
+
 static void hide_panel_sprites(NGMenu *menu) {
     if (!menu->panel_sprites_allocated)
         return;
@@ -554,7 +570,7 @@ void NGMenuUpdate(NGMenuHandle menu) {
 
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
     if (menu->panel_sprites_allocated) {
-        render_panel_9slice(menu, menu->viewport_x, panel_y);
+        update_panel_position(menu, panel_y);
     }
 
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;

@@ -602,6 +602,64 @@ static void recalc_combined_transform(void) {
 }
 
 /**
+ * Apply additive effects (flash) to current palettes.
+ * Used when a pre-baked preset is active - applies flash on top of pre-baked colors.
+ */
+static void apply_additive_to_current_palettes(s16 add_r, s16 add_g, s16 add_b, u16 bright_scale) {
+    for (u8 i = 0; i < g_lighting.backup_count; i++) {
+        PaletteBackup *entry = &g_lighting.backup[i];
+        volatile u16 *pal = NGPalGetPtr(entry->palette_index);
+
+        for (u8 c = 1; c < NG_PAL_SIZE; c++) {
+            u16 original = pal[c];
+
+            /* Extract RGB from current palette (already has pre-baked colors) */
+            u16 r = (original >> 8) & 0x0F;
+            u16 g = (original >> 4) & 0x0F;
+            u16 b = original & 0x0F;
+            u16 d = (original >> 12) & 0x01;
+
+            /* Expand to 5-bit range */
+            r = (r + r) | d;
+            g = (g + g) | d;
+            b = (b + b) | d;
+
+            /* Apply brightness */
+            if (bright_scale != 256) {
+                r = (u16)((r * bright_scale) >> 8);
+                g = (u16)((g * bright_scale) >> 8);
+                b = (u16)((b * bright_scale) >> 8);
+            }
+
+            /* Apply additive tint */
+            s16 sr = (s16)r + add_r;
+            s16 sg = (s16)g + add_g;
+            s16 sb = (s16)b + add_b;
+
+            /* Clamp to 0-31 */
+            if (sr < 0) sr = 0;
+            if (sr > 31) sr = 31;
+            if (sg < 0) sg = 0;
+            if (sg > 31) sg = 31;
+            if (sb < 0) sb = 0;
+            if (sb > 31) sb = 31;
+
+            r = (u16)sr;
+            g = (u16)sg;
+            b = (u16)sb;
+
+            /* Pack back to NeoGeo format */
+            d = r & 1;
+            r >>= 1;
+            g >>= 1;
+            b >>= 1;
+
+            pal[c] = (u16)((d << 15) | (r << 8) | (g << 4) | b);
+        }
+    }
+}
+
+/**
  * Apply combined lighting transform to all backed-up palettes.
  *
  * Optimizations applied per NeoGeo dev wiki:
@@ -615,17 +673,29 @@ static void resolve_palettes(void) {
     if (g_lighting.backup_count == 0)
         return;
 
-    /* Skip when a pre-baked preset is active.
+    /* Check for additive effects (like flash) */
+    const s16 add_r = g_lighting.additive_tint_r;
+    const s16 add_g = g_lighting.additive_tint_g;
+    const s16 add_b = g_lighting.additive_tint_b;
+    const u16 add_bright = (u16)(g_lighting.combined_brightness >> 8);
+    const u8 has_additive = (add_r != 0 || add_g != 0 || add_b != 0 || add_bright != 256);
+
+    /* When a pre-baked preset is active, only apply additive effects (flash).
      * Pre-baked presets have correct colors computed at build time.
-     * The backup contains original colors, so applying transforms here
-     * would overwrite the pre-baked colors with wrong values. */
-    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE)
+     * The backup contains original colors, so applying full transforms here
+     * would overwrite the pre-baked colors with wrong values.
+     * But additive effects can be applied on top of the current colors. */
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+        if (has_additive) {
+            apply_additive_to_current_palettes(add_r, add_g, add_b, add_bright);
+        }
         return;
+    }
 
     /* Pre-compute combined tint (normal + additive) - moved outside all loops */
-    const s16 total_tint_r = g_lighting.combined_tint_r + g_lighting.additive_tint_r;
-    const s16 total_tint_g = g_lighting.combined_tint_g + g_lighting.additive_tint_g;
-    const s16 total_tint_b = g_lighting.combined_tint_b + g_lighting.additive_tint_b;
+    const s16 total_tint_r = g_lighting.combined_tint_r + add_r;
+    const s16 total_tint_g = g_lighting.combined_tint_g + add_g;
+    const s16 total_tint_b = g_lighting.combined_tint_b + add_b;
 
     /* Convert fixed-point to 8-bit integer scale for FAST 16-bit multiply.
      * Scale of 256 = 1.0, so brightness 0.5 -> 128, brightness 1.3 -> 333.
