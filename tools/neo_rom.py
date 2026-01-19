@@ -33,6 +33,20 @@ NEO_VERSION = 1
 # Header size is always 4KB
 HEADER_SIZE = 4096
 
+# Standard NeoGeo ROM sizes for padding
+STD_P_SIZE = 524288    # 512KB
+STD_S_SIZE = 131072    # 128KB
+STD_M_SIZE = 131072    # 128KB
+STD_V_SIZE = 2097152   # 2MB
+STD_C_SIZE = 2097152   # 2MB (interleaved C1+C2, 1MB each)
+
+
+def pad_to_size(data, target_size):
+    """Pad data with zeros to reach target size."""
+    if len(data) >= target_size:
+        return data
+    return data + b'\x00' * (target_size - len(data))
+
 
 def read_rom_file(path):
     """Read a ROM file, returning empty bytes if file doesn't exist or path is None."""
@@ -127,6 +141,16 @@ def build_neo_file(output_path, p1_path, s1_path, m1_path, v1_path, c1_path, c2_
     c1_data = read_rom_file(c1_path)
     c2_data = read_rom_file(c2_path)
 
+    # Pad ROMs to standard NeoGeo sizes
+    p_data = pad_to_size(p_data, STD_P_SIZE)
+    s_data = pad_to_size(s_data, STD_S_SIZE)
+    m_data = pad_to_size(m_data, STD_M_SIZE)
+    v1_data = pad_to_size(v1_data, STD_V_SIZE)
+
+    # Pad C1/C2 to 1MB each before interleaving (results in 2MB interleaved)
+    c1_data = pad_to_size(c1_data, STD_C_SIZE // 2)
+    c2_data = pad_to_size(c2_data, STD_C_SIZE // 2)
+
     # Interleave C1 and C2 for neo format
     c_data = interleave_c_roms(c1_data, c2_data)
 
@@ -134,7 +158,7 @@ def build_neo_file(output_path, p1_path, s1_path, m1_path, v1_path, c1_path, c2_
     v2_size = 0
 
     if verbose:
-        print(f"ROM sizes:")
+        print(f"ROM sizes (padded to standard):")
         print(f"  P-ROM: {len(p_data):,} bytes")
         print(f"  S-ROM: {len(s_data):,} bytes")
         print(f"  M-ROM: {len(m_data):,} bytes")

@@ -65,7 +65,7 @@ GEN_V1 = $(GEN_DIR)/audio-v1.bin
 GEN_M1_TABLES = $(GEN_DIR)/audio-tables.bin
 
 # === Build Rules ===
-.PHONY: all clean mame neo assets sdk
+.PHONY: all clean mame neo romzip assets sdk
 
 all: sdk $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
 	@echo ""
@@ -185,6 +185,34 @@ $(NEO_FILE): $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
 		--year $(NEO_YEAR) \
 		--ngh $(NEO_NGH) \
 		-v
+
+# === ROM Zip Target (for external converters) ===
+ROM_ZIP = $(BUILD_DIR)/$(GAME_NAME).zip
+
+romzip: all $(ROM_ZIP)
+	@echo ""
+	@echo "ROM zip created: $(ROM_ZIP)"
+	@ls -la $(ROM_ZIP)
+
+$(ROM_ZIP): $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
+	@echo "Creating $(GAME_NAME).zip with 999-*.* naming..."
+	@rm -rf $(BUILD_DIR)/$(GAME_NAME)_tmp
+	@mkdir -p $(BUILD_DIR)/$(GAME_NAME)_tmp
+	@cp $(P_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-p1.p1
+	@truncate -s 524288 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-p1.p1
+	@cp $(S_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-s1.s1
+	@truncate -s 131072 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-s1.s1
+	@cp $(M_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-m1.m1
+	@truncate -s 131072 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-m1.m1
+	@cp $(V1_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-v1.v1
+	@truncate -s 2097152 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-v1.v1
+	@cp $(C1_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-c1.c1
+	@truncate -s 1048576 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-c1.c1
+	@cp $(C2_ROM) $(BUILD_DIR)/$(GAME_NAME)_tmp/999-c2.c2
+	@truncate -s 1048576 $(BUILD_DIR)/$(GAME_NAME)_tmp/999-c2.c2
+	@cd $(BUILD_DIR)/$(GAME_NAME)_tmp && zip -q ../$(GAME_NAME).zip *
+	@rm -rf $(BUILD_DIR)/$(GAME_NAME)_tmp
+	@echo "Created $(ROM_ZIP)"
 
 # === MAME Target ===
 mame: all $(BUILD_DIR)/$(MAME_DRIVER).zip
