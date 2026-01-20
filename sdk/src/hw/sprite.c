@@ -90,3 +90,88 @@ void hw_sprite_hide_all(void) {
     vram_setup(VRAM_SCB3, 1);
     vram_clear(SPRITE_MAX);
 }
+
+void hw_sprite_write_column(u16 sprite, u8 num_rows, const u16 *tiles, const u16 *attrs,
+                            u8 clear_remaining) {
+    vram_declare();
+    vram_setup(VRAM_SCB1 + (sprite * SCB1_SPRITE_SIZE), 1);
+
+    for (u8 row = 0; row < num_rows; row++) {
+        vram_data(tiles ? tiles[row] : 0);
+        vram_data(attrs ? attrs[row] : 0);
+    }
+
+    if (clear_remaining) {
+        for (u8 row = num_rows; row < 32; row++) {
+            vram_data(0);
+            vram_data(0);
+        }
+    }
+}
+
+void hw_sprite_write_scb3_range(u16 first, u8 count, u16 scb3_value) {
+    if (count == 0)
+        return;
+
+    vram_declare();
+    vram_setup(VRAM_SCB3 + first, 1);
+    vram_fill(scb3_value, count);
+}
+
+void hw_sprite_write_scb4_range(u16 first, u8 count, s16 start_x, s16 x_step) {
+    if (count == 0)
+        return;
+
+    vram_declare();
+    vram_setup(VRAM_SCB4 + first, 1);
+
+    s16 x = start_x;
+    for (u8 i = 0; i < count; i++) {
+        vram_data(hw_sprite_pack_scb4(x));
+        x = (s16)(x + x_step);
+    }
+}
+
+/* Batched session state - stored in static to maintain across calls */
+static vu16 *_batch_vram;
+
+void hw_sprite_begin_scb1(u16 sprite) {
+    _batch_vram = (vu16 *)0x3C0000;
+    _batch_vram[0] = VRAM_SCB1 + (sprite * SCB1_SPRITE_SIZE);
+    _batch_vram[2] = 1;
+}
+
+void hw_sprite_write_scb1_data(u16 tile, u16 attr) {
+    _batch_vram[1] = tile;
+    _batch_vram[1] = attr;
+}
+
+void hw_sprite_begin_scb2(u16 first) {
+    _batch_vram = (vu16 *)0x3C0000;
+    _batch_vram[0] = VRAM_SCB2 + first;
+    _batch_vram[2] = 1;
+}
+
+void hw_sprite_write_scb2_data(u16 shrink) {
+    _batch_vram[1] = shrink;
+}
+
+void hw_sprite_begin_scb3(u16 first) {
+    _batch_vram = (vu16 *)0x3C0000;
+    _batch_vram[0] = VRAM_SCB3 + first;
+    _batch_vram[2] = 1;
+}
+
+void hw_sprite_write_scb3_data(u16 scb3) {
+    _batch_vram[1] = scb3;
+}
+
+void hw_sprite_begin_scb4(u16 first) {
+    _batch_vram = (vu16 *)0x3C0000;
+    _batch_vram[0] = (u16)(VRAM_SCB4 + first);
+    _batch_vram[2] = 1;
+}
+
+void hw_sprite_write_scb4_data(u16 scb4) {
+    _batch_vram[1] = scb4;
+}

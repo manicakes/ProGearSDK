@@ -167,4 +167,108 @@ static inline u16 hw_sprite_attr(u8 palette, u8 h_flip, u8 v_flip) {
     return attr;
 }
 
+/**
+ * Get the full-size (no shrink) value.
+ * Use this instead of hardcoding platform-specific constants.
+ */
+static inline u16 hw_sprite_full_shrink(void) {
+    return 0x0FFF;
+}
+
+/*
+ * ============================================================================
+ *  BATCHED VRAM OPERATIONS
+ * ============================================================================
+ *
+ * These functions handle batched writes to VRAM for complex rendering.
+ * They abstract away the NeoGeo-specific VRAM layout.
+ */
+
+/**
+ * Write a column of tiles directly to sprite VRAM.
+ * This is a lower-level function for custom rendering that needs
+ * more control than hw_sprite_write_tiles().
+ *
+ * @param sprite Sprite index
+ * @param num_rows Number of tile rows to write
+ * @param tiles Array of tile indices (can be NULL to write zeros)
+ * @param attrs Array of attributes (can be NULL to write zeros)
+ * @param clear_remaining If true, clears rows from num_rows to 32
+ */
+void hw_sprite_write_column(u16 sprite, u8 num_rows, const u16 *tiles, const u16 *attrs,
+                            u8 clear_remaining);
+
+/**
+ * Write Y position to SCB3 for a range of sprites (non-sticky).
+ * Unlike hw_sprite_write_ychain, all sprites get the same Y/height.
+ *
+ * @param first First sprite index
+ * @param count Number of sprites
+ * @param scb3_value Pre-packed SCB3 value from hw_sprite_pack_scb3()
+ */
+void hw_sprite_write_scb3_range(u16 first, u8 count, u16 scb3_value);
+
+/**
+ * Write X positions to SCB4 for sprites at fixed intervals.
+ *
+ * @param first First sprite index
+ * @param count Number of sprites
+ * @param start_x Starting X coordinate
+ * @param x_step Pixel step between each sprite
+ */
+void hw_sprite_write_scb4_range(u16 first, u8 count, s16 start_x, s16 x_step);
+
+/**
+ * Begin a batched SCB1 write session.
+ * Call this before multiple hw_sprite_write_scb1_data() calls.
+ *
+ * @param sprite Sprite index to start writing at
+ */
+void hw_sprite_begin_scb1(u16 sprite);
+
+/**
+ * Write tile and attribute data during a batched SCB1 session.
+ * Must be called after hw_sprite_begin_scb1().
+ *
+ * @param tile Tile index
+ * @param attr Attribute word
+ */
+void hw_sprite_write_scb1_data(u16 tile, u16 attr);
+
+/**
+ * Begin a batched SCB2 write session.
+ * @param first First sprite index
+ */
+void hw_sprite_begin_scb2(u16 first);
+
+/**
+ * Write shrink data during a batched SCB2 session.
+ * @param shrink Shrink value
+ */
+void hw_sprite_write_scb2_data(u16 shrink);
+
+/**
+ * Begin a batched SCB3 write session.
+ * @param first First sprite index
+ */
+void hw_sprite_begin_scb3(u16 first);
+
+/**
+ * Write SCB3 data during a batched session.
+ * @param scb3 SCB3 value from hw_sprite_pack_scb3()
+ */
+void hw_sprite_write_scb3_data(u16 scb3);
+
+/**
+ * Begin a batched SCB4 write session.
+ * @param first First sprite index
+ */
+void hw_sprite_begin_scb4(u16 first);
+
+/**
+ * Write SCB4 data during a batched session.
+ * @param scb4 SCB4 value from hw_sprite_pack_scb4()
+ */
+void hw_sprite_write_scb4_data(u16 scb4);
+
 #endif /* HW_SPRITE_H */

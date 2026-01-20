@@ -7,7 +7,6 @@
 #include <actor.h>
 #include <camera.h>
 #include <hw/sprite.h>
-#include <hw/lspc.h>
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 224
@@ -131,7 +130,7 @@ static void draw_actor(ActorData *actor, u16 first_sprite) {
         screen_x = FIX_INT(actor->x);
         screen_y = FIX_INT(actor->y);
         zoom = 16;
-        shrink = SCB2_FULL_SIZE;
+        shrink = hw_sprite_full_shrink();
     } else {
         CameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
         zoom = CameraGetZoom();

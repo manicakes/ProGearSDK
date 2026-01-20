@@ -7,7 +7,6 @@
 #include <backdrop.h>
 #include <camera.h>
 #include <hw/sprite.h>
-#include <hw/lspc.h>
 
 #define SCREEN_WIDTH             320
 #define SCREEN_HEIGHT            224
@@ -72,13 +71,11 @@ u8 _BackdropGetZ(Backdrop handle) {
 
 /**
  * Main backdrop rendering function.
- * Uses hw/sprite layer for VRAM access.
+ * Uses hw/sprite functions for VRAM access.
  */
 static void draw_backdrop(BackdropData *bd, u16 first_sprite) {
     if (!bd->visible || !bd->asset)
         return;
-
-    vram_declare();
 
     const NGVisualAsset *asset = bd->asset;
 
@@ -132,26 +129,22 @@ static void draw_backdrop(BackdropData *bd, u16 first_sprite) {
     }
 
     if (!bd->tiles_loaded) {
-        /* Write tiles for each column */
+        /* Write tiles for each column using batched SCB1 operations */
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
-
-            vram_addr(VRAM_SCB1 + (spr * 64));
-            vram_mod(1);
+            hw_sprite_begin_scb1(spr);
 
             u8 asset_col = col % asset_cols;
 
             for (u8 row = 0; row < num_rows; row++) {
                 u8 asset_row = row % asset_rows;
                 u16 tile_idx = (u16)(asset->base_tile + (asset_col * asset_rows) + asset_row);
-                vram_data(tile_idx & 0xFFFF);
                 u16 attr = ((u16)bd->palette << 8) | 0x01;
-                vram_data(attr);
+                hw_sprite_write_scb1_data(tile_idx, attr);
             }
 
             for (u8 row = num_rows; row < 32; row++) {
-                vram_data(0);
-                vram_data(0);
+                hw_sprite_write_scb1_data(0, 0);
             }
         }
 
@@ -161,12 +154,7 @@ static void draw_backdrop(BackdropData *bd, u16 first_sprite) {
 
         /* Start one tile left of screen for bidirectional scroll buffer */
         s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-        vram_addr((u16)(VRAM_SCB4 + first_sprite));
-        vram_mod(1);
-        for (u8 col = 0; col < num_cols; col++) {
-            s16 x = (s16)((col * tile_w) - tile_w);
-            vram_data(hw_sprite_pack_scb4(x));
-        }
+        hw_sprite_write_scb4_range(first_sprite, num_cols, -tile_w, tile_w);
 
         bd->hw_sprite_first = first_sprite;
         bd->hw_sprite_count = num_cols;
@@ -186,12 +174,7 @@ static void draw_backdrop(BackdropData *bd, u16 first_sprite) {
 
         if (infinite_width) {
             s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-            vram_addr((u16)(VRAM_SCB4 + first_sprite));
-            vram_mod(1);
-            for (u8 col = 0; col < num_cols; col++) {
-                s16 x = (s16)((col * tile_w) - tile_w);
-                vram_data(hw_sprite_pack_scb4(x));
-            }
+            hw_sprite_write_scb4_range(first_sprite, num_cols, -tile_w, tile_w);
             bd->leftmost = first_sprite;
             bd->scroll_offset = SCROLL_FIX((TILE_SIZE * zoom) >> 4);
             bd->last_scroll_px = FIX_INT(parallax_offset_x);
@@ -243,25 +226,19 @@ static void draw_backdrop(BackdropData *bd, u16 first_sprite) {
             s16 base_left_x = (s16)(SCROLL_INT(bd->scroll_offset) - 2 * tile_width_zoomed);
             u8 leftmost_offset = (u8)(bd->leftmost - first_sprite);
 
-            vram_addr((u16)(VRAM_SCB4 + first_sprite));
-            vram_mod(1);
+            hw_sprite_begin_scb4(first_sprite);
             for (u8 buf = 0; buf < num_cols; buf++) {
                 u8 screen_col = (u8)((buf - leftmost_offset + num_cols) % num_cols);
                 s16 x = (s16)(base_left_x + screen_col * tile_width_zoomed);
-                vram_data(hw_sprite_pack_scb4(x));
+                hw_sprite_write_scb4_data(hw_sprite_pack_scb4(x));
             }
         }
     } else {
         s16 base_x = (s16)(bd->viewport_x - FIX_INT(parallax_offset_x));
 
         if (base_x != bd->last_base_x || zoom_changed) {
-            vram_addr((u16)(VRAM_SCB4 + first_sprite));
-            vram_mod(1);
-            for (u8 col = 0; col < num_cols; col++) {
-                s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
-                s16 x_pos = (s16)(base_x + col_offset);
-                vram_data(hw_sprite_pack_scb4(x_pos));
-            }
+            s16 tile_step = (s16)((TILE_SIZE * zoom) >> 4);
+            hw_sprite_write_scb4_range(first_sprite, num_cols, base_x, tile_step);
             bd->last_base_x = base_x;
         }
     }

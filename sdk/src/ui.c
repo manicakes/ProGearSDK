@@ -13,7 +13,6 @@
 #include <lighting.h>
 #include <audio.h>
 #include <hw/sprite.h>
-#include <hw/lspc.h>
 #include <visual.h>
 
 #define MENU_ITEM_HEIGHT     8
@@ -226,19 +225,17 @@ static void render_panel_9slice(MenuData *menu, s16 screen_x, s16 screen_y) {
 
     u16 scb3_val = hw_sprite_pack_scb3(screen_y, actual_height);
 
+    /* Write tile data for each column using batched SCB1 operations */
     for (u8 col = 0; col < num_cols; col++) {
         u16 spr = first_sprite + col;
-
-        LSPC_ADDR = VRAM_SCB1 + (spr * 64);
-        LSPC_MOD = 1;
+        hw_sprite_begin_scb1(spr);
 
         u8 row_out = 0;
         u16 tile, attr;
 
         for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            LSPC_DATA = tile;
-            LSPC_DATA = attr;
+            hw_sprite_write_scb1_data(tile, attr);
             row_out++;
         }
 
@@ -247,8 +244,7 @@ static void render_panel_9slice(MenuData *menu, s16 screen_x, s16 screen_y) {
 
         for (u8 r = orig_middle_start; r < orig_middle_end; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            LSPC_DATA = tile;
-            LSPC_DATA = attr;
+            hw_sprite_write_scb1_data(tile, attr);
             row_out++;
 
             if (r == PANEL_MIDDLE_ROW) {
@@ -257,8 +253,7 @@ static void render_panel_9slice(MenuData *menu, s16 screen_x, s16 screen_y) {
                 get_panel_tile_and_attr(asset, col, PANEL_MIDDLE_ROW, &repeat_tile, &repeat_attr,
                                         palette);
                 for (u8 e = 0; e < extra_rows; e++) {
-                    LSPC_DATA = repeat_tile;
-                    LSPC_DATA = repeat_attr;
+                    hw_sprite_write_scb1_data(repeat_tile, repeat_attr);
                     row_out++;
                 }
             }
@@ -266,38 +261,25 @@ static void render_panel_9slice(MenuData *menu, s16 screen_x, s16 screen_y) {
 
         for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            LSPC_DATA = tile;
-            LSPC_DATA = attr;
+            hw_sprite_write_scb1_data(tile, attr);
             row_out++;
         }
 
-        // Clear remaining tile slots (up to 32)
+        /* Clear remaining tile slots (up to 32) */
         while (row_out < 32) {
-            LSPC_DATA = 0;
-            LSPC_DATA = 0;
+            hw_sprite_write_scb1_data(0, 0);
             row_out++;
         }
     }
 
-    // Batch SCB2 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost
-    LSPC_ADDR = VRAM_SCB2 + first_sprite;
-    LSPC_MOD = 1;
-    for (u8 col = 0; col < num_cols; col++) {
-        LSPC_DATA = SCB2_FULL_SIZE;
-    }
+    /* SCB2: Full size shrink for all sprites */
+    hw_sprite_write_shrink(first_sprite, num_cols, hw_sprite_full_shrink());
 
-    // Batch SCB3 writes - Y position and height
-    LSPC_ADDR = VRAM_SCB3 + first_sprite;
-    for (u8 col = 0; col < num_cols; col++) {
-        LSPC_DATA = scb3_val;
-    }
+    /* SCB3: Y position and height for all sprites */
+    hw_sprite_write_scb3_range(first_sprite, num_cols, scb3_val);
 
-    // Batch SCB4 writes - X positions
-    LSPC_ADDR = (vu16)(VRAM_SCB4 + first_sprite);
-    for (u8 col = 0; col < num_cols; col++) {
-        s16 x_pos = (s16)(screen_x + (col * 16));
-        LSPC_DATA = hw_sprite_pack_scb4(x_pos);
-    }
+    /* SCB4: X positions */
+    hw_sprite_write_scb4_range(first_sprite, num_cols, screen_x, 16);
 }
 
 static void update_panel_position(MenuData *menu, s16 screen_y) {
@@ -308,12 +290,7 @@ static void update_panel_position(MenuData *menu, s16 screen_y) {
     u8 actual_height = menu->panel_height_tiles;
 
     u16 scb3_val = hw_sprite_pack_scb3(screen_y, actual_height);
-
-    LSPC_ADDR = VRAM_SCB3 + first_sprite;
-    LSPC_MOD = 1;
-    for (u8 col = 0; col < num_cols; col++) {
-        LSPC_DATA = scb3_val;
-    }
+    hw_sprite_write_scb3_range(first_sprite, num_cols, scb3_val);
 }
 
 static void hide_panel_sprites(MenuData *menu) {

@@ -21,19 +21,35 @@
 
 #include <types.h>
 
-/* Fix layer dimensions */
+/* Fix layer dimensions (guarded to avoid redefinition if fix.h is also included) */
+#ifndef FIX_WIDTH
 #define FIX_WIDTH  40
+#endif
+#ifndef FIX_HEIGHT
 #define FIX_HEIGHT 32
+#endif
 
 /* Safe area (avoiding overscan on CRTs) */
+#ifndef FIX_SAFE_LEFT
 #define FIX_SAFE_LEFT   1
+#endif
+#ifndef FIX_SAFE_RIGHT
 #define FIX_SAFE_RIGHT  38
-#define FIX_SAFE_TOP    2
-#define FIX_SAFE_BOTTOM 29
+#endif
+#ifndef FIX_SAFE_TOP
+#define FIX_SAFE_TOP    3
+#endif
+#ifndef FIX_SAFE_BOTTOM
+#define FIX_SAFE_BOTTOM 28
+#endif
 
 /* Visible area accounting for hardware offset */
+#ifndef FIX_VISIBLE_TOP
 #define FIX_VISIBLE_TOP    2
+#endif
+#ifndef FIX_VISIBLE_BOTTOM
 #define FIX_VISIBLE_BOTTOM 29
+#endif
 
 /**
  * Put a single tile on the fix layer.

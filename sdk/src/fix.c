@@ -5,47 +5,21 @@
  */
 
 #include <fix.h>
-#include <neogeo.h>
+#include <hw/fix.h>
 #include <stdarg.h>
 
 static u16 font_base = 0;
 
 void NGFixPut(u8 x, u8 y, u16 tile, u8 palette) {
-    if (x >= NG_FIX_WIDTH || y >= NG_FIX_HEIGHT)
-        return;
-
-    /* Use optimized indexed addressing for VRAM access.
-     * "move.w X,d(An)" is faster than "move.w X,xxx.L" */
-    NG_VRAM_DECLARE_BASE();
-
-    /* Fix layer is column-major: address = base + (x * 32) + y */
-    NG_VRAM_SET_ADDR_FAST(NG_FIX_VRAM + (x << 5) + y);
-    NG_VRAM_WRITE_FAST(((u16)palette << 12) | (tile & 0x0FFF));
+    hw_fix_put(x, y, tile, palette);
 }
 
 void NGFixClear(u8 x, u8 y, u8 w, u8 h) {
-    NG_VRAM_DECLARE_BASE();
-
-    for (u8 row = 0; row < h && (y + row) < NG_FIX_HEIGHT; row++) {
-        NG_VRAM_SETUP_FAST(NG_FIX_VRAM + (x << 5) + (y + row), 32);
-        /* Use optimized DBF loop for clearing columns */
-        if (w > 0) {
-            u8 count = w;
-            if ((x + w) > NG_FIX_WIDTH)
-                count = NG_FIX_WIDTH - x;
-            NG_VRAM_CLEAR_FAST(count);
-        }
-    }
-    NG_VRAM_SET_MOD_FAST(1);
+    hw_fix_clear(x, y, w, h);
 }
 
 void NGFixClearAll(void) {
-    /* Optimized full-screen clear using DBF loop.
-     * Total tiles: 40 columns * 32 rows = 1280 words.
-     * DBF loop is significantly faster than C for-loop. */
-    NG_VRAM_DECLARE_BASE();
-    NG_VRAM_SETUP_FAST(NG_FIX_VRAM, 1);
-    NG_VRAM_CLEAR_FAST(NG_FIX_WIDTH * NG_FIX_HEIGHT);
+    hw_fix_clear_all();
 }
 
 NGFixLayout NGFixLayoutAlign(NGFixHAlign h, NGFixVAlign v) {
@@ -118,21 +92,7 @@ void NGTextPrint(NGFixLayout layout, u8 palette, const char *str) {
     u8 x = calc_x(layout, text_len);
     u8 y = calc_y(layout);
 
-    u16 pal = (u16)palette << 12;
-
-    /* Use optimized indexed addressing for faster VRAM writes.
-     * Fix layer is column-major, VRAMMOD = 32 advances one column per write. */
-    NG_VRAM_DECLARE_BASE();
-    NG_VRAM_SETUP_FAST(NG_FIX_VRAM + (x << 5) + y, 32);
-
-    while (*str && x < NG_FIX_WIDTH) {
-        u8 c = (u8)*str++;
-        u16 tile = font_base + c;
-        NG_VRAM_WRITE_FAST(pal | tile);
-        x++;
-    }
-
-    NG_VRAM_SET_MOD_FAST(1);
+    hw_fix_text(x, y, str, palette, font_base);
 }
 
 static u8 int_to_str(s32 value, char *buf, u8 base, u8 is_signed) {

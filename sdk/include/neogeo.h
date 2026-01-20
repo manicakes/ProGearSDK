@@ -9,7 +9,7 @@
  * @brief Main ProGearSDK header.
  *
  * Include this header to access core SDK functionality including
- * hardware registers, system functions, and memory map definitions.
+ * system functions and memory map definitions.
  *
  * @section memmap Memory Map
  * - P-ROM: 0x000000 - 0x0FFFFF (1MB, banked beyond)
@@ -23,148 +23,6 @@
 #include <types.h>
 #include <color.h>
 #include <palette.h>
-
-/** @defgroup hwregs Hardware Registers
- *  @brief Direct hardware register access.
- *  @{
- */
-
-#define NG_REG_LSPCMODE (*(vu16 *)0x3C0006) /**< LSPC mode register */
-#define NG_REG_IRQACK   (*(vu16 *)0x3C000C) /**< IRQ acknowledge */
-#define NG_REG_WATCHDOG (*(vu8 *)0x300001)  /**< Watchdog kick */
-
-#define NG_REG_VRAMADDR (*(vu16 *)0x3C0000) /**< VRAM address */
-#define NG_REG_VRAMDATA (*(vu16 *)0x3C0002) /**< VRAM data read/write */
-#define NG_REG_VRAMMOD  (*(vu16 *)0x3C0004) /**< VRAM address auto-increment */
-
-/** @} */
-
-/** @defgroup vramopt VRAM Optimization
- *  @brief Optimized VRAM access using 68000 indexed addressing.
- *
- *  These macros implement the optimization from the NeoGeo dev wiki:
- *  Using indexed addressing with a base register is faster than
- *  absolute long addressing for consecutive VRAM operations.
- *
- *  "move.w X,d(An)" loads faster than "move.w X,xxx.L"
- *
- *  Usage:
- *  @code
- *  NG_VRAM_DECLARE_BASE();              // Declare and load base register
- *  NG_VRAM_SET_MOD_FAST(1);             // Set auto-increment
- *  NG_VRAM_SET_ADDR_FAST(0x7000);       // Set address
- *  NG_VRAM_WRITE_FAST(tile_data);       // Write data (auto-increments)
- *  @endcode
- *  @{
- */
-
-/** Base address of VRAM registers (VRAMADDR at +0, VRAMDATA at +2, VRAMMOD at +4) */
-#define NG_VRAM_BASE 0x3C0000
-
-/**
- * Declare and initialize the VRAM base register.
- * Call once at the start of a function that does multiple VRAM operations.
- * Uses register a5 which is typically caller-saved.
- *
- * Note: The __asm__ syntax is GCC-specific. A fallback is provided for
- * static analysis tools (cppcheck) that don't understand this syntax.
- */
-#ifdef __CPPCHECK__
-/* cppcheck-compatible fallback (no register binding) */
-#define NG_VRAM_DECLARE_BASE() volatile u16 *_ng_vram_base = (volatile u16 *)NG_VRAM_BASE
-#else
-/* GCC optimized version: binds _ng_vram_base to register a5 */
-#define NG_VRAM_DECLARE_BASE() \
-    register volatile u16 *_ng_vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE
-#endif
-
-/**
- * Set VRAM address using indexed addressing (faster than absolute).
- * Requires NG_VRAM_DECLARE_BASE() to be called first.
- */
-#define NG_VRAM_SET_ADDR_FAST(addr) (_ng_vram_base[0] = (u16)(addr))
-
-/**
- * Write to VRAM data register using indexed addressing.
- * Address auto-increments by VRAMMOD after each write.
- */
-#define NG_VRAM_WRITE_FAST(data) (_ng_vram_base[1] = (u16)(data))
-
-/**
- * Read from VRAM data register using indexed addressing.
- */
-#define NG_VRAM_READ_FAST() (_ng_vram_base[1])
-
-/**
- * Set VRAM auto-increment modifier using indexed addressing.
- */
-#define NG_VRAM_SET_MOD_FAST(mod) (_ng_vram_base[2] = (u16)(mod))
-
-/**
- * Combined: set address and modifier in sequence (common pattern).
- */
-#define NG_VRAM_SETUP_FAST(addr, mod)   \
-    do {                                \
-        _ng_vram_base[0] = (u16)(addr); \
-        _ng_vram_base[2] = (u16)(mod);  \
-    } while (0)
-
-/**
- * Write N consecutive zero words to VRAM (optimized clear).
- * Uses DBF loop for minimal overhead.
- * @param count Number of words to write (1-65536)
- */
-#ifdef __CPPCHECK__
-/* cppcheck-compatible fallback */
-#define NG_VRAM_CLEAR_FAST(count)              \
-    do {                                       \
-        for (u16 _i = 0; _i < (count); _i++) { \
-            _ng_vram_base[1] = 0;              \
-        }                                      \
-    } while (0)
-#else
-#define NG_VRAM_CLEAR_FAST(count)                             \
-    do {                                                      \
-        register u16 _cnt __asm__("d0") = (u16)((count) - 1); \
-        __asm__ volatile("1:\n\t"                             \
-                         "    clr.w 2(%[base])\n\t"           \
-                         "    dbf %[cnt], 1b\n\t"             \
-                         : [cnt] "+d"(_cnt)                   \
-                         : [base] "a"(_ng_vram_base)          \
-                         : "memory");                         \
-    } while (0)
-#endif
-
-/**
- * Write N consecutive copies of a value to VRAM (optimized fill).
- * Uses DBF loop for minimal overhead.
- * @param value Word value to write
- * @param count Number of words to write (1-65536)
- */
-#ifdef __CPPCHECK__
-/* cppcheck-compatible fallback */
-#define NG_VRAM_FILL_FAST(value, count)        \
-    do {                                       \
-        u16 _val = (u16)(value);               \
-        for (u16 _i = 0; _i < (count); _i++) { \
-            _ng_vram_base[1] = _val;           \
-        }                                      \
-    } while (0)
-#else
-#define NG_VRAM_FILL_FAST(value, count)                               \
-    do {                                                              \
-        register u16 _val __asm__("d1") = (u16)(value);               \
-        register u16 _cnt __asm__("d0") = (u16)((count) - 1);         \
-        __asm__ volatile("1:\n\t"                                     \
-                         "    move.w %[val], 2(%[base])\n\t"          \
-                         "    dbf %[cnt], 1b\n\t"                     \
-                         : [cnt] "+d"(_cnt)                           \
-                         : [base] "a"(_ng_vram_base), [val] "d"(_val) \
-                         : "memory");                                 \
-    } while (0)
-#endif
-
-/** @} */
 
 /** @defgroup biosvar BIOS Variables
  *  @brief BIOS work RAM variables.
@@ -193,9 +51,7 @@ void NGWaitVBlank(void);
  * Kick the watchdog timer.
  * Must be called regularly to prevent system reset.
  */
-static inline void NGWatchdogKick(void) {
-    NG_REG_WATCHDOG = 0;
-}
+void NGWatchdogKick(void);
 
 /** @} */
 
@@ -305,13 +161,6 @@ static inline void NGWatchdogKick(void) {
 /** @defgroup optdoc Optimization Guidelines
  *  @brief 68000 optimization tips for NeoGeo development.
  *
- *  ## VRAM Access
- *  - Use NG_VRAM_DECLARE_BASE() and NG_VRAM_*_FAST macros for multiple
- *    consecutive VRAM operations. Indexed addressing (d(An)) is faster
- *    than absolute long addressing (xxx.L).
- *  - Batch VRAM writes when possible. Set VRAMMOD once, then write
- *    multiple values without re-setting the address.
- *
  *  ## Register Operations
  *  - Use MOVEQ #0,Dn instead of CLR.L Dn (2 cycles faster)
  *  - Use SUB.L An,An instead of MOVE.L #0,An (4 cycles faster)
@@ -345,16 +194,6 @@ static inline void NGWatchdogKick(void) {
  *  @brief Shorter names without NG_ prefix for cleaner code.
  *  @{
  */
-
-/* VRAM macros */
-#define VRAM_DECLARE_BASE  NG_VRAM_DECLARE_BASE
-#define VRAM_SET_ADDR_FAST NG_VRAM_SET_ADDR_FAST
-#define VRAM_WRITE_FAST    NG_VRAM_WRITE_FAST
-#define VRAM_READ_FAST     NG_VRAM_READ_FAST
-#define VRAM_SET_MOD_FAST  NG_VRAM_SET_MOD_FAST
-#define VRAM_SETUP_FAST    NG_VRAM_SETUP_FAST
-#define VRAM_CLEAR_FAST    NG_VRAM_CLEAR_FAST
-#define VRAM_FILL_FAST     NG_VRAM_FILL_FAST
 
 /* System function aliases */
 #define WaitVBlank   NGWaitVBlank

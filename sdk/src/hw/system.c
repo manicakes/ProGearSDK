@@ -25,6 +25,11 @@ void hw_system_watchdog(void) {
     IO_WATCHDOG = 0;
 }
 
+/* Public API wrapper */
+void NGWatchdogKick(void) {
+    IO_WATCHDOG = 0;
+}
+
 u8 hw_system_is_mvs(void) {
     return BIOS_MVS_FLAG;
 }
