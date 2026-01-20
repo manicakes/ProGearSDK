@@ -17,9 +17,9 @@
 typedef struct BallSystem *BallSystemHandle;
 
 // Create ball system using arena allocation
-// arena: Arena to allocate from (typically ng_arena_state)
+// arena: Arena to allocate from (typically arena_state)
 // max_balls: Maximum number of balls to support
-BallSystemHandle BallSystemCreate(NGArena *arena, u8 max_balls);
+BallSystemHandle BallSystemCreate(Arena *arena, u8 max_balls);
 
 // Destroy ball system and release physics world
 void BallSystemDestroy(BallSystemHandle sys);

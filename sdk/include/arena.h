@@ -4,15 +4,18 @@
  * SPDX-License-Identifier: MIT
  */
 
-// arena.h - Arena memory allocator
-//
-// Arenas provide fast, zero-fragmentation memory allocation with bulk free.
-// Allocations bump a pointer forward; freeing resets the pointer.
-//
-// Three standard arenas are provided:
-//   ng_arena_persistent - Lives entire game (player data, global state)
-//   ng_arena_state      - Cleared on level/screen changes
-//   ng_arena_frame      - Cleared every frame (temp strings, scratch)
+/**
+ * @file arena.h
+ * @brief Arena memory allocator.
+ *
+ * Arenas provide fast, zero-fragmentation memory allocation with bulk free.
+ * Allocations bump a pointer forward; freeing resets the pointer.
+ *
+ * Three standard arenas are provided:
+ *   arena_persistent - Lives entire game (player data, global state)
+ *   arena_state      - Cleared on level/screen changes
+ *   arena_frame      - Cleared every frame (temp strings, scratch)
+ */
 
 #ifndef ARENA_H
 #define ARENA_H
@@ -23,14 +26,14 @@
  * Arena allocator structure.
  * Uses bump-pointer allocation for zero-fragmentation memory management.
  */
-typedef struct NGArena {
+typedef struct Arena {
     u8 *base;    /**< Start of memory region */
     u8 *current; /**< Current allocation pointer (bump pointer) */
     u8 *end;     /**< End of memory region */
-} NGArena;
+} Arena;
 
 /** Mark for save/restore (temporary allocations) */
-typedef u8 *NGArenaMark;
+typedef u8 *ArenaMark;
 
 /** @defgroup arenacore Core Operations
  *  @{
@@ -42,7 +45,7 @@ typedef u8 *NGArenaMark;
  * @param buffer Memory buffer to use
  * @param size Size of buffer in bytes
  */
-void NGArenaInit(NGArena *arena, void *buffer, u32 size);
+void ArenaInit(Arena *arena, void *buffer, u32 size);
 
 /**
  * Allocate memory from arena.
@@ -50,13 +53,13 @@ void NGArenaInit(NGArena *arena, void *buffer, u32 size);
  * @param size Bytes to allocate (will be 4-byte aligned)
  * @return Pointer to allocated memory, or NULL if out of memory
  */
-void *NGArenaAlloc(NGArena *arena, u32 size);
+void *ArenaAlloc(Arena *arena, u32 size);
 
 /**
  * Reset arena to empty (instant bulk free).
  * @param arena Arena to reset
  */
-void NGArenaReset(NGArena *arena);
+void ArenaReset(Arena *arena);
 
 /** @} */
 
@@ -67,17 +70,17 @@ void NGArenaReset(NGArena *arena);
 /**
  * Save current position for later restore.
  * @param arena Arena to save
- * @return Mark that can be passed to NGArenaRestore()
+ * @return Mark that can be passed to ArenaRestore()
  */
-NGArenaMark NGArenaSave(NGArena *arena);
+ArenaMark ArenaSave(Arena *arena);
 
 /**
  * Restore arena to saved position.
  * Frees everything allocated since the mark was saved.
  * @param arena Arena to restore
- * @param mark Mark from NGArenaSave()
+ * @param mark Mark from ArenaSave()
  */
-void NGArenaRestore(NGArena *arena, NGArenaMark mark);
+void ArenaRestore(Arena *arena, ArenaMark mark);
 
 /** @} */
 
@@ -90,14 +93,14 @@ void NGArenaRestore(NGArena *arena, NGArenaMark mark);
  * @param arena Arena to query
  * @return Bytes used
  */
-u32 NGArenaUsed(NGArena *arena);
+u32 ArenaUsed(Arena *arena);
 
 /**
  * Get bytes remaining.
  * @param arena Arena to query
  * @return Bytes available
  */
-u32 NGArenaRemaining(NGArena *arena);
+u32 ArenaRemaining(Arena *arena);
 
 /** @} */
 
@@ -111,7 +114,7 @@ u32 NGArenaRemaining(NGArena *arena);
  * @param type Type to allocate
  * @return Typed pointer to allocated struct
  */
-#define NG_ARENA_ALLOC(arena, type) ((type *)NGArenaAlloc((arena), sizeof(type)))
+#define ARENA_ALLOC(arena, type) ((type *)ArenaAlloc((arena), sizeof(type)))
 
 /**
  * Allocate an array of structs.
@@ -120,8 +123,7 @@ u32 NGArenaRemaining(NGArena *arena);
  * @param count Number of elements
  * @return Typed pointer to allocated array
  */
-#define NG_ARENA_ALLOC_ARRAY(arena, type, count) \
-    ((type *)NGArenaAlloc((arena), sizeof(type) * (count)))
+#define ARENA_ALLOC_ARRAY(arena, type, count) ((type *)ArenaAlloc((arena), sizeof(type) * (count)))
 
 /** @} */
 
@@ -130,36 +132,36 @@ u32 NGArenaRemaining(NGArena *arena);
  *  @{
  */
 
-/** Default size for persistent arena (can be overridden before including arena.h) */
-#ifndef NG_ARENA_PERSISTENT_SIZE
-#define NG_ARENA_PERSISTENT_SIZE 8192 /**< 8 KB */
+/** Default size for persistent arena */
+#ifndef ARENA_PERSISTENT_SIZE
+#define ARENA_PERSISTENT_SIZE 8192 /**< 8 KB */
 #endif
 
-/** Default size for state arena (can be overridden before including arena.h) */
-#ifndef NG_ARENA_STATE_SIZE
-#define NG_ARENA_STATE_SIZE 24576 /**< 24 KB */
+/** Default size for state arena */
+#ifndef ARENA_STATE_SIZE
+#define ARENA_STATE_SIZE 24576 /**< 24 KB */
 #endif
 
-/** Default size for frame arena (can be overridden before including arena.h) */
-#ifndef NG_ARENA_FRAME_SIZE
-#define NG_ARENA_FRAME_SIZE 4096 /**< 4 KB */
+/** Default size for frame arena */
+#ifndef ARENA_FRAME_SIZE
+#define ARENA_FRAME_SIZE 4096 /**< 4 KB */
 #endif
 
 /** Persistent arena - lives entire game (player data, global state) */
-extern NGArena ng_arena_persistent;
+extern Arena arena_persistent;
 
 /** State arena - cleared on level/screen changes */
-extern NGArena ng_arena_state;
+extern Arena arena_state;
 
 /** Frame arena - cleared every frame (temp strings, scratch) */
-extern NGArena ng_arena_frame;
+extern Arena arena_frame;
 
 /**
  * Initialize standard arenas.
- * Call once at startup (automatically called by NGEngineInit).
+ * Call once at startup (automatically called by EngineInit).
  */
-void NGArenaSystemInit(void);
+void ArenaSystemInit(void);
 
 /** @} */
 
-#endif // ARENA_H
+#endif /* ARENA_H */

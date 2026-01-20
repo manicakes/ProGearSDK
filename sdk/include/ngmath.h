@@ -261,4 +261,31 @@ NGVec2 NGVec2Normalize(NGVec2 v);
 
 /** @} */
 
+/** @defgroup mathclean Clean API Aliases
+ *  @{
+ */
+
+/* Trig functions */
+#define Sin NGSin
+#define Cos NGCos
+
+/* Utility functions */
+#define Abs   NGAbs
+#define Lerp  NGLerp
+#define Clamp NGClamp
+#define MIN   NG_MIN
+#define MAX   NG_MAX
+
+/* Vector type and functions */
+typedef NGVec2 Vec2;
+#define Vec2Add       NGVec2Add
+#define Vec2Sub       NGVec2Sub
+#define Vec2Scale     NGVec2Scale
+#define Vec2Dot       NGVec2Dot
+#define Vec2LengthSq  NGVec2LengthSq
+#define Vec2Length    NGVec2Length
+#define Vec2Normalize NGVec2Normalize
+
+/** @} */
+
 #endif // _NGMATH_H_

@@ -363,4 +363,50 @@ u8 NGPhysTestCollision(NGBodyHandle a, NGBodyHandle b, NGCollision *out);
 
 /** @} */
 
+/** @defgroup physclean Clean API Aliases
+ *  @{
+ */
+
+/* Type aliases */
+typedef NGVec2 Vec2;
+typedef NGBody Body;
+typedef NGBodyHandle BodyHandle;
+typedef NGPhysWorld PhysWorld;
+typedef NGPhysWorldHandle PhysWorldHandle;
+typedef NGCollision Collision;
+typedef NGCollisionCallback CollisionCallback;
+
+/* World functions */
+#define PhysWorldCreate        NGPhysWorldCreate
+#define PhysWorldDestroy       NGPhysWorldDestroy
+#define PhysWorldSetGravity    NGPhysWorldSetGravity
+#define PhysWorldSetBounds     NGPhysWorldSetBounds
+#define PhysWorldDisableBounds NGPhysWorldDisableBounds
+#define PhysWorldReset         NGPhysWorldReset
+#define PhysWorldUpdate        NGPhysWorldUpdate
+
+/* Body creation/destruction */
+#define PhysBodyCreateCircle NGPhysBodyCreateCircle
+#define PhysBodyCreateAABB   NGPhysBodyCreateAABB
+#define PhysBodyDestroy      NGPhysBodyDestroy
+
+/* Body getters/setters */
+#define PhysBodySetPos         NGPhysBodySetPos
+#define PhysBodyGetPos         NGPhysBodyGetPos
+#define PhysBodySetVel         NGPhysBodySetVel
+#define PhysBodyGetVel         NGPhysBodyGetVel
+#define PhysBodySetAccel       NGPhysBodySetAccel
+#define PhysBodySetMass        NGPhysBodySetMass
+#define PhysBodySetRestitution NGPhysBodySetRestitution
+#define PhysBodySetFriction    NGPhysBodySetFriction
+#define PhysBodySetFlags       NGPhysBodySetFlags
+#define PhysBodySetStatic      NGPhysBodySetStatic
+#define PhysBodySetLayer       NGPhysBodySetLayer
+#define PhysBodySetUserData    NGPhysBodySetUserData
+#define PhysBodyGetUserData    NGPhysBodyGetUserData
+#define PhysBodyApplyImpulse   NGPhysBodyApplyImpulse
+#define PhysTestCollision      NGPhysTestCollision
+
+/** @} */
+
 #endif // _PHYSICS_H_

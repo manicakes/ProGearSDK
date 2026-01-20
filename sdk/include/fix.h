@@ -164,4 +164,49 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...);
 
 /** @} */
 
+/** @defgroup fixclean Clean API Aliases
+ *  @brief Shorter names without NG_ prefix for cleaner code.
+ *  @{
+ */
+
+/* Constants */
+#define FIX_WIDTH          NG_FIX_WIDTH
+#define FIX_HEIGHT         NG_FIX_HEIGHT
+#define FIX_VRAM           NG_FIX_VRAM
+#define FIX_VISIBLE_TOP    NG_FIX_VISIBLE_TOP
+#define FIX_VISIBLE_BOTTOM NG_FIX_VISIBLE_BOTTOM
+#define FIX_VISIBLE_LEFT   NG_FIX_VISIBLE_LEFT
+#define FIX_VISIBLE_RIGHT  NG_FIX_VISIBLE_RIGHT
+#define FIX_SAFE_TOP       NG_FIX_SAFE_TOP
+#define FIX_SAFE_BOTTOM    NG_FIX_SAFE_BOTTOM
+#define FIX_SAFE_LEFT      NG_FIX_SAFE_LEFT
+#define FIX_SAFE_RIGHT     NG_FIX_SAFE_RIGHT
+#define FIX_COLOR_TEXT     NG_FIX_COLOR_TEXT
+#define FIX_COLOR_SHADOW   NG_FIX_COLOR_SHADOW
+
+/* Type aliases */
+typedef NGFixHAlign FixHAlign;
+typedef NGFixVAlign FixVAlign;
+typedef NGFixLayout FixLayout;
+
+/* Alignment constants */
+#define ALIGN_LEFT   NG_ALIGN_LEFT
+#define ALIGN_CENTER NG_ALIGN_CENTER
+#define ALIGN_RIGHT  NG_ALIGN_RIGHT
+#define ALIGN_TOP    NG_ALIGN_TOP
+#define ALIGN_MIDDLE NG_ALIGN_MIDDLE
+#define ALIGN_BOTTOM NG_ALIGN_BOTTOM
+
+/* Function aliases */
+#define FixLayoutAlign  NGFixLayoutAlign
+#define FixLayoutOffset NGFixLayoutOffset
+#define FixLayoutXY     NGFixLayoutXY
+#define FixPut          NGFixPut
+#define FixClear        NGFixClear
+#define FixClearAll     NGFixClearAll
+#define TextPrint       NGTextPrint
+#define TextPrintf      NGTextPrintf
+
+/** @} */
+
 #endif // FIX_H

@@ -6,24 +6,25 @@
 
 #include <actor.h>
 #include <camera.h>
-#include <neogeo.h>
-#include <sprite.h>
+#include <hw/sprite.h>
+#include <hw/lspc.h>
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 224
 #define TILE_SIZE     16
 
+/* Internal actor data structure */
 typedef struct {
     const NGVisualAsset *asset;
-    fixed x, y;        // Scene position
-    u8 z;              // Z-index (render order)
-    u16 width, height; // Display dimensions (0 = asset size)
+    fixed x, y;        /* Scene position */
+    u8 z;              /* Z-index (render order) */
+    u16 width, height; /* Display dimensions (0 = asset size) */
     u8 palette;
     u8 visible;
     u8 h_flip, v_flip;
-    u8 in_scene;     // Added to scene?
-    u8 active;       // Slot in use?
-    u8 screen_space; // If set, ignore camera (UI elements)
+    u8 in_scene;     /* Added to scene? */
+    u8 active;       /* Slot in use? */
+    u8 screen_space; /* If set, ignore camera (UI elements) */
 
     u8 anim_index;
     u16 anim_frame;
@@ -32,12 +33,12 @@ typedef struct {
     u16 hw_sprite_first;
     u8 hw_sprite_count;
 
-    // Dirty tracking: flags indicate which SCB registers need VRAM updates
+    /* Dirty tracking: flags indicate which SCB registers need VRAM updates */
     u8 tiles_dirty;
     u8 shrink_dirty;
     u8 position_dirty;
 
-    // Cached values to detect changes
+    /* Cached values to detect changes */
     u16 last_anim_frame;
     u8 last_h_flip;
     u8 last_v_flip;
@@ -46,9 +47,9 @@ typedef struct {
     s16 last_screen_x;
     s16 last_screen_y;
     u8 last_cols;
-} Actor;
+} ActorData;
 
-static Actor actors[NG_ACTOR_MAX];
+static ActorData actors[ACTOR_MAX];
 
 static u8 str_equal(const char *a, const char *b) {
     while (*a && *b) {
@@ -58,18 +59,18 @@ static u8 str_equal(const char *a, const char *b) {
     return *a == *b;
 }
 
-extern void _NGSceneMarkRenderQueueDirty(void);
+extern void _SceneMarkRenderQueueDirty(void);
 
-void _NGActorSystemInit(void) {
-    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
+void _ActorSystemInit(void) {
+    for (u8 i = 0; i < ACTOR_MAX; i++) {
         actors[i].active = 0;
         actors[i].in_scene = 0;
     }
 }
 
-void _NGActorSystemUpdate(void) {
-    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
-        Actor *actor = &actors[i];
+void _ActorSystemUpdate(void) {
+    for (u8 i = 0; i < ACTOR_MAX; i++) {
+        ActorData *actor = &actors[i];
         if (!actor->active || !actor->in_scene || !actor->asset)
             continue;
         if (!actor->asset->anims || actor->anim_index >= actor->asset->anim_count)
@@ -99,23 +100,11 @@ void _NGActorSystemUpdate(void) {
 
 /**
  * Render an actor to VRAM.
- * Uses optimized indexed VRAM addressing for faster writes.
- * SCB register layout per wiki.neogeodev.org/Sprites:
- * - SCB1: Tile index + attributes (palette, flip)
- * - SCB2: Shrink (upper nibble = H, lower byte = V, $0FFF = full size)
- * - SCB3: Y position (496-Y)<<7 | sticky<<6 | height
- * - SCB4: X position << 7
+ * Uses hw/sprite layer for optimized VRAM access.
  */
-static void draw_actor(Actor *actor, u16 first_sprite) {
+static void draw_actor(ActorData *actor, u16 first_sprite) {
     if (!actor->visible || !actor->asset)
         return;
-
-    /* Declare VRAM base register for optimized indexed addressing */
-#ifdef __CPPCHECK__
-    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
-#else
-    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
-#endif
 
     const NGVisualAsset *asset = actor->asset;
 
@@ -142,11 +131,11 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         screen_x = FIX_INT(actor->x);
         screen_y = FIX_INT(actor->y);
         zoom = 16;
-        shrink = 0x0FFF;
+        shrink = SCB2_FULL_SIZE;
     } else {
-        NGCameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
-        zoom = NGCameraGetZoom();
-        shrink = NGCameraGetShrink();
+        CameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
+        zoom = CameraGetZoom();
+        shrink = CameraGetShrink();
     }
 
     u8 first_draw = (actor->hw_sprite_first != first_sprite) || (actor->last_cols != cols);
@@ -160,12 +149,13 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
 
     /* SCB1: Write tile indices and attributes (palette, flip bits) */
     if (first_draw || actor->tiles_dirty) {
+        /* Build tile/attr arrays for each column and write via hw_sprite */
+        u16 tiles[32];
+        u16 attrs[32];
+
         for (u8 col = 0; col < cols; col++) {
             u16 spr = first_sprite + col;
             u8 src_col = col % asset->width_tiles;
-
-            vram_base[0] = NG_SCB1_BASE + (spr * 64); /* VRAMADDR */
-            vram_base[2] = 1;                         /* VRAMMOD */
 
             for (u8 row = 0; row < rows; row++) {
                 u8 src_row = row % asset->height_tiles;
@@ -176,21 +166,12 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
                 u16 tile_idx = (u16)(asset->base_tile + frame_offset +
                                      (tile_col * asset->height_tiles) + tile_row);
 
-                vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA: tile index */
-
-                /* Default h_flip=1 for correct display, inverted when user flips */
-                u16 attr = ((u16)actor->palette << 8);
-                if (actor->v_flip)
-                    attr |= 0x02;
-                if (!actor->h_flip)
-                    attr |= 0x01;
-                vram_base[1] = attr; /* VRAMDATA: attributes */
+                tiles[row] = tile_idx;
+                attrs[row] = hw_sprite_attr(actor->palette, actor->h_flip, actor->v_flip);
             }
 
-            for (u8 row = rows; row < 32; row++) {
-                vram_base[1] = 0;
-                vram_base[1] = 0;
-            }
+            /* Write tiles for this sprite column */
+            hw_sprite_write_tiles(spr, rows, tiles, attrs);
         }
 
         actor->last_anim_frame = actor->anim_frame;
@@ -200,39 +181,18 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         actor->tiles_dirty = 0;
     }
 
-    /* SCB2: Shrink values (upper nibble = H, lower byte = V, $0FFF = full) */
+    /* SCB2: Shrink values */
     if (first_draw || zoom_changed) {
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < cols; col++) {
-            vram_base[1] = shrink;
-        }
+        hw_sprite_write_shrink(first_sprite, cols, shrink);
     }
 
     /* SCB3: Y position and height, SCB4: X position */
     if (first_draw || zoom_changed || position_changed) {
         /* Adjust height for zoom: at reduced zoom, shrunk graphics are shorter */
-        u8 height_bits = NGSpriteAdjustedHeight(rows, (u8)(shrink & 0xFF));
+        u8 height_bits = hw_sprite_adjusted_height(rows, (u8)(shrink & 0xFF));
 
-        /* First sprite is "driving", subsequent sprites are "driven" via sticky bit */
-        u16 scb3_driving = NGSpriteSCB3(screen_y, height_bits);
-        u16 scb3_sticky = NGSpriteSCB3Sticky();
-
-        /* Batch SCB3 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost */
-        vram_base[0] = NG_SCB3_BASE + first_sprite;
-        vram_base[2] = 1;
-        vram_base[1] = scb3_driving;
-        for (u8 col = 1; col < cols; col++) {
-            vram_base[1] = scb3_sticky;
-        }
-
-        /* Batch SCB4 writes - X positions */
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-        for (u8 col = 0; col < cols; col++) {
-            s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
-            s16 x_pos = (s16)(screen_x + col_offset);
-            vram_base[1] = NGSpriteSCB4(x_pos);
-        }
+        hw_sprite_write_ychain(first_sprite, cols, screen_y, height_bits);
+        hw_sprite_write_xchain(first_sprite, cols, screen_x, zoom);
 
         actor->last_screen_x = screen_x;
         actor->last_screen_y = screen_y;
@@ -244,39 +204,43 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
     actor->last_cols = cols;
 }
 
-u8 _NGActorIsInScene(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 _ActorIsInScene(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].active && actors[handle].in_scene;
 }
 
-u8 _NGActorGetZ(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 _ActorGetZ(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].z;
 }
 
-u8 _NGActorIsScreenSpace(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 _ActorIsScreenSpace(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].active && actors[handle].screen_space;
 }
 
-NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
-    if (!asset)
-        return NG_ACTOR_INVALID;
+Actor ActorCreate(const VisualAsset *asset) {
+    return ActorCreateSized(asset, 0, 0);
+}
 
-    NGActorHandle handle = NG_ACTOR_INVALID;
-    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
+Actor ActorCreateSized(const VisualAsset *asset, u16 width, u16 height) {
+    if (!asset)
+        return ACTOR_INVALID;
+
+    Actor handle = ACTOR_INVALID;
+    for (u8 i = 0; i < ACTOR_MAX; i++) {
         if (!actors[i].active) {
-            handle = i;
+            handle = (Actor)i;
             break;
         }
     }
-    if (handle == NG_ACTOR_INVALID)
-        return NG_ACTOR_INVALID;
+    if (handle == ACTOR_INVALID)
+        return ACTOR_INVALID;
 
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     actor->asset = asset;
     actor->x = 0;
     actor->y = 0;
@@ -311,10 +275,10 @@ NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
     return handle;
 }
 
-void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorAddToScene(Actor handle, fixed x, fixed y, u8 z) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
 
@@ -326,92 +290,92 @@ void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
     actor->tiles_dirty = 1;
     actor->hw_sprite_first = 0xFFFF;
 
-    _NGSceneMarkRenderQueueDirty();
+    _SceneMarkRenderQueueDirty();
 }
 
-void NGActorRemoveFromScene(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorRemoveFromScene(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
 
     u8 was_in_scene = actor->in_scene;
     actor->in_scene = 0;
 
-    /* Clear sprite heights to hide sprites */
+    /* Hide sprites */
     if (actor->hw_sprite_count > 0) {
-        NGSpriteHideRange(actor->hw_sprite_first, actor->hw_sprite_count);
+        hw_sprite_hide(actor->hw_sprite_first, actor->hw_sprite_count);
     }
 
     if (was_in_scene) {
-        _NGSceneMarkRenderQueueDirty();
+        _SceneMarkRenderQueueDirty();
     }
 }
 
-void NGActorDestroy(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorDestroy(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    NGActorRemoveFromScene(handle);
+    ActorRemoveFromScene(handle);
     actors[handle].active = 0;
 }
 
-void NGActorSetPos(NGActorHandle handle, fixed x, fixed y) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetPos(Actor handle, fixed x, fixed y) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     actor->x = x;
     actor->y = y;
 }
 
-void NGActorMove(NGActorHandle handle, fixed dx, fixed dy) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorMove(Actor handle, fixed dx, fixed dy) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     actor->x += dx;
     actor->y += dy;
 }
 
-void NGActorSetZ(NGActorHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetZ(Actor handle, u8 z) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     if (actor->z != z) {
         actor->z = z;
         if (actor->in_scene) {
-            _NGSceneMarkRenderQueueDirty();
+            _SceneMarkRenderQueueDirty();
         }
     }
 }
 
-fixed NGActorGetX(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+fixed ActorGetX(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].x;
 }
 
-fixed NGActorGetY(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+fixed ActorGetY(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].y;
 }
 
-u8 NGActorGetZ(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 ActorGetZ(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
     return actors[handle].z;
 }
 
-void NGActorSetAnim(NGActorHandle handle, u8 anim_index) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetAnim(Actor handle, u8 anim_index) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->asset)
         return;
     if (anim_index >= actor->asset->anim_count)
@@ -425,26 +389,26 @@ void NGActorSetAnim(NGActorHandle handle, u8 anim_index) {
     }
 }
 
-u8 NGActorSetAnimByName(NGActorHandle handle, const char *name) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 ActorPlayAnim(Actor handle, const char *name) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->asset || !actor->asset->anims)
         return 0;
 
     for (u8 i = 0; i < actor->asset->anim_count; i++) {
         if (str_equal(actor->asset->anims[i].name, name)) {
-            NGActorSetAnim(handle, i);
+            ActorSetAnim(handle, i);
             return 1;
         }
     }
     return 0;
 }
 
-void NGActorSetFrame(NGActorHandle handle, u16 frame) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetFrame(Actor handle, u16 frame) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->asset)
         return;
     if (frame >= actor->asset->frame_count)
@@ -457,10 +421,10 @@ void NGActorSetFrame(NGActorHandle handle, u16 frame) {
     }
 }
 
-u8 NGActorAnimDone(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 ActorAnimDone(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 1;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->asset || !actor->asset->anims)
         return 1;
     if (actor->anim_index >= actor->asset->anim_count)
@@ -472,19 +436,19 @@ u8 NGActorAnimDone(NGActorHandle handle) {
     return (actor->anim_frame >= anim->frame_count - 1);
 }
 
-void NGActorSetVisible(NGActorHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetVisible(Actor handle, u8 visible) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     actor->visible = visible ? 1 : 0;
 }
 
-void NGActorSetPalette(NGActorHandle handle, u8 palette) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetPalette(Actor handle, u8 palette) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     if (actor->palette != palette) {
@@ -493,36 +457,25 @@ void NGActorSetPalette(NGActorHandle handle, u8 palette) {
     }
 }
 
-void NGActorSetHFlip(NGActorHandle handle, u8 flip) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetFlip(Actor handle, u8 h_flip, u8 v_flip) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
-    u8 new_flip = flip ? 1 : 0;
-    if (actor->h_flip != new_flip) {
-        actor->h_flip = new_flip;
+    u8 new_h = h_flip ? 1 : 0;
+    u8 new_v = v_flip ? 1 : 0;
+    if (actor->h_flip != new_h || actor->v_flip != new_v) {
+        actor->h_flip = new_h;
+        actor->v_flip = new_v;
         actor->tiles_dirty = 1;
     }
 }
 
-void NGActorSetVFlip(NGActorHandle handle, u8 flip) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void ActorSetScreenSpace(Actor handle, u8 enabled) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
-    if (!actor->active)
-        return;
-    u8 new_flip = flip ? 1 : 0;
-    if (actor->v_flip != new_flip) {
-        actor->v_flip = new_flip;
-        actor->tiles_dirty = 1;
-    }
-}
-
-void NGActorSetScreenSpace(NGActorHandle handle, u8 enabled) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active)
         return;
     u8 new_val = enabled ? 1 : 0;
@@ -533,20 +486,20 @@ void NGActorSetScreenSpace(NGActorHandle handle, u8 enabled) {
     }
 }
 
-void NGActorDraw(NGActorHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+void _ActorDraw(Actor handle, u16 first_sprite) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->in_scene)
         return;
 
     draw_actor(actor, first_sprite);
 }
 
-u8 NGActorGetSpriteCount(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
+u8 _ActorGetSpriteCount(Actor handle) {
+    if (handle < 0 || handle >= ACTOR_MAX)
         return 0;
-    Actor *actor = &actors[handle];
+    ActorData *actor = &actors[handle];
     if (!actor->active || !actor->asset)
         return 0;
 
@@ -555,9 +508,9 @@ u8 NGActorGetSpriteCount(NGActorHandle handle) {
 }
 
 /* Internal: collect palettes from all actors in scene into bitmask */
-void _NGActorCollectPalettes(u8 *palette_mask) {
-    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
-        Actor *actor = &actors[i];
+void _ActorCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < ACTOR_MAX; i++) {
+        ActorData *actor = &actors[i];
         if (actor->active && actor->in_scene && actor->visible) {
             u8 pal = actor->palette;
             palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));

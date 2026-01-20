@@ -35,11 +35,11 @@
 #define LIGHTNING_MAX_INTERVAL  90        /* Maximum frames between strikes */
 
 typedef struct BallDemoState {
-    NGActorHandle brick;
-    NGBackdropHandle brick_pattern;
-    NGBackdropHandle brick_shadow;
+    Actor brick;
+    Backdrop brick_pattern;
+    Backdrop brick_shadow;
     BallSystemHandle balls;
-    NGMenuHandle menu;
+    MenuHandle menu;
     angle_t cam_angle;
     fixed cam_circle_radius;
     u8 menu_open;
@@ -48,7 +48,7 @@ typedef struct BallDemoState {
     /* Night mode state */
     u16 day_night_timer;
     u8 is_night;
-    NGLightingLayerHandle night_preset;
+    LightingLayerHandle night_preset;
     u16 lightning_timer;
     u16 rng_state;
 } BallDemoState;
@@ -82,12 +82,12 @@ static void update_lightning(void) {
     if (state->lightning_timer == 0) {
         u8 flash_type = (u8)(ball_demo_rand() % 3);
         if (flash_type == 0) {
-            NGLightingFlash(25, 25, 30, 4);
+            LightingFlash(25, 25, 30, 4);
         } else if (flash_type == 1) {
-            NGLightingFlash(20, 20, 25, 3);
-            NGLightingFlash(30, 30, 35, 6);
+            LightingFlash(20, 20, 25, 3);
+            LightingFlash(30, 30, 35, 6);
         } else {
-            NGLightingFlash(12, 12, 18, 8);
+            LightingFlash(12, 12, 18, 8);
         }
         state->lightning_timer =
             ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
@@ -98,43 +98,42 @@ static void update_day_night_cycle(void) {
     state->day_night_timer++;
 
     /* Update pre-baked fade animation */
-    NGLightingUpdatePrebakedFade();
+    LightingUpdatePrebakedFade();
 
     /* Check if fade-out completed (transitioning back to day) */
-    if (state->is_night && state->night_preset == NG_LIGHTING_INVALID_HANDLE) {
+    if (state->is_night && state->night_preset == LIGHTING_INVALID) {
         /* Fade completed, now fully day */
         state->is_night = 0;
     }
 
     /* Transition to night */
-    if (!state->is_night && !NGLightingIsPrebakedFading() &&
+    if (!state->is_night && !LightingIsPrebakedFading() &&
         state->day_night_timer >= NIGHT_MODE_CYCLE_FRAMES) {
         state->is_night = 1;
         state->day_night_timer = 0;
         /* Use pre-baked night preset - zero CPU palette transforms! */
-        state->night_preset =
-            NGLightingPushPreset(NG_LIGHTING_PREBAKED_NIGHT, NIGHT_TRANSITION_FRAMES);
+        state->night_preset = LightingPushPreset(LIGHTING_PREBAKED_NIGHT, NIGHT_TRANSITION_FRAMES);
         state->lightning_timer =
             ball_demo_rand_range(LIGHTNING_MIN_INTERVAL, LIGHTNING_MAX_INTERVAL);
         BallSystemSetGravity(state->balls, FIX(-1));
     }
     /* Transition to day */
-    else if (state->is_night && !NGLightingIsPrebakedFading() &&
+    else if (state->is_night && !LightingIsPrebakedFading() &&
              state->day_night_timer >= NIGHT_MODE_DURATION) {
         state->day_night_timer = 0;
         /* Pop preset with fade - animates back to original palettes */
-        NGLightingPopPreset(state->night_preset, NIGHT_TRANSITION_FRAMES);
-        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+        LightingPopPreset(state->night_preset, NIGHT_TRANSITION_FRAMES);
+        state->night_preset = LIGHTING_INVALID;
         BallSystemSetGravity(state->balls, FIX(1));
     }
 
-    if (state->is_night && !NGLightingIsPrebakedFading()) {
+    if (state->is_night && !LightingIsPrebakedFading()) {
         update_lightning();
     }
 }
 
 void BallDemoInit(void) {
-    state = NG_ARENA_ALLOC(&ng_arena_state, BallDemoState);
+    state = ARENA_ALLOC(&arena_state, BallDemoState);
     state->switch_target = 0;
     state->menu_open = 0;
     state->cam_angle = 0;
@@ -143,67 +142,67 @@ void BallDemoInit(void) {
     /* Initialize night mode state */
     state->day_night_timer = 0;
     state->is_night = 0;
-    state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+    state->night_preset = LIGHTING_INVALID;
     state->lightning_timer = 0;
     state->rng_state = 12345;
 
-    NGPalSetBackdrop(NG_COLOR_BLACK);
+    PalSetBackdrop(COLOR_BLACK);
 
     // Match brick asset size to avoid sprite limits
-    state->brick_pattern = NGBackdropCreate(&NGVisualAsset_brick_pattern, 336, 256,
-                                            FIX_FROM_FLOAT(0.8), FIX_FROM_FLOAT(0.8));
-    NGBackdropAddToScene(state->brick_pattern, 0, 0, 4);
+    state->brick_pattern = BackdropCreate(&VisualAsset_brick_pattern, 336, 256, FIX_FROM_FLOAT(0.8),
+                                          FIX_FROM_FLOAT(0.8));
+    BackdropAddToScene(state->brick_pattern, 0, 0, 4);
 
     // Shadow moves slower than camera for depth effect
-    state->brick_shadow = NGBackdropCreate(
-        &NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
-        NGVisualAsset_brick_shadow.height_pixels, FIX_FROM_FLOAT(0.9), FIX_FROM_FLOAT(0.9));
-    NGBackdropAddToScene(state->brick_shadow, 8, 8, 5);
+    state->brick_shadow = BackdropCreate(
+        &VisualAsset_brick_shadow, VisualAsset_brick_shadow.width_pixels,
+        VisualAsset_brick_shadow.height_pixels, FIX_FROM_FLOAT(0.9), FIX_FROM_FLOAT(0.9));
+    BackdropAddToScene(state->brick_shadow, 8, 8, 5);
 
-    state->brick = NGActorCreate(&NGVisualAsset_brick, 0, 0);
-    NGActorAddToScene(state->brick, FIX(0), FIX(0), 10);
+    state->brick = ActorCreate(&VisualAsset_brick);
+    ActorAddToScene(state->brick, FIX(0), FIX(0), 10);
 
-    state->balls = BallSystemCreate(&ng_arena_state, 8);
+    state->balls = BallSystemCreate(&arena_state, 8);
     BallSpawn(state->balls);
     BallSpawn(state->balls);
 
-    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "BALL DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Add Ball");
-    NGMenuAddItem(state->menu, "Clear Balls");
-    NGMenuAddItem(state->menu, "Toggle Zoom");
-    NGMenuAddItem(state->menu, "Pause Music");
-    NGMenuAddSeparator(state->menu, "--------");
-    NGMenuAddItem(state->menu, "Scroll Demo");
-    NGMenuAddItem(state->menu, "Blank Scene");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuSetDefaultSounds(state->menu);
-    NGEngineSetActiveMenu(state->menu);
+    state->menu = MenuCreateDefault(&arena_state, 10);
+    MenuSetTitle(state->menu, "BALL DEMO");
+    MenuAddItem(state->menu, "Resume");
+    MenuAddItem(state->menu, "Add Ball");
+    MenuAddItem(state->menu, "Clear Balls");
+    MenuAddItem(state->menu, "Toggle Zoom");
+    MenuAddItem(state->menu, "Pause Music");
+    MenuAddSeparator(state->menu, "--------");
+    MenuAddItem(state->menu, "Scroll Demo");
+    MenuAddItem(state->menu, "Blank Scene");
+    MenuAddItem(state->menu, "Tilemap Demo");
+    MenuSetDefaultSounds(state->menu);
+    EngineSetActiveMenu(state->menu);
 
-    NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
+    TextPrint(FixLayoutAlign(ALIGN_CENTER, ALIGN_TOP), 0, "PRESS START FOR MENU");
 
-    NGMusicPlay(NGMUSIC_BALL_SCENE_MUSIC);
+    AudioPlayMusic(MUSIC_BALL_SCENE_MUSIC);
 }
 
 u8 BallDemoUpdate(void) {
-    if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
+    if (InputPressed(PLAYER_1, BUTTON_START)) {
         if (state->menu_open) {
-            NGMenuHide(state->menu);
+            MenuHide(state->menu);
             state->menu_open = 0;
         } else {
-            NGMenuShow(state->menu);
+            MenuShow(state->menu);
             state->menu_open = 1;
         }
     }
 
-    NGMenuUpdate(state->menu);
+    MenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
+        if (MenuConfirmed(state->menu)) {
+            switch (MenuGetSelection(state->menu)) {
                 case MENU_RESUME:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     break;
                 case MENU_ADD_BALL:
@@ -213,72 +212,72 @@ u8 BallDemoUpdate(void) {
                     while (BallDestroyLast(state->balls)) {}
                     break;
                 case MENU_TOGGLE_ZOOM: {
-                    u8 target = NGCameraGetTargetZoom();
-                    if (target == NG_CAM_ZOOM_100) {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
+                    u8 target = CameraGetTargetZoom();
+                    if (target == CAM_ZOOM_100) {
+                        CameraSetTargetZoom(CAM_ZOOM_75);
                     } else {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
+                        CameraSetTargetZoom(CAM_ZOOM_100);
                     }
                 } break;
                 case MENU_TOGGLE_MUSIC:
-                    if (NGMusicIsPaused()) {
-                        NGMusicResume();
-                        NGMenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Pause Music");
+                    if (AudioMusicPaused()) {
+                        AudioResumeMusic();
+                        MenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Pause Music");
                     } else {
-                        NGMusicPause();
-                        NGMenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Resume Music");
+                        AudioPauseMusic();
+                        MenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Resume Music");
                     }
                     break;
                 case MENU_SCROLL_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_SCROLL;
                     break;
                 case MENU_BLANK_SCENE:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_BLANK_SCENE;
                     break;
                 case MENU_TILEMAP_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }
 
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
+        if (MenuCancelled(state->menu)) {
+            MenuHide(state->menu);
             state->menu_open = 0;
         }
     }
 
     if (!state->menu_open) {
-        u16 visible_w = NGCameraGetVisibleWidth();
-        u16 visible_h = NGCameraGetVisibleHeight();
-        u16 brick_w = NGVisualAsset_brick.width_pixels;
-        u16 brick_h = NGVisualAsset_brick.height_pixels;
+        u16 visible_w = CameraGetVisibleWidth();
+        u16 visible_h = CameraGetVisibleHeight();
+        u16 brick_w = VisualAsset_brick.width_pixels;
+        u16 brick_h = VisualAsset_brick.height_pixels;
 
         angle_t old_angle = state->cam_angle;
         state->cam_angle += CAM_CIRCLE_SPEED;
 
         // Toggle zoom when completing full rotation (angle wraps 255->0)
         if (state->cam_angle < old_angle) {
-            u8 target = NGCameraGetTargetZoom();
-            if (target == NG_CAM_ZOOM_100) {
-                NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
+            u8 target = CameraGetTargetZoom();
+            if (target == CAM_ZOOM_100) {
+                CameraSetTargetZoom(CAM_ZOOM_75);
             } else {
-                NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
+                CameraSetTargetZoom(CAM_ZOOM_100);
             }
         }
 
         fixed center_x = FIX(((s16)brick_w - (s16)visible_w) / 2);
         fixed center_y = FIX(((s16)brick_h - (s16)visible_h) / 2);
 
-        fixed offset_x = FIX_MUL(NGCos(state->cam_angle), state->cam_circle_radius);
-        fixed offset_y = FIX_MUL(NGSin(state->cam_angle), state->cam_circle_radius);
+        fixed offset_x = FIX_MUL(Cos(state->cam_angle), state->cam_circle_radius);
+        fixed offset_y = FIX_MUL(Sin(state->cam_angle), state->cam_circle_radius);
 
-        NGCameraSetPos(center_x + offset_x, center_y + offset_y);
+        CameraSetPos(center_x + offset_x, center_y + offset_y);
     }
 
     if (!state->menu_open) {
@@ -290,31 +289,31 @@ u8 BallDemoUpdate(void) {
 }
 
 void BallDemoCleanup(void) {
-    NGMusicStop();
+    AudioStopMusic();
 
     /* Clean up lighting - instant pop (no fade) */
-    if (state->night_preset != NG_LIGHTING_INVALID_HANDLE) {
-        NGLightingPopPreset(state->night_preset, 0);
-        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+    if (state->night_preset != LIGHTING_INVALID) {
+        LightingPopPreset(state->night_preset, 0);
+        state->night_preset = LIGHTING_INVALID;
     }
 
-    NGFixClear(0, 3, 40, 1);
+    FixClear(0, 3, 40, 1);
 
     BallSystemDestroy(state->balls);
 
-    NGActorRemoveFromScene(state->brick);
-    NGActorDestroy(state->brick);
+    ActorRemoveFromScene(state->brick);
+    ActorDestroy(state->brick);
 
-    NGBackdropRemoveFromScene(state->brick_shadow);
-    NGBackdropDestroy(state->brick_shadow);
+    BackdropRemoveFromScene(state->brick_shadow);
+    BackdropDestroy(state->brick_shadow);
 
-    NGBackdropRemoveFromScene(state->brick_pattern);
-    NGBackdropDestroy(state->brick_pattern);
+    BackdropRemoveFromScene(state->brick_pattern);
+    BackdropDestroy(state->brick_pattern);
 
-    NGMenuDestroy(state->menu);
+    MenuDestroy(state->menu);
 
-    NGPalSetBackdrop(NG_COLOR_BLACK);
+    PalSetBackdrop(COLOR_BLACK);
 
-    NGCameraSetPos(0, 0);
-    NGCameraSetZoom(NG_CAM_ZOOM_100);
+    CameraSetPos(0, 0);
+    CameraSetZoom(CAM_ZOOM_100);
 }

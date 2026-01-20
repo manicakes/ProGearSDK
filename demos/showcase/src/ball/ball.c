@@ -15,20 +15,20 @@
 #define BALL_HALF_SIZE FIX(16) // 16 pixels (32x32 sprite)
 
 static const u8 ball_palettes[] = {
-    NGPAL_BALL_DEFAULT, NGPAL_BALL_RED,  NGPAL_BALL_GREEN,   NGPAL_BALL_BLUE,
-    NGPAL_BALL_YELLOW,  NGPAL_BALL_CYAN, NGPAL_BALL_MAGENTA, NGPAL_BALL_WHITE,
+    PAL_BALL_DEFAULT, PAL_BALL_RED,  PAL_BALL_GREEN,   PAL_BALL_BLUE,
+    PAL_BALL_YELLOW,  PAL_BALL_CYAN, PAL_BALL_MAGENTA, PAL_BALL_WHITE,
 };
 
 #define NUM_PALETTES (sizeof(ball_palettes) / sizeof(ball_palettes[0]))
 
 typedef struct Ball {
-    NGBodyHandle body;
-    NGActorHandle actor;
+    BodyHandle body;
+    Actor actor;
     u8 active;
 } Ball;
 
 typedef struct BallSystem {
-    NGPhysWorldHandle physics;
+    PhysWorldHandle physics;
     Ball *balls; // Allocated from arena
     u8 max_balls;
     u8 ball_count;
@@ -52,24 +52,24 @@ static s16 random_range(BallSystemHandle sys, s16 min, s16 max) {
 }
 
 // Collision callback - shake camera and play sound when balls collide
-static void on_ball_collision(NGCollision *collision, void *user_data) {
+static void on_ball_collision(Collision *collision, void *user_data) {
     (void)user_data;
 
-    Ball *ball = (Ball *)NGPhysBodyGetUserData(collision->body_a);
+    Ball *ball = (Ball *)PhysBodyGetUserData(collision->body_a);
     if (ball && ball->actor) {
-        NGActorPlaySfx(ball->actor, NGSFX_BALL_HIT);
+        AudioPlaySfxAt(ball->actor, SFX_BALL_HIT);
     }
 
     // Boundary collisions don't trigger this callback, only ball-ball collisions
-    NGCameraShake(2, 4);
+    CameraShake(2, 4);
 }
 
-BallSystemHandle BallSystemCreate(NGArena *arena, u8 max_balls) {
-    BallSystem *sys = NG_ARENA_ALLOC(arena, BallSystem);
+BallSystemHandle BallSystemCreate(Arena *arena, u8 max_balls) {
+    BallSystem *sys = ARENA_ALLOC(arena, BallSystem);
     if (!sys)
         return 0;
 
-    sys->balls = NG_ARENA_ALLOC_ARRAY(arena, Ball, max_balls);
+    sys->balls = ARENA_ALLOC_ARRAY(arena, Ball, max_balls);
     if (!sys->balls)
         return 0;
 
@@ -81,11 +81,11 @@ BallSystemHandle BallSystemCreate(NGArena *arena, u8 max_balls) {
         sys->balls[i].active = 0;
     }
 
-    sys->physics = NGPhysWorldCreate();
+    sys->physics = PhysWorldCreate();
     const u8 offset = 16;
-    NGPhysWorldSetBounds(sys->physics, FIX(offset), FIX(NGVisualAsset_brick.width_pixels - offset),
-                         FIX(offset), FIX(NGVisualAsset_brick.height_pixels - offset));
-    NGPhysWorldSetGravity(sys->physics, 0, FIX(1));
+    PhysWorldSetBounds(sys->physics, FIX(offset), FIX(VisualAsset_brick.width_pixels - offset),
+                       FIX(offset), FIX(VisualAsset_brick.height_pixels - offset));
+    PhysWorldSetGravity(sys->physics, 0, FIX(1));
 
     return sys;
 }
@@ -96,21 +96,21 @@ void BallSystemDestroy(BallSystemHandle sys) {
 
     for (u8 i = 0; i < sys->max_balls; i++) {
         if (sys->balls[i].active) {
-            NGActorRemoveFromScene(sys->balls[i].actor);
-            NGActorDestroy(sys->balls[i].actor);
-            NGPhysBodyDestroy(sys->balls[i].body);
+            ActorRemoveFromScene(sys->balls[i].actor);
+            ActorDestroy(sys->balls[i].actor);
+            PhysBodyDestroy(sys->balls[i].body);
             sys->balls[i].active = 0;
         }
     }
 
-    NGPhysWorldDestroy(sys->physics);
+    PhysWorldDestroy(sys->physics);
 }
 
 void BallSystemUpdate(BallSystemHandle sys) {
     if (!sys)
         return;
 
-    NGPhysWorldUpdate(sys->physics, on_ball_collision, 0);
+    PhysWorldUpdate(sys->physics, on_ball_collision, 0);
 
     // Physics uses center position, actor uses top-left
     for (u8 i = 0; i < sys->max_balls; i++) {
@@ -118,10 +118,10 @@ void BallSystemUpdate(BallSystemHandle sys) {
         if (!ball->active)
             continue;
 
-        NGVec2 pos = NGPhysBodyGetPos(ball->body);
+        Vec2 pos = PhysBodyGetPos(ball->body);
         fixed x = pos.x - BALL_HALF_SIZE;
         fixed y = pos.y - BALL_HALF_SIZE;
-        NGActorSetPos(ball->actor, x, y);
+        ActorSetPos(ball->actor, x, y);
     }
 }
 
@@ -133,8 +133,8 @@ u8 BallSpawn(BallSystemHandle sys) {
         if (!sys->balls[i].active) {
             Ball *ball = &sys->balls[i];
 
-            fixed x = random_range_fix(sys, FIX(85), FIX(NGVisualAsset_brick.width_pixels - 85));
-            fixed y = random_range_fix(sys, FIX(85), FIX(NGVisualAsset_brick.height_pixels - 85));
+            fixed x = random_range_fix(sys, FIX(85), FIX(VisualAsset_brick.width_pixels - 85));
+            fixed y = random_range_fix(sys, FIX(85), FIX(VisualAsset_brick.height_pixels - 85));
 
             fixed vx = FIX(random_range(sys, -3, 3));
             fixed vy = FIX(random_range(sys, -3, 3));
@@ -143,15 +143,15 @@ u8 BallSpawn(BallSystemHandle sys) {
             if (vy == 0)
                 vy = FIX(1);
 
-            ball->body = NGPhysBodyCreateAABB(sys->physics, x, y, BALL_HALF_SIZE, BALL_HALF_SIZE);
-            NGPhysBodySetVel(ball->body, vx, vy);
-            NGPhysBodySetRestitution(ball->body, FIX_FROM_FLOAT(1));
-            NGPhysBodySetUserData(ball->body, ball);
+            ball->body = PhysBodyCreateAABB(sys->physics, x, y, BALL_HALF_SIZE, BALL_HALF_SIZE);
+            PhysBodySetVel(ball->body, vx, vy);
+            PhysBodySetRestitution(ball->body, FIX_FROM_FLOAT(1));
+            PhysBodySetUserData(ball->body, ball);
 
-            ball->actor = NGActorCreate(&NGVisualAsset_ball, 0, 0);
-            NGActorAddToScene(ball->actor, x - BALL_HALF_SIZE, y - BALL_HALF_SIZE, 100);
-            NGActorSetPalette(ball->actor, ball_palettes[i % NUM_PALETTES]);
-            NGActorSetAnimByName(ball->actor, "spin");
+            ball->actor = ActorCreate(&VisualAsset_ball);
+            ActorAddToScene(ball->actor, x - BALL_HALF_SIZE, y - BALL_HALF_SIZE, 100);
+            ActorSetPalette(ball->actor, ball_palettes[i % NUM_PALETTES]);
+            ActorPlayAnim(ball->actor, "spin");
             ball->active = 1;
             sys->ball_count++;
 
@@ -167,8 +167,8 @@ u8 BallDestroyLast(BallSystemHandle sys) {
 
     for (s8 i = (s8)(sys->max_balls - 1); i >= 0; i--) {
         if (sys->balls[i].active) {
-            NGActorDestroy(sys->balls[i].actor);
-            NGPhysBodyDestroy(sys->balls[i].body);
+            ActorDestroy(sys->balls[i].actor);
+            PhysBodyDestroy(sys->balls[i].body);
             sys->balls[i].active = 0;
             sys->ball_count--;
             return 1;
@@ -186,5 +186,5 @@ u8 BallCount(BallSystemHandle sys) {
 void BallSystemSetGravity(BallSystemHandle sys, fixed gravity_y) {
     if (!sys)
         return;
-    NGPhysWorldSetGravity(sys->physics, 0, gravity_y);
+    PhysWorldSetGravity(sys->physics, 0, gravity_y);
 }

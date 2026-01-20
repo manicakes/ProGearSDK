@@ -35,9 +35,19 @@ CFLAGS += -I$(INC_DIR)
 ASFLAGS = -m68000
 
 # === Source Files ===
-C_SOURCES = $(SRC_DIR)/fix.c \
+# Hardware layer (internal)
+HW_SOURCES = $(SRC_DIR)/hw/system.c \
+             $(SRC_DIR)/hw/sprite.c \
+             $(SRC_DIR)/hw/palette.c \
+             $(SRC_DIR)/hw/fix.c \
+             $(SRC_DIR)/hw/input.c \
+             $(SRC_DIR)/hw/audio.c
+
+# Public API implementations
+C_SOURCES = $(SRC_DIR)/text.c \
             $(SRC_DIR)/color.c \
             $(SRC_DIR)/palette.c \
+            $(SRC_DIR)/fix.c \
             $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/scene.c \
             $(SRC_DIR)/actor.c \
@@ -55,12 +65,13 @@ C_SOURCES = $(SRC_DIR)/fix.c \
 
 ASM_SOURCES = $(SRC_DIR)/crt0.s
 
-H_SOURCES = $(wildcard $(INC_DIR)/*.h)
+H_SOURCES = $(wildcard $(INC_DIR)/*.h) $(wildcard $(INC_DIR)/hw/*.h)
 
 # Object files
+HW_OBJECTS = $(patsubst $(SRC_DIR)/hw/%.c,$(BUILD_DIR)/hw/%.o,$(HW_SOURCES))
 C_OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SOURCES))
 ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
-OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
+OBJECTS = $(HW_OBJECTS) $(C_OBJECTS) $(ASM_OBJECTS)
 
 # === Build Rules ===
 .PHONY: all clean docs format format-check lint check
@@ -68,24 +79,27 @@ OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 all: $(LIBRARY)
 	@echo "SDK build complete: $(LIBRARY)"
 
-# Create build directory
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-
 # Build static library
 $(LIBRARY): $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
 
+# Compile hw/ C files (must come before general rule)
+$(BUILD_DIR)/hw/%.o: $(SRC_DIR)/hw/%.c
+	@mkdir -p $(BUILD_DIR)/hw
+	$(CC) $(CFLAGS) -c $< -o $@
+
 # Compile C files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble assembly files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s
+	@mkdir -p $(BUILD_DIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
 # Header dependencies (simplified - rebuild all if any header changes)
-$(C_OBJECTS): $(H_SOURCES)
+$(C_OBJECTS) $(HW_OBJECTS): $(H_SOURCES)
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -104,13 +118,13 @@ docs:
 # Auto-format all source files
 format:
 	@echo "Formatting SDK source files..."
-	@clang-format -i $(C_SOURCES) $(H_SOURCES)
+	@clang-format -i $(HW_SOURCES) $(C_SOURCES) $(H_SOURCES)
 	@echo "Done."
 
 # Check formatting without modifying (fails if formatting needed)
 format-check:
 	@echo "Checking SDK code formatting..."
-	@clang-format --dry-run --Werror $(C_SOURCES) $(H_SOURCES)
+	@clang-format --dry-run --Werror $(HW_SOURCES) $(C_SOURCES) $(H_SOURCES)
 	@echo "Formatting OK."
 
 # Static analysis with cppcheck
@@ -125,7 +139,7 @@ lint:
 		--inline-suppr \
 		-D__CPPCHECK__ \
 		-I$(INC_DIR) \
-		$(C_SOURCES)
+		$(HW_SOURCES) $(C_SOURCES)
 	@echo "Static analysis OK."
 
 # Run all checks

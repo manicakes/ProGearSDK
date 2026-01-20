@@ -7,22 +7,22 @@
 #include <progear_assets.h>
 
 int main(void) {
-    NGEngineInit();
+    EngineInit();
 
-    NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PROGEAR SDK TEMPLATE");
+    TextPrint(FixLayoutAlign(ALIGN_CENTER, ALIGN_TOP), 0, "PROGEAR SDK TEMPLATE");
 
-    NGActorHandle sprite = NGActorCreate(&NGVisualAsset_checkerboard, 0, 0);
-    NGActorAddToScene(sprite, FIX(0), FIX(0), 0);
-    NGActorSetVisible(sprite, 1);
+    Actor sprite = ActorCreate(&VisualAsset_checkerboard);
+    ActorAddToScene(sprite, FIX(0), FIX(0), 0);
+    ActorSetVisible(sprite, 1);
 
     for (;;) {
-        NGEngineFrameStart();
+        EngineFrameStart();
 
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_LEFT))  NGActorMove(sprite, -FIX(2), 0);
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_RIGHT)) NGActorMove(sprite, FIX(2), 0);
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_UP))    NGActorMove(sprite, 0, -FIX(2));
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_DOWN))  NGActorMove(sprite, 0, FIX(2));
+        if (InputHeld(PLAYER_1, BUTTON_LEFT))  ActorMove(sprite, -FIX(2), 0);
+        if (InputHeld(PLAYER_1, BUTTON_RIGHT)) ActorMove(sprite, FIX(2), 0);
+        if (InputHeld(PLAYER_1, BUTTON_UP))    ActorMove(sprite, 0, -FIX(2));
+        if (InputHeld(PLAYER_1, BUTTON_DOWN))  ActorMove(sprite, 0, FIX(2));
 
-        NGEngineFrameEnd();
+        EngineFrameEnd();
     }
 }

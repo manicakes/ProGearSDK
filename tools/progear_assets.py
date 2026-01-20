@@ -1446,7 +1446,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
     if palette_items:
         lines.append("// === Palette Index Constants ===")
         for pal_name, pal_info in palette_items:
-            const_name = f"NGPAL_{pal_name.upper()}"
+            const_name = f"PAL_{pal_name.upper()}"
             lines.append(f"#define {const_name} {pal_info['index']}")
         lines.append("")
 
@@ -1455,7 +1455,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("// === Palette Data ===")
         for pal_name, pal_info in palette_items:
             colors = pal_info['colors']
-            lines.append(f"static const u16 NGPal_{pal_name}[16] = {{")
+            lines.append(f"static const u16 Pal_{pal_name}[16] = {{")
             pal_line = "    "
             for i in range(16):
                 if i < len(colors):
@@ -1491,7 +1491,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
 
         # Animation definitions array
         if asset['animations']:
-            lines.append(f"static const NGAnimDef _{name}_anims[] = {{")
+            lines.append(f"static const AnimDef _{name}_anims[] = {{")
             for anim in asset['animations']:
                 lines.append(
                     f"    {{ \"{anim['name']}\", {anim['first_frame']}, "
@@ -1511,8 +1511,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("};")
         lines.append("")
 
-        # NGVisualAsset struct - now with palette_data
-        lines.append(f"static const NGVisualAsset NGVisualAsset_{name} = {{")
+        # VisualAsset struct - now with palette_data
+        lines.append(f"static const VisualAsset VisualAsset_{name} = {{")
         lines.append(f"    .name = \"{name}\",")
         lines.append(f"    .base_tile = {asset['base_tile']},")
         lines.append(f"    .width_pixels = {asset['width_pixels']},")
@@ -1520,8 +1520,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append(f"    .width_tiles = {asset['width_tiles']},")
         lines.append(f"    .height_tiles = {asset['height_tiles']},")
         lines.append(f"    .tilemap = _{name}_tilemap,")
-        lines.append(f"    .palette = NGPAL_{palette_name.upper()},")
-        lines.append(f"    .palette_data = NGPal_{palette_name},")
+        lines.append(f"    .palette = PAL_{palette_name.upper()},")
+        lines.append(f"    .palette_data = Pal_{palette_name},")
         if asset['animations']:
             lines.append(f"    .anims = _{name}_anims,")
             lines.append(f"    .anim_count = {len(asset['animations'])},")
@@ -1533,16 +1533,16 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("};")
         lines.append("")
 
-    # === NGPalInitAssets Function ===
+    # === PalInitAssets Function ===
     # Generated with __attribute__((weak)) so multiple inclusions don't cause
     # linker errors, but it still overrides the empty weak default in engine.c
     if palette_items:
         lines.append("// === Palette Initialization ===")
-        lines.append("// Called automatically by NGEngineInit() to load all asset palettes")
-        lines.append("__attribute__((weak)) void NGPalInitAssets(void) {")
+        lines.append("// Called automatically by EngineInit() to load all asset palettes")
+        lines.append("__attribute__((weak)) void PalInitAssets(void) {")
         for pal_name, pal_info in palette_items:
-            const_name = f"NGPAL_{pal_name.upper()}"
-            lines.append(f"    NGPalSet({const_name}, NGPal_{pal_name});")
+            const_name = f"PAL_{pal_name.upper()}"
+            lines.append(f"    PalSet({const_name}, Pal_{pal_name});")
         lines.append("}")
         lines.append("")
 
@@ -1553,12 +1553,12 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
 
         # SFX index constants
         for sfx in sfx_info:
-            lines.append(f"#define NGSFX_{sfx['name'].upper()} {sfx['index']}")
+            lines.append(f"#define SFX_{sfx['name'].upper()} {sfx['index']}")
         lines.append("")
 
         # SFX asset definitions
         for sfx in sfx_info:
-            lines.append(f"static const NGSfxAsset NGSfxAsset_{sfx['name']} = {{")
+            lines.append(f"static const SfxAsset SfxAsset_{sfx['name']} = {{")
             lines.append(f"    .name = \"{sfx['name']}\",")
             lines.append(f"    .index = {sfx['index']},")
             lines.append("};")
@@ -1571,12 +1571,12 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
 
         # Music index constants
         for music in music_info:
-            lines.append(f"#define NGMUSIC_{music['name'].upper()} {music['index']}")
+            lines.append(f"#define MUSIC_{music['name'].upper()} {music['index']}")
         lines.append("")
 
         # Music asset definitions
         for music in music_info:
-            lines.append(f"static const NGMusicAsset NGMusicAsset_{music['name']} = {{")
+            lines.append(f"static const MusicAsset MusicAsset_{music['name']} = {{")
             lines.append(f"    .name = \"{music['name']}\",")
             lines.append(f"    .index = {music['index']},")
             lines.append("};")
@@ -1622,8 +1622,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("};")
             lines.append("")
 
-            # NGTerrainAsset struct
-            lines.append(f"static const NGTerrainAsset NGTerrainAsset_{name} = {{")
+            # TerrainAsset struct
+            lines.append(f"static const TerrainAsset TerrainAsset_{name} = {{")
             lines.append(f"    .name = \"{name}\",")
             lines.append(f"    .width_tiles = {tm['width_tiles']},")
             lines.append(f"    .height_tiles = {tm['height_tiles']},")
@@ -1646,7 +1646,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
 
         # Generate preset index constants
         for i, preset_name in enumerate(sorted(lighting_presets.keys())):
-            const_name = f"NG_LIGHTING_PREBAKED_{preset_name.upper()}"
+            const_name = f"LIGHTING_PREBAKED_{preset_name.upper()}"
             lines.append(f"#define {const_name} {i}")
         lines.append("")
 
@@ -1656,7 +1656,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("    const char *name;")
         lines.append("    u8 fade_steps;      /**< Number of fade steps (0 = final only) */")
         lines.append("    u8 palette_count;   /**< Number of palettes with variants */")
-        lines.append("} NGLightingPresetInfo;")
+        lines.append("} LightingPresetInfo;")
         lines.append("")
 
         # Generate palette data for each preset
@@ -1708,7 +1708,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("typedef struct {")
             lines.append("    u8 palette_index;")
             lines.append(f"    const u16 (*steps)[16];")
-            lines.append(f"}} _NGLightingPreset_{preset_name}_Entry;")
+            lines.append(f"}} _LightingPreset_{preset_name}_Entry;")
             lines.append("")
 
             # Entry array
@@ -1717,7 +1717,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
                 if pal_name in preset_data['palettes']:
                     entries.append((pal_name, pal_info['index']))
 
-            lines.append(f"static const _NGLightingPreset_{preset_name}_Entry "
+            lines.append(f"static const _LightingPreset_{preset_name}_Entry "
                          f"_lighting_preset_{preset_name}_palettes[] = {{")
             for pal_name, pal_idx in entries:
                 array_name = f"_lighting_{preset_name}_{pal_name}"
@@ -1727,7 +1727,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
 
         # Generate preset info array
         lines.append("/** Pre-baked lighting preset metadata */")
-        lines.append("static const NGLightingPresetInfo _lighting_presets[] = {")
+        lines.append("static const LightingPresetInfo _lighting_presets[] = {")
         for preset_name in sorted(lighting_presets.keys()):
             preset_data = lighting_presets[preset_name]
             pal_count = len([p for p in palette_items if p[0] in preset_data['palettes']])
@@ -1740,12 +1740,12 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append(" * Apply a pre-baked lighting preset at a specific fade step.")
         lines.append(" * This copies pre-computed palette data directly to palette RAM - zero math!")
         lines.append(" */")
-        lines.append("static void _NGLightingApplyPrebakedStepImpl(u8 preset_id, u8 step) {")
+        lines.append("static void _LightingApplyPrebakedStepImpl(u8 preset_id, u8 step) {")
         lines.append("    switch (preset_id) {")
 
         for i, preset_name in enumerate(sorted(lighting_presets.keys())):
             preset_data = lighting_presets[preset_name]
-            const_name = f"NG_LIGHTING_PREBAKED_{preset_name.upper()}"
+            const_name = f"LIGHTING_PREBAKED_{preset_name.upper()}"
             entries_name = f"_lighting_preset_{preset_name}_palettes"
             entry_count = len([p for p in palette_items if p[0] in preset_data['palettes']])
             fade_steps = preset_data['fade_steps']
@@ -1753,7 +1753,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append(f"    case {const_name}:")
             lines.append(f"        if (step > {fade_steps}) step = {fade_steps};")
             lines.append(f"        for (u8 i = 0; i < {entry_count}; i++) {{")
-            lines.append(f"            NGPalSet({entries_name}[i].palette_index,")
+            lines.append(f"            PalSet({entries_name}[i].palette_index,")
             lines.append(f"                     {entries_name}[i].steps[step]);")
             lines.append("        }")
             lines.append("        break;")
@@ -1763,7 +1763,7 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("")
 
         # Generate static function to get preset info
-        lines.append("static const void* _NGLightingGetPrebakedInfoImpl(u8 preset_id) {")
+        lines.append("static const void* _LightingGetPrebakedInfoImpl(u8 preset_id) {")
         lines.append(f"    if (preset_id >= {len(lighting_presets)}) return 0;")
         lines.append("    return &_lighting_presets[preset_id];")
         lines.append("}")
@@ -1773,16 +1773,16 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         # Uses __attribute__((weak)) so linker deduplicates when header is included in multiple TUs
         lines.append("/**")
         lines.append(" * Initialize pre-baked lighting presets.")
-        lines.append(" * Called automatically by NGLightingInit() (via NGEngineInit()).")
+        lines.append(" * Called automatically by LightingInit() (via EngineInit()).")
         lines.append(" */")
-        lines.append("__attribute__((weak)) void NGLightingInitPresets(void) {")
-        lines.append("    NGLightingRegisterPrebaked(_NGLightingApplyPrebakedStepImpl,")
-        lines.append("                               _NGLightingGetPrebakedInfoImpl);")
+        lines.append("__attribute__((weak)) void LightingInitPresets(void) {")
+        lines.append("    LightingRegisterPrebaked(_LightingApplyPrebakedStepImpl,")
+        lines.append("                               _LightingGetPrebakedInfoImpl);")
         lines.append("}")
         lines.append("")
 
         # Generate count constant
-        lines.append(f"#define NG_LIGHTING_PREBAKED_COUNT {len(lighting_presets)}")
+        lines.append(f"#define LIGHTING_PREBAKED_COUNT {len(lighting_presets)}")
         lines.append("")
 
     # === SDK Default Wrapper Functions ===
@@ -1800,13 +1800,13 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("")
         lines.append("/**")
         lines.append(" * Create a menu using SDK default panel and cursor assets.")
-        lines.append(" * @param arena Arena to allocate from (typically ng_arena_state)")
+        lines.append(" * @param arena Arena to allocate from (typically arena_state)")
         lines.append(" * @param dim_amount Background dimming intensity (0=none, 1-31=darken)")
         lines.append(" * @return Menu handle, or NULL if allocation failed")
         lines.append(" */")
-        lines.append("static inline NGMenuHandle NGMenuCreateDefault(NGArena *arena, u8 dim_amount) {")
-        lines.append("    return NGMenuCreate(arena, &NGVisualAsset_progearsdk_ui_panel,")
-        lines.append("                        &NGVisualAsset_progearsdk_ui_cursor, dim_amount);")
+        lines.append("static inline MenuHandle MenuCreateDefault(Arena *arena, u8 dim_amount) {")
+        lines.append("    return MenuCreate(arena, &VisualAsset_progearsdk_ui_panel,")
+        lines.append("                      &VisualAsset_progearsdk_ui_cursor, dim_amount);")
         lines.append("}")
         lines.append("")
 
@@ -1816,8 +1816,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append(" * Uses progearsdk_ui_click (move) and progearsdk_ui_select sounds.")
         lines.append(" * @param menu Menu handle")
         lines.append(" */")
-        lines.append("static inline void NGMenuSetDefaultSounds(NGMenuHandle menu) {")
-        lines.append("    NGMenuSetSounds(menu, NGSFX_PROGEARSDK_UI_CLICK, NGSFX_PROGEARSDK_UI_SELECT);")
+        lines.append("static inline void MenuSetDefaultSounds(MenuHandle menu) {")
+        lines.append("    MenuSetSounds(menu, SFX_PROGEARSDK_UI_CLICK, SFX_PROGEARSDK_UI_SELECT);")
         lines.append("}")
         lines.append("")
 

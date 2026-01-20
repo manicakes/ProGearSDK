@@ -33,8 +33,8 @@
 #define JUMP_BUFFER_FRAMES 6                    // Frames before landing a jump press is remembered
 
 typedef struct TilemapDemoState {
-    NGMenuHandle menu;
-    NGActorHandle player;
+    MenuHandle menu;
+    Actor player;
     u16 level_width;
     u16 level_height;
     fixed player_x;
@@ -56,20 +56,20 @@ static TilemapDemoState *state;
 #define MENU_SCROLL_DEMO 2
 
 void TilemapDemoInit(void) {
-    state = NG_ARENA_ALLOC(&ng_arena_state, TilemapDemoState);
+    state = ARENA_ALLOC(&arena_state, TilemapDemoState);
     state->switch_target = 0;
     state->menu_open = 0;
 
-    NGCameraSetPos(0, 0);
-    NGCameraSetZoom(NG_CAM_ZOOM_100);
+    CameraSetPos(0, 0);
+    CameraSetZoom(CAM_ZOOM_100);
 
-    NGPalSetBackdrop(NG_COLOR_DARK_BLUE);
+    PalSetBackdrop(COLOR_DARK_BLUE);
 
-    NGPalSet(NGPAL_TILES_SIMPLE, NGPal_tiles_simple);
+    PalSet(PAL_TILES_SIMPLE, Pal_tiles_simple);
 
     // Set the scene's terrain
-    NGSceneSetTerrain(&NGTerrainAsset_tilemap_demo_level);
-    NGSceneGetTerrainBounds(&state->level_width, &state->level_height);
+    SceneSetTerrain(&TerrainAsset_tilemap_demo_level);
+    SceneGetTerrainBounds(&state->level_width, &state->level_height);
 
     // Ground is at row 12 (y=192), start above it
     state->player_x = FIX(80);
@@ -82,76 +82,75 @@ void TilemapDemoInit(void) {
     state->jumping = 0;
 
     // Offset sprite so it's centered on collision AABB
-    state->player = NGActorCreate(&NGVisualAsset_ball, 0, 0);
-    NGActorAddToScene(state->player, state->player_x - FIX(16), state->player_y - FIX(16), 10);
+    state->player = ActorCreate(&VisualAsset_ball);
+    ActorAddToScene(state->player, state->player_x - FIX(16), state->player_y - FIX(16), 10);
 
-    NGCameraTrackActor(state->player);
-    NGCameraSetDeadzone(80, 40);
-    NGCameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));
-    NGCameraSetBounds(state->level_width, state->level_height);
+    CameraTrackActor(state->player);
+    CameraSetDeadzone(80, 40);
+    CameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));
+    CameraSetBounds(state->level_width, state->level_height);
 
-    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "TILEMAP DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Ball Demo");
-    NGMenuAddItem(state->menu, "Scroll Demo");
-    NGMenuSetDefaultSounds(state->menu);
-    NGEngineSetActiveMenu(state->menu);
+    state->menu = MenuCreateDefault(&arena_state, 10);
+    MenuSetTitle(state->menu, "TILEMAP DEMO");
+    MenuAddItem(state->menu, "Resume");
+    MenuAddItem(state->menu, "Ball Demo");
+    MenuAddItem(state->menu, "Scroll Demo");
+    MenuSetDefaultSounds(state->menu);
+    EngineSetActiveMenu(state->menu);
 
-    NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "TILEMAP DEMO");
-    NGTextPrint(NGFixLayoutOffset(NG_ALIGN_LEFT, NG_ALIGN_BOTTOM, 1, -1), 0,
-                "DPAD:MOVE  A:JUMP  START:MENU");
+    TextPrint(FixLayoutAlign(ALIGN_CENTER, ALIGN_TOP), 0, "TILEMAP DEMO");
+    TextPrint(FixLayoutOffset(ALIGN_LEFT, ALIGN_BOTTOM, 1, -1), 0, "DPAD:MOVE  A:JUMP  START:MENU");
 }
 
 u8 TilemapDemoUpdate(void) {
-    if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
+    if (InputPressed(PLAYER_1, BUTTON_START)) {
         if (state->menu_open) {
-            NGMenuHide(state->menu);
+            MenuHide(state->menu);
             state->menu_open = 0;
         } else {
-            NGMenuShow(state->menu);
+            MenuShow(state->menu);
             state->menu_open = 1;
         }
     }
 
-    NGMenuUpdate(state->menu);
+    MenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
+        if (MenuConfirmed(state->menu)) {
+            switch (MenuGetSelection(state->menu)) {
                 case MENU_RESUME:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     break;
                 case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_SCROLL_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_SCROLL;
                     break;
             }
         }
 
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
+        if (MenuCancelled(state->menu)) {
+            MenuHide(state->menu);
             state->menu_open = 0;
         }
     } else {
         state->player_vel_x = 0;
 
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_LEFT)) {
+        if (InputHeld(PLAYER_1, BUTTON_LEFT)) {
             state->player_vel_x = -PLAYER_SPEED;
         }
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_RIGHT)) {
+        if (InputHeld(PLAYER_1, BUTTON_RIGHT)) {
             state->player_vel_x = PLAYER_SPEED;
         }
 
         // Jump buffering: remember presses for a few frames
-        if (NGInputPressed(NG_PLAYER_1, NG_BTN_A)) {
+        if (InputPressed(PLAYER_1, BUTTON_A)) {
             state->jump_buffer = JUMP_BUFFER_FRAMES;
         } else if (state->jump_buffer > 0) {
             state->jump_buffer--;
@@ -175,7 +174,7 @@ u8 TilemapDemoUpdate(void) {
         }
 
         // Variable jump height: release A early to cut jump short
-        if (state->jumping && state->player_vel_y < 0 && !NGInputHeld(NG_PLAYER_1, NG_BTN_A)) {
+        if (state->jumping && state->player_vel_y < 0 && !InputHeld(PLAYER_1, BUTTON_A)) {
             state->player_vel_y = FIX_MUL(state->player_vel_y, JUMP_CUT_MULT);
             state->jumping = 0;
         }
@@ -196,10 +195,9 @@ u8 TilemapDemoUpdate(void) {
         }
 
         // Resolve collision against the scene's terrain
-        u8 coll =
-            NGSceneResolveCollision(&state->player_x, &state->player_y, PLAYER_HALF_W,
-                                    PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
-        state->on_ground = (coll & NG_COLL_BOTTOM) ? 1 : 0;
+        u8 coll = SceneResolveCollision(&state->player_x, &state->player_y, PLAYER_HALF_W,
+                                        PLAYER_HALF_H, &state->player_vel_x, &state->player_vel_y);
+        state->on_ground = (coll & COLL_BOTTOM) ? 1 : 0;
 
         if (state->player_x < PLAYER_HALF_W) {
             state->player_x = PLAYER_HALF_W;
@@ -216,28 +214,28 @@ u8 TilemapDemoUpdate(void) {
             state->player_vel_y = 0;
         }
 
-        NGActorSetPos(state->player, state->player_x - FIX(16), state->player_y - FIX(16));
+        ActorSetPos(state->player, state->player_x - FIX(16), state->player_y - FIX(16));
     }
 
     return state->switch_target;
 }
 
 void TilemapDemoCleanup(void) {
-    NGFixClear(0, 3, 40, 1);
-    NGFixClear(0, 27, 40, 1);
+    FixClear(0, 3, 40, 1);
+    FixClear(0, 27, 40, 1);
 
-    NGCameraStopTracking();
+    CameraStopTracking();
 
-    NGActorRemoveFromScene(state->player);
-    NGActorDestroy(state->player);
+    ActorRemoveFromScene(state->player);
+    ActorDestroy(state->player);
 
     // Clear the scene's terrain
-    NGSceneClearTerrain();
+    SceneClearTerrain();
 
-    NGMenuDestroy(state->menu);
+    MenuDestroy(state->menu);
 
-    NGPalSetBackdrop(NG_COLOR_BLACK);
+    PalSetBackdrop(COLOR_BLACK);
 
-    NGCameraSetPos(0, 0);
-    NGCameraSetZoom(NG_CAM_ZOOM_100);
+    CameraSetPos(0, 0);
+    CameraSetZoom(CAM_ZOOM_100);
 }

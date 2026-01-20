@@ -6,14 +6,14 @@
 
 #include <terrain.h>
 #include <camera.h>
-#include <neogeo.h>
-#include <sprite.h>
+#include <hw/sprite.h>
+#include <hw/lspc.h>
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 224
 
 typedef struct {
-    const NGTerrainAsset *asset;
+    const TerrainAsset *asset;
     fixed world_x, world_y;
     u8 z;
     u8 visible;
@@ -36,27 +36,27 @@ typedef struct {
 
     // Cycling offset for efficient horizontal scroll (sprite reuse)
     u8 leftmost_sprite_offset;
-} Terrain;
+} TerrainData;
 
-static Terrain terrains[NG_TERRAIN_MAX];
+static TerrainData terrains[TERRAIN_MAX];
 
-extern void _NGSceneMarkRenderQueueDirty(void);
+extern void _SceneMarkRenderQueueDirty(void);
 
-void _NGTerrainSystemInit(void) {
-    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+void _TerrainSystemInit(void) {
+    for (u8 i = 0; i < TERRAIN_MAX; i++) {
         terrains[i].active = 0;
         terrains[i].in_scene = 0;
     }
 }
 
-u8 _NGTerrainIsInScene(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 _TerrainIsInScene(TerrainHandle handle) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
     return terrains[handle].active && terrains[handle].in_scene;
 }
 
-u8 _NGTerrainGetZ(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 _TerrainGetZ(TerrainHandle handle) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
     return terrains[handle].z;
 }
@@ -65,14 +65,14 @@ u8 _NGTerrainGetZ(NGTerrainHandle handle) {
  * Load tile data for a single column into VRAM.
  * Uses optimized indexed VRAM addressing for faster writes.
  */
-static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows,
+static void load_column_tiles(TerrainData *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows,
                               volatile u16 *vram_base) {
-    const NGTerrainAsset *asset = tm->asset;
+    const TerrainAsset *asset = tm->asset;
 
     /* Use indexed addressing - faster than absolute long addressing.
      * "move.w X,d(An)" loads faster than "move.w X,xxx.L" */
-    vram_base[0] = NG_SCB1_BASE + (sprite_idx * 64); /* VRAMADDR */
-    vram_base[2] = 1;                                /* VRAMMOD */
+    vram_base[0] = VRAM_SCB1 + (sprite_idx * 64); /* VRAMADDR */
+    vram_base[2] = 1;                             /* VRAMMOD */
 
     for (u8 row = 0; row < num_rows; row++) {
         s16 terrain_row = tm->viewport_row + row;
@@ -111,21 +111,21 @@ static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 n
  * Uses optimized indexed VRAM addressing throughout for faster writes.
  * "move.w X,d(An)" is faster than "move.w X,xxx.L" per NeoGeo dev wiki.
  */
-static void draw_terrain(Terrain *tm, u16 first_sprite) {
+static void draw_terrain(TerrainData *tm, u16 first_sprite) {
     if (!tm->visible || !tm->asset)
         return;
 
     /* Declare VRAM base register once - reused for all VRAM operations.
      * This reserves a5 as VRAM base pointer for indexed addressing. */
 #ifdef __CPPCHECK__
-    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
+    volatile u16 *vram_base = (volatile u16 *)VRAM_BASE;
 #else
-    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
+    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)VRAM_BASE;
 #endif
 
-    fixed cam_x = NGCameraGetRenderX();
-    fixed cam_y = NGCameraGetRenderY();
-    u8 zoom = NGCameraGetZoom();
+    fixed cam_x = CameraGetRenderX();
+    fixed cam_y = CameraGetRenderY();
+    u8 zoom = CameraGetZoom();
 
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;
     u16 view_height = (SCREEN_HEIGHT * 16) / zoom;
@@ -133,16 +133,16 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
     s16 view_left = FIX_INT(cam_x - tm->world_x);
     s16 view_top = FIX_INT(cam_y - tm->world_y);
 
-    s16 first_col = view_left / NG_TILE_SIZE;
-    s16 first_row = view_top / NG_TILE_SIZE;
+    s16 first_col = view_left / TILE_SIZE;
+    s16 first_row = view_top / TILE_SIZE;
 
-    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
-    u8 num_rows = (u8)((view_height / NG_TILE_SIZE) + 2);
+    u8 num_cols = (u8)((view_width / TILE_SIZE) + 2);
+    u8 num_rows = (u8)((view_height / TILE_SIZE) + 2);
 
-    if (num_cols > NG_TERRAIN_MAX_COLS)
-        num_cols = NG_TERRAIN_MAX_COLS;
-    if (num_rows > NG_TERRAIN_MAX_ROWS)
-        num_rows = NG_TERRAIN_MAX_ROWS;
+    if (num_cols > TERRAIN_MAX_COLS)
+        num_cols = TERRAIN_MAX_COLS;
+    if (num_rows > TERRAIN_MAX_ROWS)
+        num_rows = TERRAIN_MAX_ROWS;
 
     u8 zoom_changed = (zoom != tm->last_zoom);
 
@@ -163,22 +163,22 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
             load_column_tiles(tm, spr, terrain_col, num_rows, vram_base);
         }
 
-        u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite; /* VRAMADDR */
-        vram_base[2] = 1;                           /* VRAMMOD */
+        u16 shrink = CameraGetShrink();
+        vram_base[0] = VRAM_SCB2 + first_sprite; /* VRAMADDR */
+        vram_base[2] = 1;                        /* VRAMMOD */
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = shrink; /* VRAMDATA */
         }
 
-        s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
-        s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
+        s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
+        s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * TILE_SIZE));
         base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite); /* VRAMADDR */
-        vram_base[2] = 1;                                  /* VRAMMOD */
+        vram_base[0] = (u16)(VRAM_SCB4 + first_sprite); /* VRAMADDR */
+        vram_base[2] = 1;                               /* VRAMMOD */
         for (u8 col = 0; col < num_cols; col++) {
             s16 x = (s16)(base_screen_x + (col * tile_w));
-            vram_base[1] = NGSpriteSCB4(x); /* VRAMDATA */
+            vram_base[1] = hw_sprite_pack_scb4(x); /* VRAMDATA */
         }
 
         tm->hw_sprite_first = first_sprite;
@@ -191,8 +191,8 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
     }
 
     if (zoom_changed) {
-        u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
+        u16 shrink = CameraGetShrink();
+        vram_base[0] = VRAM_SCB2 + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = shrink;
@@ -241,16 +241,16 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
         tm->last_viewport_row = first_row;
     }
 
-    u16 shrink = NGCameraGetShrink();
-    u8 height_bits = NGSpriteAdjustedHeight(num_rows, (u8)(shrink & 0xFF));
+    u16 shrink = CameraGetShrink();
+    u8 height_bits = hw_sprite_adjusted_height(num_rows, (u8)(shrink & 0xFF));
 
-    s16 base_screen_y = (s16)(FIX_INT(tm->world_y - cam_y) + (first_row * NG_TILE_SIZE));
+    s16 base_screen_y = (s16)(FIX_INT(tm->world_y - cam_y) + (first_row * TILE_SIZE));
     base_screen_y = (s16)((base_screen_y * zoom) >> 4);
 
-    u16 scb3_val = NGSpriteSCB3(base_screen_y, height_bits);
+    u16 scb3_val = hw_sprite_pack_scb3(base_screen_y, height_bits);
 
     if (scb3_val != tm->last_scb3) {
-        vram_base[0] = NG_SCB3_BASE + first_sprite;
+        vram_base[0] = VRAM_SCB3 + first_sprite;
         vram_base[2] = 1;
         for (u8 col = 0; col < num_cols; col++) {
             vram_base[1] = scb3_val;
@@ -258,36 +258,36 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
         tm->last_scb3 = scb3_val;
     }
 
-    s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
-    s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
+    s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
+    s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * TILE_SIZE));
     base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
     /* Batch SCB4 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost.
      * Iterate by sprite index; calculate screen column via inverse offset mapping. */
-    vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
+    vram_base[0] = (u16)(VRAM_SCB4 + first_sprite);
     vram_base[2] = 1;
     for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
         u8 screen_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
         s16 x = (s16)(base_screen_x + (screen_col * tile_w));
-        vram_base[1] = NGSpriteSCB4(x);
+        vram_base[1] = hw_sprite_pack_scb4(x);
     }
 }
 
-NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
+TerrainHandle TerrainCreate(const TerrainAsset *asset) {
     if (!asset)
-        return NG_TERRAIN_INVALID;
+        return TERRAIN_INVALID;
 
-    NGTerrainHandle handle = NG_TERRAIN_INVALID;
-    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+    TerrainHandle handle = TERRAIN_INVALID;
+    for (u8 i = 0; i < TERRAIN_MAX; i++) {
         if (!terrains[i].active) {
             handle = i;
             break;
         }
     }
-    if (handle == NG_TERRAIN_INVALID)
-        return NG_TERRAIN_INVALID;
+    if (handle == TERRAIN_INVALID)
+        return TERRAIN_INVALID;
 
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     tm->asset = asset;
     tm->world_x = 0;
     tm->world_y = 0;
@@ -311,10 +311,10 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     return handle;
 }
 
-void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u8 z) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainAddToScene(TerrainHandle handle, fixed world_x, fixed world_y, u8 z) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -324,13 +324,13 @@ void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u
     tm->in_scene = 1;
     tm->tiles_loaded = 0;
 
-    _NGSceneMarkRenderQueueDirty();
+    _SceneMarkRenderQueueDirty();
 }
 
-void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainRemoveFromScene(TerrainHandle handle) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -339,25 +339,25 @@ void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
 
     /* Clear sprite heights to hide sprites */
     if (tm->hw_sprite_count > 0) {
-        NGSpriteHideRange(tm->hw_sprite_first, tm->hw_sprite_count);
+        hw_sprite_hide(tm->hw_sprite_first, tm->hw_sprite_count);
     }
 
     if (was_in_scene) {
-        _NGSceneMarkRenderQueueDirty();
+        _SceneMarkRenderQueueDirty();
     }
 }
 
-void NGTerrainDestroy(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainDestroy(TerrainHandle handle) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    NGTerrainRemoveFromScene(handle);
+    TerrainRemoveFromScene(handle);
     terrains[handle].active = 0;
 }
 
-void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainSetPos(TerrainHandle handle, fixed world_x, fixed world_y) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active)
         return;
 
@@ -365,38 +365,38 @@ void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
     tm->world_y = world_y;
 }
 
-void NGTerrainSetZ(NGTerrainHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainSetZ(TerrainHandle handle, u8 z) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active)
         return;
     if (tm->z != z) {
         tm->z = z;
         if (tm->in_scene) {
-            _NGSceneMarkRenderQueueDirty();
+            _SceneMarkRenderQueueDirty();
         }
     }
 }
 
-void NGTerrainSetVisible(NGTerrainHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void TerrainSetVisible(TerrainHandle handle, u8 visible) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active)
         return;
     tm->visible = visible ? 1 : 0;
 }
 
-void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_out) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX) {
+void TerrainGetDimensions(TerrainHandle handle, u16 *width_out, u16 *height_out) {
+    if (handle < 0 || handle >= TERRAIN_MAX) {
         if (width_out)
             *width_out = 0;
         if (height_out)
             *height_out = 0;
         return;
     }
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset) {
         if (width_out)
             *width_out = 0;
@@ -405,20 +405,20 @@ void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_
         return;
     }
     if (width_out)
-        *width_out = tm->asset->width_tiles * NG_TILE_SIZE;
+        *width_out = tm->asset->width_tiles * TILE_SIZE;
     if (height_out)
-        *height_out = tm->asset->height_tiles * NG_TILE_SIZE;
+        *height_out = tm->asset->height_tiles * TILE_SIZE;
 }
 
-u8 NGTerrainGetCollision(NGTerrainHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 TerrainGetCollision(TerrainHandle handle, fixed world_x, fixed world_y) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
         return 0;
 
-    s16 tile_x = FIX_INT(world_x - tm->world_x) / NG_TILE_SIZE;
-    s16 tile_y = FIX_INT(world_y - tm->world_y) / NG_TILE_SIZE;
+    s16 tile_x = FIX_INT(world_x - tm->world_x) / TILE_SIZE;
+    s16 tile_y = FIX_INT(world_y - tm->world_y) / TILE_SIZE;
 
     if (tile_x < 0 || tile_x >= tm->asset->width_tiles || tile_y < 0 ||
         tile_y >= tm->asset->height_tiles) {
@@ -429,10 +429,10 @@ u8 NGTerrainGetCollision(NGTerrainHandle handle, fixed world_x, fixed world_y) {
     return tm->asset->collision_data[idx];
 }
 
-u8 NGTerrainGetTileAt(NGTerrainHandle handle, u16 tile_x, u16 tile_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 TerrainGetTileAt(TerrainHandle handle, u16 tile_x, u16 tile_y) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset)
         return 0;
 
@@ -444,18 +444,18 @@ u8 NGTerrainGetTileAt(NGTerrainHandle handle, u16 tile_x, u16 tile_y) {
     return tm->asset->tile_data[idx];
 }
 
-u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
-                     u8 *flags_out) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 TerrainTestAABB(TerrainHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
+                   u8 *flags_out) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
         return 0;
 
-    s16 left_tile = FIX_INT(x - half_w - tm->world_x) / NG_TILE_SIZE;
-    s16 right_tile = FIX_INT(x + half_w - tm->world_x) / NG_TILE_SIZE;
-    s16 top_tile = FIX_INT(y - half_h - tm->world_y) / NG_TILE_SIZE;
-    s16 bottom_tile = FIX_INT(y + half_h - tm->world_y) / NG_TILE_SIZE;
+    s16 left_tile = FIX_INT(x - half_w - tm->world_x) / TILE_SIZE;
+    s16 right_tile = FIX_INT(x + half_w - tm->world_x) / TILE_SIZE;
+    s16 top_tile = FIX_INT(y - half_h - tm->world_y) / TILE_SIZE;
+    s16 bottom_tile = FIX_INT(y + half_h - tm->world_y) / TILE_SIZE;
 
     if (left_tile < 0)
         left_tile = 0;
@@ -477,27 +477,27 @@ u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fix
 
     if (flags_out)
         *flags_out = result;
-    return (result & NG_TILE_SOLID) ? 1 : 0;
+    return (result & TILE_SOLID) ? 1 : 0;
 }
 
-u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
-                        fixed *vel_x, fixed *vel_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return NG_COLL_NONE;
-    Terrain *tm = &terrains[handle];
+u8 TerrainResolveAABB(TerrainHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
+                      fixed *vel_x, fixed *vel_y) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
+        return COLL_NONE;
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset || !tm->asset->collision_data)
-        return NG_COLL_NONE;
+        return COLL_NONE;
 
-    u8 result = NG_COLL_NONE;
+    u8 result = COLL_NONE;
     fixed new_x = *x;
     fixed new_y = *y + *vel_y;
 
     // Vertical resolution first: allows jumping to clear ground before horizontal check
     if (*vel_y != 0) {
-        s16 left_tile = FIX_INT(*x - half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 right_tile = FIX_INT(*x + half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 top_tile = FIX_INT(new_y - half_h - tm->world_y) / NG_TILE_SIZE;
-        s16 bottom_tile = FIX_INT(new_y + half_h - tm->world_y) / NG_TILE_SIZE;
+        s16 left_tile = FIX_INT(*x - half_w - tm->world_x) / TILE_SIZE;
+        s16 right_tile = FIX_INT(*x + half_w - tm->world_x) / TILE_SIZE;
+        s16 top_tile = FIX_INT(new_y - half_h - tm->world_y) / TILE_SIZE;
+        s16 bottom_tile = FIX_INT(new_y + half_h - tm->world_y) / TILE_SIZE;
 
         if (left_tile < 0)
             left_tile = 0;
@@ -514,10 +514,10 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
                 u16 idx = (u16)(ty * tm->asset->width_tiles + tx);
                 u8 coll = tm->asset->collision_data[idx];
 
-                if (coll & NG_TILE_SOLID) {
+                if (coll & TILE_SOLID) {
                     hit = 1;
-                } else if ((coll & NG_TILE_PLATFORM) && *vel_y > 0) {
-                    s16 old_bottom = FIX_INT(*y + half_h - tm->world_y) / NG_TILE_SIZE;
+                } else if ((coll & TILE_PLATFORM) && *vel_y > 0) {
+                    s16 old_bottom = FIX_INT(*y + half_h - tm->world_y) / TILE_SIZE;
                     if (old_bottom < ty) {
                         hit = 1;
                     }
@@ -527,12 +527,12 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
 
         if (hit) {
             if (*vel_y > 0) {
-                result |= NG_COLL_BOTTOM;
-                s16 tile_top = (s16)((bottom_tile * NG_TILE_SIZE) + FIX_INT(tm->world_y));
+                result |= COLL_BOTTOM;
+                s16 tile_top = (s16)((bottom_tile * TILE_SIZE) + FIX_INT(tm->world_y));
                 new_y = FIX(tile_top) - half_h - 1;
             } else {
-                result |= NG_COLL_TOP;
-                s16 tile_bottom = (s16)(((top_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_y));
+                result |= COLL_TOP;
+                s16 tile_bottom = (s16)(((top_tile + 1) * TILE_SIZE) + FIX_INT(tm->world_y));
                 new_y = FIX(tile_bottom) + half_h + 1;
             }
             *vel_y = 0;
@@ -544,10 +544,10 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
         new_x = *x + *vel_x;
 
         // 2px skin avoids catching on edges
-        s16 left_tile = FIX_INT(new_x - half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 right_tile = FIX_INT(new_x + half_w - tm->world_x) / NG_TILE_SIZE;
-        s16 top_tile = FIX_INT(new_y - half_h + FIX(2) - tm->world_y) / NG_TILE_SIZE;
-        s16 bottom_tile = FIX_INT(new_y + half_h - FIX(2) - tm->world_y) / NG_TILE_SIZE;
+        s16 left_tile = FIX_INT(new_x - half_w - tm->world_x) / TILE_SIZE;
+        s16 right_tile = FIX_INT(new_x + half_w - tm->world_x) / TILE_SIZE;
+        s16 top_tile = FIX_INT(new_y - half_h + FIX(2) - tm->world_y) / TILE_SIZE;
+        s16 bottom_tile = FIX_INT(new_y + half_h - FIX(2) - tm->world_y) / TILE_SIZE;
 
         if (left_tile < 0)
             left_tile = 0;
@@ -562,7 +562,7 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
             for (s16 tx = left_tile; tx <= right_tile && !hit; tx++) {
                 u16 idx = (u16)(ty * tm->asset->width_tiles + tx);
-                if (tm->asset->collision_data[idx] & NG_TILE_SOLID) {
+                if (tm->asset->collision_data[idx] & TILE_SOLID) {
                     hit = 1;
                 }
             }
@@ -570,12 +570,12 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
 
         if (hit) {
             if (*vel_x > 0) {
-                result |= NG_COLL_RIGHT;
-                s16 tile_left = (s16)((right_tile * NG_TILE_SIZE) + FIX_INT(tm->world_x));
+                result |= COLL_RIGHT;
+                s16 tile_left = (s16)((right_tile * TILE_SIZE) + FIX_INT(tm->world_x));
                 new_x = FIX(tile_left) - half_w - 1;
             } else {
-                result |= NG_COLL_LEFT;
-                s16 tile_right = (s16)(((left_tile + 1) * NG_TILE_SIZE) + FIX_INT(tm->world_x));
+                result |= COLL_LEFT;
+                s16 tile_right = (s16)(((left_tile + 1) * TILE_SIZE) + FIX_INT(tm->world_x));
                 new_x = FIX(tile_right) + half_w + 1;
             }
             *vel_x = 0;
@@ -588,7 +588,7 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
 }
 
 // TODO: Implement runtime tile modification (requires RAM copy support)
-void NGTerrainSetTile(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
+void TerrainSetTile(TerrainHandle handle, u16 tile_x, u16 tile_y, u8 tile_index) {
     (void)handle;
     (void)tile_x;
     (void)tile_y;
@@ -596,43 +596,43 @@ void NGTerrainSetTile(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 tile_in
 }
 
 // TODO: Implement runtime collision modification (requires RAM copy support)
-void NGTerrainSetCollision(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
+void TerrainSetCollision(TerrainHandle handle, u16 tile_x, u16 tile_y, u8 collision) {
     (void)handle;
     (void)tile_x;
     (void)tile_y;
     (void)collision;
 }
 
-void NGTerrainDraw(NGTerrainHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+void _TerrainDraw(TerrainHandle handle, u16 first_sprite) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->in_scene)
         return;
 
     draw_terrain(tm, first_sprite);
 }
 
-u8 NGTerrainGetSpriteCount(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+u8 _TerrainGetSpriteCount(TerrainHandle handle) {
+    if (handle < 0 || handle >= TERRAIN_MAX)
         return 0;
-    Terrain *tm = &terrains[handle];
+    TerrainData *tm = &terrains[handle];
     if (!tm->active || !tm->asset)
         return 0;
 
-    u8 zoom = NGCameraGetZoom();
+    u8 zoom = CameraGetZoom();
     u16 view_width = (SCREEN_WIDTH * 16) / zoom;
-    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
-    if (num_cols > NG_TERRAIN_MAX_COLS)
-        num_cols = NG_TERRAIN_MAX_COLS;
+    u8 num_cols = (u8)((view_width / TILE_SIZE) + 2);
+    if (num_cols > TERRAIN_MAX_COLS)
+        num_cols = TERRAIN_MAX_COLS;
 
     return num_cols;
 }
 
 /* Internal: collect palettes from all terrains in scene into bitmask */
-void _NGTerrainCollectPalettes(u8 *palette_mask) {
-    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
-        Terrain *tm = &terrains[i];
+void _TerrainCollectPalettes(u8 *palette_mask) {
+    for (u8 i = 0; i < TERRAIN_MAX; i++) {
+        TerrainData *tm = &terrains[i];
         if (!tm->active || !tm->in_scene || !tm->asset)
             continue;
 

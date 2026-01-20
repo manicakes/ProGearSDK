@@ -22,10 +22,10 @@
 #define BOB_AMPLITUDE 10
 
 typedef struct ScrollDemoState {
-    NGBackdropHandle back;
-    NGBackdropHandle middle;
-    NGBackdropHandle front;
-    NGMenuHandle menu;
+    Backdrop back;
+    Backdrop middle;
+    Backdrop front;
+    MenuHandle menu;
     s16 scroll_x;
     s8 scroll_dir;
     u8 bob_phase;
@@ -44,98 +44,98 @@ static ScrollDemoState *state;
 #define MENU_TILEMAP_DEMO 6
 
 void ScrollDemoInit(void) {
-    state = NG_ARENA_ALLOC(&ng_arena_state, ScrollDemoState);
+    state = ARENA_ALLOC(&arena_state, ScrollDemoState);
     state->switch_target = 0;
     state->menu_open = 0;
     state->scroll_x = 0;
     state->scroll_dir = 1;
     state->bob_phase = 0;
 
-    state->back = NGBackdropCreate(&NGVisualAsset_back_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
-                                   FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25));
-    NGBackdropAddToScene(state->back, 0, 0, 0);
+    state->back = BackdropCreate(&VisualAsset_back_layer, BACKDROP_WIDTH_INFINITE, 0,
+                                 FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25));
+    BackdropAddToScene(state->back, 0, 0, 0);
 
-    state->middle = NGBackdropCreate(&NGVisualAsset_middle_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
-                                     FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
-    s16 middle_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20);
-    NGBackdropAddToScene(state->middle, 0, middle_y, 1);
+    state->middle = BackdropCreate(&VisualAsset_middle_layer, BACKDROP_WIDTH_INFINITE, 0,
+                                   FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
+    s16 middle_y = (s16)(SCENE_VIEWPORT_H - VisualAsset_middle_layer.height_pixels - 20);
+    BackdropAddToScene(state->middle, 0, middle_y, 1);
 
-    state->front = NGBackdropCreate(&NGVisualAsset_front_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
-                                    FIX_ONE, FIX_ONE);
-    s16 front_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_front_layer.height_pixels);
-    NGBackdropAddToScene(state->front, 0, front_y, 2);
+    state->front =
+        BackdropCreate(&VisualAsset_front_layer, BACKDROP_WIDTH_INFINITE, 0, FIX_ONE, FIX_ONE);
+    s16 front_y = (s16)(SCENE_VIEWPORT_H - VisualAsset_front_layer.height_pixels);
+    BackdropAddToScene(state->front, 0, front_y, 2);
 
     // Menu uses palette fade, no sprite limit issues
-    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "SCROLL DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Toggle Zoom");
-    NGMenuAddItem(state->menu, "Reset Camera");
-    NGMenuAddSeparator(state->menu, "--------");
-    NGMenuAddItem(state->menu, "Ball Demo");
-    NGMenuAddItem(state->menu, "Blank Scene");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuSetDefaultSounds(state->menu);
-    NGEngineSetActiveMenu(state->menu);
+    state->menu = MenuCreateDefault(&arena_state, 10);
+    MenuSetTitle(state->menu, "SCROLL DEMO");
+    MenuAddItem(state->menu, "Resume");
+    MenuAddItem(state->menu, "Toggle Zoom");
+    MenuAddItem(state->menu, "Reset Camera");
+    MenuAddSeparator(state->menu, "--------");
+    MenuAddItem(state->menu, "Ball Demo");
+    MenuAddItem(state->menu, "Blank Scene");
+    MenuAddItem(state->menu, "Tilemap Demo");
+    MenuSetDefaultSounds(state->menu);
+    EngineSetActiveMenu(state->menu);
 
-    NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
+    TextPrint(FixLayoutAlign(ALIGN_CENTER, ALIGN_TOP), 0, "PRESS START FOR MENU");
 }
 
 u8 ScrollDemoUpdate(void) {
-    if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
+    if (InputPressed(PLAYER_1, BUTTON_START)) {
         if (state->menu_open) {
-            NGMenuHide(state->menu);
+            MenuHide(state->menu);
             state->menu_open = 0;
         } else {
-            NGMenuShow(state->menu);
+            MenuShow(state->menu);
             state->menu_open = 1;
         }
     }
 
-    NGMenuUpdate(state->menu);
+    MenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
+        if (MenuConfirmed(state->menu)) {
+            switch (MenuGetSelection(state->menu)) {
                 case MENU_RESUME:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     break;
                 case MENU_TOGGLE_ZOOM: {
-                    u8 target = NGCameraGetTargetZoom();
-                    if (target == NG_CAM_ZOOM_100) {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_50);
+                    u8 target = CameraGetTargetZoom();
+                    if (target == CAM_ZOOM_100) {
+                        CameraSetTargetZoom(CAM_ZOOM_50);
                     } else {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
+                        CameraSetTargetZoom(CAM_ZOOM_100);
                     }
                 } break;
                 case MENU_RESET_CAMERA:
-                    NGCameraSetPos(0, 0);
-                    NGCameraSetZoom(NG_CAM_ZOOM_100);
+                    CameraSetPos(0, 0);
+                    CameraSetZoom(CAM_ZOOM_100);
                     state->scroll_x = 0;
                     state->scroll_dir = 1;
                     state->bob_phase = 0;
                     break;
                 case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_BLANK_SCENE:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_BLANK_SCENE;
                     break;
                 case MENU_TILEMAP_DEMO:
-                    NGMenuHide(state->menu);
+                    MenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_TILEMAP;
                     break;
             }
         }
 
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
+        if (MenuCancelled(state->menu)) {
+            MenuHide(state->menu);
             state->menu_open = 0;
         }
     } else {
@@ -158,26 +158,26 @@ u8 ScrollDemoUpdate(void) {
             bob_y = (s8)(BOB_AMPLITUDE - (((state->bob_phase - 128) * BOB_AMPLITUDE * 2) >> 7));
         }
 
-        NGCameraSetPos(FIX(state->scroll_x), FIX(bob_y));
+        CameraSetPos(FIX(state->scroll_x), FIX(bob_y));
     }
 
     return state->switch_target;
 }
 
 void ScrollDemoCleanup(void) {
-    NGFixClear(0, 3, 40, 1);
+    FixClear(0, 3, 40, 1);
 
-    NGBackdropRemoveFromScene(state->front);
-    NGBackdropDestroy(state->front);
+    BackdropRemoveFromScene(state->front);
+    BackdropDestroy(state->front);
 
-    NGBackdropRemoveFromScene(state->middle);
-    NGBackdropDestroy(state->middle);
+    BackdropRemoveFromScene(state->middle);
+    BackdropDestroy(state->middle);
 
-    NGBackdropRemoveFromScene(state->back);
-    NGBackdropDestroy(state->back);
+    BackdropRemoveFromScene(state->back);
+    BackdropDestroy(state->back);
 
-    NGMenuDestroy(state->menu);
+    MenuDestroy(state->menu);
 
-    NGCameraSetPos(0, 0);
-    NGCameraSetZoom(NG_CAM_ZOOM_100);
+    CameraSetPos(0, 0);
+    CameraSetZoom(CAM_ZOOM_100);
 }

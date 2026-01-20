@@ -6,202 +6,151 @@
 
 /**
  * @file input.h
- * @brief NeoGeo input handling.
+ * @brief Controller input.
  *
- * Provides button state polling with edge detection for responsive controls.
+ * Simple input queries with automatic edge detection.
+ * No setup required - just query button states any time.
  *
- * @section inputusage Usage
- * 1. Call NGInputInit() once at startup
- * 2. Call NGInputUpdate() once per frame (after vblank)
- * 3. Use NGInputPressed() for actions (jump, shoot)
- * 4. Use NGInputHeld() for continuous input (movement)
+ * @example
+ * // Check if player pressed jump
+ * if (InputPressed(PLAYER_1, BUTTON_A)) {
+ *     player_jump();
+ * }
  *
- * @section inputedge Edge Detection
- * - NGInputPressed(): True only on first frame button is pressed
- * - NGInputReleased(): True only on frame button is released
- * - NGInputHeld(): True every frame button is down
+ * // Get movement direction
+ * s8 move_x = InputAxisX(PLAYER_1);
+ * s8 move_y = InputAxisY(PLAYER_1);
  */
 
-#ifndef _INPUT_H_
-#define _INPUT_H_
+#ifndef INPUT_H
+#define INPUT_H
 
 #include <types.h>
 
-/** @defgroup btnmask Button Masks
- *  @brief Bitmasks for player buttons.
- *  @{
+/**
+ * @defgroup input Input
+ * @brief Controller input with edge detection.
+ * @{
  */
 
-#define NG_BTN_UP     0x0001 /**< D-pad up */
-#define NG_BTN_DOWN   0x0002 /**< D-pad down */
-#define NG_BTN_LEFT   0x0004 /**< D-pad left */
-#define NG_BTN_RIGHT  0x0008 /**< D-pad right */
-#define NG_BTN_A      0x0010 /**< A button */
-#define NG_BTN_B      0x0020 /**< B button */
-#define NG_BTN_C      0x0040 /**< C button */
-#define NG_BTN_D      0x0080 /**< D button */
-#define NG_BTN_START  0x0100 /**< Start button */
-#define NG_BTN_SELECT 0x0200 /**< Select button */
+/** Player identifiers */
+#define PLAYER_1 0
+#define PLAYER_2 1
 
-#define NG_BTN_DIR  (NG_BTN_UP | NG_BTN_DOWN | NG_BTN_LEFT | NG_BTN_RIGHT) /**< All directions */
-#define NG_BTN_FACE (NG_BTN_A | NG_BTN_B | NG_BTN_C | NG_BTN_D)            /**< All face buttons */
-#define NG_BTN_ALL  0x03FF                                                 /**< All buttons */
+/** Button masks */
+#define BUTTON_UP     0x0001
+#define BUTTON_DOWN   0x0002
+#define BUTTON_LEFT   0x0004
+#define BUTTON_RIGHT  0x0008
+#define BUTTON_A      0x0010
+#define BUTTON_B      0x0020
+#define BUTTON_C      0x0040
+#define BUTTON_D      0x0080
+#define BUTTON_START  0x0100
+#define BUTTON_SELECT 0x0200
 
-/** @} */
+/** Direction mask (all four directions) */
+#define BUTTON_DIRS (BUTTON_UP | BUTTON_DOWN | BUTTON_LEFT | BUTTON_RIGHT)
 
-/** @defgroup sysbtn System Button Masks
- *  @brief Bitmasks for machine-level inputs.
- *  @{
- */
+/** Face button mask (A, B, C, D) */
+#define BUTTON_FACE (BUTTON_A | BUTTON_B | BUTTON_C | BUTTON_D)
 
-#define NG_SYS_COIN1   0x0001 /**< Player 1 coin slot */
-#define NG_SYS_COIN2   0x0002 /**< Player 2 coin slot */
-#define NG_SYS_SERVICE 0x0004 /**< Service button */
-#define NG_SYS_TEST    0x0008 /**< Test button */
-#define NG_SYS_ALL     0x000F /**< All system inputs */
+/** All buttons */
+#define BUTTON_ALL 0x03FF
 
-/** @} */
-
-/** @defgroup playerid Player Identifiers
- *  @{
- */
-
-#define NG_PLAYER_1 0 /**< Player 1 */
-#define NG_PLAYER_2 1 /**< Player 2 */
-
-/** @} */
-
-/** @defgroup inputsys Input System Functions
- *  @{
- */
+/** System button masks */
+#define SYSTEM_COIN1   0x0001
+#define SYSTEM_COIN2   0x0002
+#define SYSTEM_SERVICE 0x0004
 
 /**
- * Initialize input system.
- * Call once at startup.
- */
-void NGInputInit(void);
-
-/**
- * Update input state.
- * Call once per frame after vblank.
- */
-void NGInputUpdate(void);
-
-/** @} */
-
-/** @defgroup inputstate State Queries
- *  @{
- */
-
-/**
- * Check if buttons are currently held.
- * @param player Player index (NG_PLAYER_1 or NG_PLAYER_2)
- * @param buttons Button mask to check
+ * Check if buttons are currently held down.
+ *
+ * @param player PLAYER_1 or PLAYER_2
+ * @param buttons Button mask (can combine with |)
  * @return Non-zero if ALL specified buttons are held
  */
-u8 NGInputHeld(u8 player, u16 buttons);
+u8 InputHeld(u8 player, u16 buttons);
 
 /**
  * Check if buttons were just pressed this frame.
- * @param player Player index
- * @param buttons Button mask to check
+ *
+ * @param player PLAYER_1 or PLAYER_2
+ * @param buttons Button mask
  * @return Non-zero if ALL specified buttons were just pressed
  */
-u8 NGInputPressed(u8 player, u16 buttons);
+u8 InputPressed(u8 player, u16 buttons);
 
 /**
  * Check if buttons were just released this frame.
- * @param player Player index
- * @param buttons Button mask to check
+ *
+ * @param player PLAYER_1 or PLAYER_2
+ * @param buttons Button mask
  * @return Non-zero if ALL specified buttons were just released
  */
-u8 NGInputReleased(u8 player, u16 buttons);
+u8 InputReleased(u8 player, u16 buttons);
 
 /**
- * Get raw button state as bitmask.
- * @param player Player index
- * @return Button bitmask
- */
-u16 NGInputGetRaw(u8 player);
-
-/** @} */
-
-/** @defgroup inputdir Direction Helpers
- *  @{
- */
-
-/**
- * Get horizontal direction.
- * @param player Player index
+ * Get horizontal axis direction.
+ *
+ * @param player PLAYER_1 or PLAYER_2
  * @return -1 (left), 0 (neutral), or +1 (right)
  */
-s8 NGInputGetX(u8 player);
+s8 InputAxisX(u8 player);
 
 /**
- * Get vertical direction.
- * @param player Player index
+ * Get vertical axis direction.
+ *
+ * @param player PLAYER_1 or PLAYER_2
  * @return -1 (up), 0 (neutral), or +1 (down)
  */
-s8 NGInputGetY(u8 player);
-
-/** @} */
-
-/** @defgroup inputcharge Charge/Hold Duration
- *  @{
- */
+s8 InputAxisY(u8 player);
 
 /**
- * Get frames a button has been held.
- * @param player Player index
+ * Get raw button state (no edge detection).
+ *
+ * @param player PLAYER_1 or PLAYER_2
+ * @return Current button bitmask
+ */
+u16 InputRaw(u8 player);
+
+/**
+ * Get number of frames a button has been held.
+ * Useful for charge attacks or hold-to-repeat.
+ *
+ * @param player PLAYER_1 or PLAYER_2
  * @param button Single button mask
- * @return Frame count, or 0 if not held
+ * @return Frame count (0 if not held)
  */
-u16 NGInputHeldFrames(u8 player, u16 button);
+u16 InputHeldFrames(u8 player, u16 button);
 
 /**
- * Get how long button was held before release.
- * Only valid on the frame the button was released.
- * @param player Player index
- * @param button Single button mask
- * @return Frame count held, or 0 if not just released
+ * Check if any button is pressed.
+ *
+ * @param player PLAYER_1 or PLAYER_2
+ * @return Non-zero if any button is held
  */
-u16 NGInputReleasedFrames(u8 player, u16 button);
+u8 InputAny(u8 player);
 
-/** @} */
-
-/** @defgroup sysquery System Input Queries
- *  @brief Machine-level inputs (coins, service, test).
- *  @{
+/*
+ * Internal functions - called by engine.
  */
+void InputInit(void);
+void InputUpdate(void);
 
 /**
- * Check if system buttons are held.
+ * Check system buttons (coins, service).
+ *
  * @param buttons System button mask
- * @return Non-zero if held
+ * @return Non-zero if ALL specified buttons are held
  */
-u8 NGSystemHeld(u16 buttons);
+u8 SystemHeld(u16 buttons);
 
 /**
  * Check if system buttons were just pressed.
- * Use for coin insertion detection.
- * @param buttons System button mask
- * @return Non-zero if just pressed
  */
-u8 NGSystemPressed(u16 buttons);
-
-/**
- * Check if system buttons were just released.
- * @param buttons System button mask
- * @return Non-zero if just released
- */
-u8 NGSystemReleased(u16 buttons);
-
-/**
- * Get raw system input state.
- * @return System input bitmask
- */
-u16 NGSystemGetRaw(void);
+u8 SystemPressed(u16 buttons);
 
 /** @} */
 
-#endif // _INPUT_H_
+#endif /* INPUT_H */

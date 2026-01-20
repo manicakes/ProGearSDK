@@ -66,6 +66,12 @@ typedef struct {
     u16 tiles_per_frame;    /**< Tiles per animation frame */
 } NGVisualAsset;
 
+/** Type alias for cleaner public API */
+typedef NGVisualAsset VisualAsset;
+
+/** Animation definition alias */
+typedef NGAnimDef AnimDef;
+
 /** @} */
 
 /** @defgroup tileflags Tile Flags
@@ -76,6 +82,11 @@ typedef struct {
 #define NG_TILE_HFLIP 0x8000 /**< Horizontal flip flag */
 #define NG_TILE_VFLIP 0x4000 /**< Vertical flip flag */
 #define NG_TILE_MASK  0x0FFF /**< Tile index mask (bits 0-11) */
+
+/** Clean API aliases */
+#define TILE_HFLIP NG_TILE_HFLIP
+#define TILE_VFLIP NG_TILE_VFLIP
+#define TILE_MASK  NG_TILE_MASK
 
 /** @} */
 

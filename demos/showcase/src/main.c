@@ -17,13 +17,13 @@
 typedef enum { DEMO_BALL, DEMO_SCROLL, DEMO_BLANK_SCENE, DEMO_TILEMAP } DemoMode;
 
 int main(void) {
-    NGEngineInit();
+    EngineInit();
 
     DemoMode current_demo = DEMO_BALL;
     BallDemoInit();
 
     for (;;) {
-        NGEngineFrameStart();
+        EngineFrameStart();
 
         u8 switch_to = 0;
         switch (current_demo) {
@@ -57,7 +57,7 @@ int main(void) {
                     break;
             }
 
-            NGArenaReset(&ng_arena_state);
+            ArenaReset(&arena_state);
 
             switch (switch_to) {
                 case DEMO_ID_BALL:
@@ -79,6 +79,6 @@ int main(void) {
             }
         }
 
-        NGEngineFrameEnd();
+        EngineFrameEnd();
     }
 }

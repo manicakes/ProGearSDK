@@ -447,4 +447,69 @@ u8 NGLightingGetActivePreset(void);
 
 /** @} */
 
+/** @defgroup lightingclean Clean API Aliases
+ *  @brief Shorter names without NG_ prefix for cleaner code.
+ *  @{
+ */
+
+/* Constants */
+#define LIGHTING_MAX_LAYERS     NG_LIGHTING_MAX_LAYERS
+#define LIGHTING_INVALID_HANDLE NG_LIGHTING_INVALID_HANDLE
+#define LIGHTING_INVALID        NG_LIGHTING_INVALID_HANDLE
+
+/* Priority levels */
+#define LIGHTING_PRIORITY_AMBIENT   NG_LIGHTING_PRIORITY_AMBIENT
+#define LIGHTING_PRIORITY_OVERLAY   NG_LIGHTING_PRIORITY_OVERLAY
+#define LIGHTING_PRIORITY_TRANSIENT NG_LIGHTING_PRIORITY_TRANSIENT
+
+/* Preset enum alias */
+typedef NGLightingPreset LightingPreset;
+#define LIGHTING_PRESET_DAY        NG_LIGHTING_PRESET_DAY
+#define LIGHTING_PRESET_NIGHT      NG_LIGHTING_PRESET_NIGHT
+#define LIGHTING_PRESET_SUNSET     NG_LIGHTING_PRESET_SUNSET
+#define LIGHTING_PRESET_DAWN       NG_LIGHTING_PRESET_DAWN
+#define LIGHTING_PRESET_SANDSTORM  NG_LIGHTING_PRESET_SANDSTORM
+#define LIGHTING_PRESET_FOG        NG_LIGHTING_PRESET_FOG
+#define LIGHTING_PRESET_UNDERWATER NG_LIGHTING_PRESET_UNDERWATER
+#define LIGHTING_PRESET_SEPIA      NG_LIGHTING_PRESET_SEPIA
+#define LIGHTING_PRESET_MENU_DIM   NG_LIGHTING_PRESET_MENU_DIM
+
+/* Blend mode alias */
+typedef NGLightingBlendMode LightingBlendMode;
+#define LIGHTING_BLEND_NORMAL   NG_LIGHTING_BLEND_NORMAL
+#define LIGHTING_BLEND_ADDITIVE NG_LIGHTING_BLEND_ADDITIVE
+
+/* Handle alias */
+typedef NGLightingLayerHandle LightingLayerHandle;
+
+/* Function aliases */
+#define LightingInit               NGLightingInit
+#define LightingReset              NGLightingReset
+#define LightingPush               NGLightingPush
+#define LightingPop                NGLightingPop
+#define LightingLayerActive        NGLightingLayerActive
+#define LightingGetLayerCount      NGLightingGetLayerCount
+#define LightingSetTint            NGLightingSetTint
+#define LightingSetBrightness      NGLightingSetBrightness
+#define LightingSetSaturation      NGLightingSetSaturation
+#define LightingSetDuration        NGLightingSetDuration
+#define LightingSetBlendMode       NGLightingSetBlendMode
+#define LightingFlash              NGLightingFlash
+#define LightingApplyPreset        NGLightingApplyPreset
+#define LightingFadeBrightness     NGLightingFadeBrightness
+#define LightingFadeTint           NGLightingFadeTint
+#define LightingUpdate             NGLightingUpdate
+#define LightingInvalidate         NGLightingInvalidate
+#define LightingIsActive           NGLightingIsActive
+#define LightingIsAnimating        NGLightingIsAnimating
+#define LightingPushPreset         NGLightingPushPreset
+#define LightingPopPreset          NGLightingPopPreset
+#define LightingUpdatePrebakedFade NGLightingUpdatePrebakedFade
+#define LightingIsPrebakedFading   NGLightingIsPrebakedFading
+#define LightingGetActivePreset    NGLightingGetActivePreset
+#define LightingRegisterPrebaked   NGLightingRegisterPrebaked
+#define LightingInitPresets        NGLightingInitPresets
+
+/** @} */
+
 #endif // LIGHTING_H

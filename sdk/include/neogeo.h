@@ -341,4 +341,25 @@ static inline void NGWatchdogKick(void) {
  */
 /** @} */
 
+/** @defgroup sysclean Clean API Aliases
+ *  @brief Shorter names without NG_ prefix for cleaner code.
+ *  @{
+ */
+
+/* VRAM macros */
+#define VRAM_DECLARE_BASE  NG_VRAM_DECLARE_BASE
+#define VRAM_SET_ADDR_FAST NG_VRAM_SET_ADDR_FAST
+#define VRAM_WRITE_FAST    NG_VRAM_WRITE_FAST
+#define VRAM_READ_FAST     NG_VRAM_READ_FAST
+#define VRAM_SET_MOD_FAST  NG_VRAM_SET_MOD_FAST
+#define VRAM_SETUP_FAST    NG_VRAM_SETUP_FAST
+#define VRAM_CLEAR_FAST    NG_VRAM_CLEAR_FAST
+#define VRAM_FILL_FAST     NG_VRAM_FILL_FAST
+
+/* System function aliases */
+#define WaitVBlank   NGWaitVBlank
+#define WatchdogKick NGWatchdogKick
+
+/** @} */
+
 #endif // _NEOGEO_H_

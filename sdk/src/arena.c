@@ -6,22 +6,22 @@
 
 #include <arena.h>
 
-static u8 persistent_buffer[NG_ARENA_PERSISTENT_SIZE];
-static u8 state_buffer[NG_ARENA_STATE_SIZE];
-static u8 frame_buffer[NG_ARENA_FRAME_SIZE];
+static u8 persistent_buffer[ARENA_PERSISTENT_SIZE];
+static u8 state_buffer[ARENA_STATE_SIZE];
+static u8 frame_buffer[ARENA_FRAME_SIZE];
 
-NGArena ng_arena_persistent;
-NGArena ng_arena_state;
-NGArena ng_arena_frame;
+Arena arena_persistent;
+Arena arena_state;
+Arena arena_frame;
 
-void NGArenaInit(NGArena *arena, void *buffer, u32 size) {
+void ArenaInit(Arena *arena, void *buffer, u32 size) {
     arena->base = (u8 *)buffer;
     arena->current = arena->base;
     arena->end = arena->base + size;
 }
 
-void *NGArenaAlloc(NGArena *arena, u32 size) {
-    u8 *aligned = (u8 *)(((u32)arena->current + 3) & ~3); // 4-byte alignment for m68k
+void *ArenaAlloc(Arena *arena, u32 size) {
+    u8 *aligned = (u8 *)(((u32)arena->current + 3) & ~3); /* 4-byte alignment for m68k */
     u8 *next = aligned + size;
 
     if (next > arena->end) {
@@ -32,28 +32,28 @@ void *NGArenaAlloc(NGArena *arena, u32 size) {
     return aligned;
 }
 
-void NGArenaReset(NGArena *arena) {
+void ArenaReset(Arena *arena) {
     arena->current = arena->base;
 }
 
-NGArenaMark NGArenaSave(NGArena *arena) {
+ArenaMark ArenaSave(Arena *arena) {
     return arena->current;
 }
 
-void NGArenaRestore(NGArena *arena, NGArenaMark mark) {
+void ArenaRestore(Arena *arena, ArenaMark mark) {
     arena->current = mark;
 }
 
-u32 NGArenaUsed(NGArena *arena) {
+u32 ArenaUsed(Arena *arena) {
     return (u32)(arena->current - arena->base);
 }
 
-u32 NGArenaRemaining(NGArena *arena) {
+u32 ArenaRemaining(Arena *arena) {
     return (u32)(arena->end - arena->current);
 }
 
-void NGArenaSystemInit(void) {
-    NGArenaInit(&ng_arena_persistent, persistent_buffer, NG_ARENA_PERSISTENT_SIZE);
-    NGArenaInit(&ng_arena_state, state_buffer, NG_ARENA_STATE_SIZE);
-    NGArenaInit(&ng_arena_frame, frame_buffer, NG_ARENA_FRAME_SIZE);
+void ArenaSystemInit(void) {
+    ArenaInit(&arena_persistent, persistent_buffer, ARENA_PERSISTENT_SIZE);
+    ArenaInit(&arena_state, state_buffer, ARENA_STATE_SIZE);
+    ArenaInit(&arena_frame, frame_buffer, ARENA_FRAME_SIZE);
 }

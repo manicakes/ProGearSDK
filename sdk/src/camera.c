@@ -10,8 +10,8 @@
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 224
 
-// Zoom index 0-128 maps to zoom 8-16 (50%-100%). Eliminates fixed-point math.
-// Each entry is (h_shrink << 8) | v_shrink
+/* Zoom index 0-128 maps to zoom 8-16 (50%-100%). Eliminates fixed-point math.
+ * Each entry is (h_shrink << 8) | v_shrink */
 #define ZOOM_INDEX_MIN 0
 #define ZOOM_INDEX_MAX 128
 
@@ -47,7 +47,7 @@ static struct {
         u16 rand_state;
     } shake;
     struct {
-        NGActorHandle actor;
+        Actor actor;
         u16 deadzone_w;
         u16 deadzone_h;
         fixed follow_speed;
@@ -58,7 +58,7 @@ static struct {
     } track;
 } camera = {
     .shake.rand_state = 0x1234,
-    .track.actor = NG_ACTOR_INVALID,
+    .track.actor = ACTOR_INVALID,
     .track.deadzone_w = 64,
     .track.deadzone_h = 32,
     .track.follow_speed = FIX_FROM_FLOAT(0.15),
@@ -76,7 +76,7 @@ static inline u8 index_to_zoom(u8 index) {
     return 8 + (index >> 4);
 }
 
-void NGCameraInit(void) {
+void CameraInit(void) {
     camera.x = 0;
     camera.y = 0;
     camera.zoom.index = ZOOM_INDEX_MAX;
@@ -84,43 +84,43 @@ void NGCameraInit(void) {
     camera.zoom.step = 16;
 }
 
-void NGCameraSetPos(fixed x, fixed y) {
+void CameraSetPos(fixed x, fixed y) {
     camera.x = x;
     camera.y = y;
 }
 
-void NGCameraMove(fixed dx, fixed dy) {
+void CameraMove(fixed dx, fixed dy) {
     camera.x += dx;
     camera.y += dy;
 }
 
-fixed NGCameraGetX(void) {
+fixed CameraGetX(void) {
     return camera.x;
 }
 
-fixed NGCameraGetY(void) {
+fixed CameraGetY(void) {
     return camera.y;
 }
 
-void NGCameraSetZoom(u8 zoom) {
-    if (zoom > NG_CAM_ZOOM_100)
-        zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50)
-        zoom = NG_CAM_ZOOM_50;
+void CameraSetZoom(u8 zoom) {
+    if (zoom > CAM_ZOOM_100)
+        zoom = CAM_ZOOM_100;
+    if (zoom < CAM_ZOOM_50)
+        zoom = CAM_ZOOM_50;
     u8 idx = zoom_to_index(zoom);
     camera.zoom.index = idx;
     camera.zoom.target = idx;
 }
 
-void NGCameraSetTargetZoom(u8 zoom) {
-    if (zoom > NG_CAM_ZOOM_100)
-        zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50)
-        zoom = NG_CAM_ZOOM_50;
+void CameraSetTargetZoom(u8 zoom) {
+    if (zoom > CAM_ZOOM_100)
+        zoom = CAM_ZOOM_100;
+    if (zoom < CAM_ZOOM_50)
+        zoom = CAM_ZOOM_50;
     camera.zoom.target = zoom_to_index(zoom);
 }
 
-void NGCameraSetZoomSpeed(fixed speed) {
+void CameraSetZoomSpeed(fixed speed) {
     u8 step = (u8)(speed >> 14);
     if (step < 1)
         step = 1;
@@ -129,30 +129,30 @@ void NGCameraSetZoomSpeed(fixed speed) {
     camera.zoom.step = step;
 }
 
-u8 NGCameraGetZoom(void) {
+u8 CameraGetZoom(void) {
     return index_to_zoom(camera.zoom.index);
 }
 
-fixed NGCameraGetZoomFixed(void) {
+fixed CameraGetZoomFixed(void) {
     return FIX(8) + ((fixed)camera.zoom.index << 12);
 }
 
-u8 NGCameraIsZooming(void) {
+u8 CameraIsZooming(void) {
     return camera.zoom.index != camera.zoom.target ? 1 : 0;
 }
 
-u8 NGCameraGetTargetZoom(void) {
+u8 CameraGetTargetZoom(void) {
     return index_to_zoom(camera.zoom.target);
 }
 
-u16 NGCameraGetShrink(void) {
+u16 CameraGetShrink(void) {
     return zoom_shrink_table[camera.zoom.index];
 }
 
 static void update_shake(void);
 static void update_tracking(void);
 
-void NGCameraUpdate(void) {
+void CameraUpdate(void) {
     if (camera.zoom.index != camera.zoom.target) {
         if (camera.zoom.index < camera.zoom.target) {
             camera.zoom.index += camera.zoom.step;
@@ -175,19 +175,19 @@ void NGCameraUpdate(void) {
     update_shake();
 }
 
-u16 NGCameraGetVisibleWidth(void) {
+u16 CameraGetVisibleWidth(void) {
     u8 zoom = index_to_zoom(camera.zoom.index);
     return (SCREEN_WIDTH * 16) / zoom;
 }
 
-u16 NGCameraGetVisibleHeight(void) {
+u16 CameraGetVisibleHeight(void) {
     u8 zoom = index_to_zoom(camera.zoom.index);
     return (SCREEN_HEIGHT * 16) / zoom;
 }
 
-void NGCameraClampToBounds(u16 world_width, u16 world_height) {
-    u16 vis_w = NGCameraGetVisibleWidth();
-    u16 vis_h = NGCameraGetVisibleHeight();
+void CameraClampToBounds(u16 world_width, u16 world_height) {
+    u16 vis_w = CameraGetVisibleWidth();
+    u16 vis_h = CameraGetVisibleHeight();
 
     if (world_height > 512) {
         world_height = 512;
@@ -218,7 +218,7 @@ void NGCameraClampToBounds(u16 world_width, u16 world_height) {
     }
 }
 
-void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *screen_y) {
+void CameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *screen_y) {
     fixed cam_render_x = camera.x + FIX(camera.shake.offset_x);
     fixed cam_render_y = camera.y + FIX(camera.shake.offset_y);
 
@@ -233,7 +233,7 @@ void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *scr
     *screen_y = (s16)scaled_y;
 }
 
-void NGCameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *world_y) {
+void CameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *world_y) {
     s32 zoom = index_to_zoom(camera.zoom.index);
     s32 unscaled_x = ((s32)screen_x << 4) / zoom;
     s32 unscaled_y = ((s32)screen_y << 4) / zoom;
@@ -247,17 +247,17 @@ static s8 shake_random(void) {
     return (s8)((camera.shake.rand_state >> 8) & 0xFF);
 }
 
-void NGCameraShake(u8 intensity, u8 duration) {
+void CameraShake(u8 intensity, u8 duration) {
     camera.shake.intensity = intensity;
     camera.shake.duration = duration;
     camera.shake.timer = duration;
 }
 
-u8 NGCameraIsShaking(void) {
+u8 CameraIsShaking(void) {
     return camera.shake.timer > 0 ? 1 : 0;
 }
 
-void NGCameraShakeStop(void) {
+void CameraShakeStop(void) {
     camera.shake.timer = 0;
     camera.shake.offset_x = 0;
     camera.shake.offset_y = 0;
@@ -282,23 +282,23 @@ static void update_shake(void) {
     }
 }
 
-fixed NGCameraGetRenderX(void) {
+fixed CameraGetRenderX(void) {
     return camera.x + FIX(camera.shake.offset_x);
 }
 
-fixed NGCameraGetRenderY(void) {
+fixed CameraGetRenderY(void) {
     return camera.y + FIX(camera.shake.offset_y);
 }
 
 static void update_tracking(void) {
-    if (camera.track.actor == NG_ACTOR_INVALID)
+    if (camera.track.actor == ACTOR_INVALID)
         return;
 
-    fixed actor_x = NGActorGetX(camera.track.actor);
-    fixed actor_y = NGActorGetY(camera.track.actor);
+    fixed actor_x = ActorGetX(camera.track.actor);
+    fixed actor_y = ActorGetY(camera.track.actor);
 
-    u16 vis_w = NGCameraGetVisibleWidth();
-    u16 vis_h = NGCameraGetVisibleHeight();
+    u16 vis_w = CameraGetVisibleWidth();
+    u16 vis_h = CameraGetVisibleHeight();
 
     fixed cam_center_x = camera.x + FIX(vis_w / 2);
     fixed cam_center_y = camera.y + FIX(vis_h / 2);
@@ -328,33 +328,33 @@ static void update_tracking(void) {
     camera.y += FIX_MUL(move_y, camera.track.follow_speed);
 
     if (camera.track.bounds_w > 0 || camera.track.bounds_h > 0) {
-        NGCameraClampToBounds(camera.track.bounds_w, camera.track.bounds_h);
+        CameraClampToBounds(camera.track.bounds_w, camera.track.bounds_h);
     }
 }
 
-void NGCameraTrackActor(NGActorHandle actor) {
+void CameraTrackActor(Actor actor) {
     camera.track.actor = actor;
 }
 
-void NGCameraStopTracking(void) {
-    camera.track.actor = NG_ACTOR_INVALID;
+void CameraStopTracking(void) {
+    camera.track.actor = ACTOR_INVALID;
 }
 
-void NGCameraSetDeadzone(u16 width, u16 height) {
+void CameraSetDeadzone(u16 width, u16 height) {
     camera.track.deadzone_w = width;
     camera.track.deadzone_h = height;
 }
 
-void NGCameraSetFollowSpeed(fixed speed) {
+void CameraSetFollowSpeed(fixed speed) {
     camera.track.follow_speed = speed;
 }
 
-void NGCameraSetBounds(u16 world_width, u16 world_height) {
+void CameraSetBounds(u16 world_width, u16 world_height) {
     camera.track.bounds_w = world_width;
     camera.track.bounds_h = world_height;
 }
 
-void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y) {
+void CameraSetTrackOffset(s16 offset_x, s16 offset_y) {
     camera.track.offset_x = offset_x;
     camera.track.offset_y = offset_y;
 }

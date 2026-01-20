@@ -8,39 +8,35 @@
  * @file scene.h
  * @brief Scene management.
  *
- * The NGScene is the "stage" where all visual objects exist.
+ * The Scene is the "stage" where all visual objects exist.
  * It has a coordinate system with X, Y, and Z axes:
  * - X: 0 = leftmost, increases going right (no limit)
  * - Y: 0 = topmost, increases going down (max 512 due to hardware)
  * - Z: render order, 0 = back (rendered first), higher = front
  *
- * The scene owns a single **terrain** (tilemap) that actors interact with.
- * Use NGSceneSetTerrain() to set the terrain and NGSceneResolveCollision()
- * to handle actor collision with the terrain.
- *
  * @section sceneusage Usage
- * 1. Call NGSceneInit() at startup
- * 2. Set terrain with NGSceneSetTerrain()
+ * 1. Call SceneInit() at startup
+ * 2. Set terrain with SceneSetTerrain()
  * 3. Create actors and backdrops, add them to scene
- * 4. Call NGSceneUpdate() and NGSceneDraw() each frame
+ * 4. Call SceneUpdate() and SceneDraw() each frame
  */
 
-#ifndef _SCENE_H_
-#define _SCENE_H_
+#ifndef SCENE_H
+#define SCENE_H
 
 #include <types.h>
 #include <ngmath.h>
 
 /* Forward declaration */
-struct NGTerrainAsset;
+struct TerrainAsset;
 
 /** @defgroup sceneconst Scene Constants
  *  @{
  */
 
-#define NG_SCENE_MAX_HEIGHT 512 /**< Maximum scene height in pixels */
-#define NG_SCENE_VIEWPORT_W 320 /**< Viewport width (NeoGeo resolution) */
-#define NG_SCENE_VIEWPORT_H 224 /**< Viewport height (NeoGeo resolution) */
+#define SCENE_MAX_HEIGHT 512 /**< Maximum scene height in pixels */
+#define SCENE_VIEWPORT_W 320 /**< Viewport width (NeoGeo resolution) */
+#define SCENE_VIEWPORT_H 224 /**< Viewport height (NeoGeo resolution) */
 
 /** @} */
 
@@ -49,21 +45,21 @@ struct NGTerrainAsset;
  *  @{
  */
 
-/* Collision direction flags (returned by NGSceneResolveCollision) */
-#define NG_COLL_NONE   0x00 /**< No collision */
-#define NG_COLL_LEFT   0x01 /**< Hit terrain on left */
-#define NG_COLL_RIGHT  0x02 /**< Hit terrain on right */
-#define NG_COLL_TOP    0x04 /**< Hit terrain above */
-#define NG_COLL_BOTTOM 0x08 /**< Hit terrain below (landed) */
+/* Collision direction flags (returned by SceneResolveCollision) */
+#define COLL_NONE   0x00 /**< No collision */
+#define COLL_LEFT   0x01 /**< Hit terrain on left */
+#define COLL_RIGHT  0x02 /**< Hit terrain on right */
+#define COLL_TOP    0x04 /**< Hit terrain above */
+#define COLL_BOTTOM 0x08 /**< Hit terrain below (landed) */
 
-/* Tile property flags (returned by NGSceneGetCollisionAt) */
-#define NG_TILE_SOLID    0x01 /**< Blocks movement (walls/floors) */
-#define NG_TILE_PLATFORM 0x02 /**< One-way platform (solid from above) */
-#define NG_TILE_SLOPE_L  0x04 /**< Left-to-right slope */
-#define NG_TILE_SLOPE_R  0x08 /**< Right-to-left slope */
-#define NG_TILE_HAZARD   0x10 /**< Damages player on contact */
-#define NG_TILE_TRIGGER  0x20 /**< Triggers callback on contact */
-#define NG_TILE_LADDER   0x40 /**< Climbable tile */
+/* Tile property flags (returned by SceneGetCollisionAt) */
+#define TILE_SOLID    0x01 /**< Blocks movement (walls/floors) */
+#define TILE_PLATFORM 0x02 /**< One-way platform (solid from above) */
+#define TILE_SLOPE_L  0x04 /**< Left-to-right slope */
+#define TILE_SLOPE_R  0x08 /**< Right-to-left slope */
+#define TILE_HAZARD   0x10 /**< Damages player on contact */
+#define TILE_TRIGGER  0x20 /**< Triggers callback on contact */
+#define TILE_LADDER   0x40 /**< Climbable tile */
 
 /** @} */
 
@@ -73,85 +69,96 @@ struct NGTerrainAsset;
 
 /**
  * Initialize the scene system.
- * Call once at startup before creating any actors or parallax effects.
+ * Call once at startup before creating any actors.
  */
-void NGSceneInit(void);
+void SceneInit(void);
 
 /**
  * Update all scene objects.
  * Call once per frame. Updates animations and processes scene logic.
  */
-void NGSceneUpdate(void);
+void SceneUpdate(void);
 
 /**
  * Draw all scene objects.
  * Call once per frame during VBlank. Renders objects in Z-order.
  */
-void NGSceneDraw(void);
+void SceneDraw(void);
 
 /**
  * Reset scene to empty state.
  * Destroys all actors and backdrops, clears hardware sprites.
- * Call when transitioning between levels/screens.
  */
-void NGSceneReset(void);
+void SceneReset(void);
+
+/**
+ * Allocate hardware sprites for manual use.
+ * @param count Number of sprites to allocate
+ * @return First sprite index, or 0xFFFF if not enough available
+ */
+u16 SceneAllocSprites(u8 count);
+
+/**
+ * Get current sprite allocation index.
+ */
+u16 SceneGetNextSprite(void);
+
+/**
+ * Set sprite allocation index.
+ */
+void SceneSetNextSprite(u16 next);
 
 /** @} */
 
 /** @defgroup sceneterrain Scene Terrain
  *  @brief Terrain that actors interact with.
- *
- *  The scene owns a single terrain. Use NGSceneSetTerrain() to set it,
- *  then use the collision functions to resolve actor movement against the terrain.
  *  @{
  */
 
 /**
  * Set the scene's terrain from a terrain asset.
- * The terrain is automatically added to the render queue.
- * @param asset Terrain asset (generated by progear_assets.py from tilemaps section)
+ * @param asset Terrain asset (generated by progear_assets.py)
  */
-void NGSceneSetTerrain(const struct NGTerrainAsset *asset);
+void SceneSetTerrain(const struct TerrainAsset *asset);
 
 /**
  * Clear the scene's terrain.
- * Removes the terrain from rendering and collision.
  */
-void NGSceneClearTerrain(void);
+void SceneClearTerrain(void);
 
 /**
  * Set terrain position in scene coordinates.
  * @param x X position (fixed-point)
  * @param y Y position (fixed-point)
  */
-void NGSceneSetTerrainPos(fixed x, fixed y);
+void SceneSetTerrainPos(fixed x, fixed y);
 
 /**
  * Set terrain Z-index for render order.
  * @param z Z-index (0 = back, higher = front)
  */
-void NGSceneSetTerrainZ(u8 z);
+void SceneSetTerrainZ(u8 z);
 
 /**
  * Set terrain visibility.
  * @param visible 1 to show, 0 to hide
  */
-void NGSceneSetTerrainVisible(u8 visible);
+void SceneSetTerrainVisible(u8 visible);
 
 /**
  * Get terrain dimensions in pixels.
  * @param width Output: terrain width (can be NULL)
  * @param height Output: terrain height (can be NULL)
  */
-void NGSceneGetTerrainBounds(u16 *width, u16 *height);
+void SceneGetTerrainBounds(u16 *width, u16 *height);
 
 /**
  * Query collision flags at a world position.
  * @param x World X position (fixed-point)
  * @param y World Y position (fixed-point)
- * @return Collision flags, or 0 if no terrain or out of bounds
+ * @return Collision flags, or 0 if no terrain
  */
-u8 NGSceneGetCollisionAt(fixed x, fixed y);
+u8 SceneGetCollisionAt(fixed x, fixed y);
 
 /**
  * Test AABB collision against terrain.
@@ -162,46 +169,50 @@ u8 NGSceneGetCollisionAt(fixed x, fixed y);
  * @param flags_out Output: OR'd collision flags (can be NULL)
  * @return 1 if solid collision, 0 if no collision
  */
-u8 NGSceneTestCollision(fixed x, fixed y, fixed half_w, fixed half_h, u8 *flags_out);
+u8 SceneTestCollision(fixed x, fixed y, fixed half_w, fixed half_h, u8 *flags_out);
 
 /**
  * Resolve AABB collision against terrain.
- * Pushes the AABB out of solid tiles and handles one-way platforms.
  * @param x Center X (fixed-point, modified on collision)
  * @param y Center Y (fixed-point, modified on collision)
  * @param half_w Half-width (fixed-point)
  * @param half_h Half-height (fixed-point)
- * @param vel_x Velocity X (fixed-point, zeroed on horizontal collision)
- * @param vel_y Velocity Y (fixed-point, zeroed on vertical collision)
- * @return Collision direction bitmask (NG_COLL_LEFT|RIGHT|TOP|BOTTOM)
+ * @param vel_x Velocity X (fixed-point, zeroed on collision)
+ * @param vel_y Velocity Y (fixed-point, zeroed on collision)
+ * @return Collision direction bitmask (COLL_LEFT|RIGHT|TOP|BOTTOM)
  */
-u8 NGSceneResolveCollision(fixed *x, fixed *y, fixed half_w, fixed half_h, fixed *vel_x,
-                           fixed *vel_y);
+u8 SceneResolveCollision(fixed *x, fixed *y, fixed half_w, fixed half_h, fixed *vel_x,
+                         fixed *vel_y);
 
 /**
  * Get tile index at grid position.
  * @param tile_x Tile X coordinate
  * @param tile_y Tile Y coordinate
- * @return Tile index, or 0 if no terrain or out of bounds
+ * @return Tile index, or 0 if no terrain
  */
-u8 NGSceneGetTileAt(u16 tile_x, u16 tile_y);
+u8 SceneGetTileAt(u16 tile_x, u16 tile_y);
 
 /**
- * Set tile at grid position (runtime modification).
+ * Set tile at grid position.
  * @param tile_x Tile X coordinate
  * @param tile_y Tile Y coordinate
  * @param tile_index New tile index
  */
-void NGSceneSetTileAt(u16 tile_x, u16 tile_y, u8 tile_index);
+void SceneSetTileAt(u16 tile_x, u16 tile_y, u8 tile_index);
 
 /**
- * Set collision at grid position (runtime modification).
+ * Set collision at grid position.
  * @param tile_x Tile X coordinate
  * @param tile_y Tile Y coordinate
  * @param collision New collision flags
  */
-void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision);
+void SceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision);
 
 /** @} */
 
-#endif /* _SCENE_H_ */
+/*
+ * Internal functions - used by other SDK modules.
+ */
+void _SceneMarkRenderQueueDirty(void);
+
+#endif /* SCENE_H */

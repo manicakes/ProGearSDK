@@ -222,4 +222,71 @@ static inline NGColor NGColorGray(u8 level) {
 
 /** @} */
 
+/** @defgroup colorclean Clean API Aliases
+ *  @brief Shorter names without NG_ prefix for cleaner code.
+ *  @{
+ */
+
+/* Type alias */
+typedef NGColor Color;
+
+/* Construction macros */
+#define RGB       NG_RGB
+#define RGB5      NG_RGB5
+#define RGB5_DARK NG_RGB5_DARK
+#define RGB4      NG_RGB4
+#define RGB4_DARK NG_RGB4_DARK
+#define RGB8      NG_RGB8
+#define RGB8_DARK NG_RGB8_DARK
+
+/* Color constants */
+#define COLOR_REFERENCE     NG_COLOR_REFERENCE
+#define COLOR_BLACK         NG_COLOR_BLACK
+#define COLOR_WHITE         NG_COLOR_WHITE
+#define COLOR_RED           NG_COLOR_RED
+#define COLOR_GREEN         NG_COLOR_GREEN
+#define COLOR_BLUE          NG_COLOR_BLUE
+#define COLOR_YELLOW        NG_COLOR_YELLOW
+#define COLOR_CYAN          NG_COLOR_CYAN
+#define COLOR_MAGENTA       NG_COLOR_MAGENTA
+#define COLOR_DARK_RED      NG_COLOR_DARK_RED
+#define COLOR_DARK_GREEN    NG_COLOR_DARK_GREEN
+#define COLOR_DARK_BLUE     NG_COLOR_DARK_BLUE
+#define COLOR_DARK_YELLOW   NG_COLOR_DARK_YELLOW
+#define COLOR_DARK_CYAN     NG_COLOR_DARK_CYAN
+#define COLOR_DARK_MAGENTA  NG_COLOR_DARK_MAGENTA
+#define COLOR_GRAY_DARK     NG_COLOR_GRAY_DARK
+#define COLOR_GRAY          NG_COLOR_GRAY
+#define COLOR_GRAY_LIGHT    NG_COLOR_GRAY_LIGHT
+#define COLOR_ORANGE        NG_COLOR_ORANGE
+#define COLOR_HERMES_ORANGE NG_COLOR_HERMES_ORANGE
+#define COLOR_PINK          NG_COLOR_PINK
+#define COLOR_PURPLE        NG_COLOR_PURPLE
+#define COLOR_BROWN         NG_COLOR_BROWN
+#define COLOR_DARK_ORANGE   NG_COLOR_DARK_ORANGE
+#define COLOR_SKY_BLUE      NG_COLOR_SKY_BLUE
+#define COLOR_LIME          NG_COLOR_LIME
+#define COLOR_WHITE_BRIGHT  NG_COLOR_WHITE_BRIGHT
+#define COLOR_RED_BRIGHT    NG_COLOR_RED_BRIGHT
+#define COLOR_GREEN_BRIGHT  NG_COLOR_GREEN_BRIGHT
+#define COLOR_BLUE_BRIGHT   NG_COLOR_BLUE_BRIGHT
+
+/* Function aliases */
+#define ColorGetRed           NGColorGetRed
+#define ColorGetGreen         NGColorGetGreen
+#define ColorGetBlue          NGColorGetBlue
+#define ColorIsDark           NGColorIsDark
+#define ColorSetDark          NGColorSetDark
+#define ColorClearDark        NGColorClearDark
+#define ColorBlend            NGColorBlend
+#define ColorDarken           NGColorDarken
+#define ColorLighten          NGColorLighten
+#define ColorInvert           NGColorInvert
+#define ColorGrayscale        NGColorGrayscale
+#define ColorAdjustBrightness NGColorAdjustBrightness
+#define ColorFromHSV          NGColorFromHSV
+#define ColorGray             NGColorGray
+
+/** @} */
+
 #endif // _COLOR_H_

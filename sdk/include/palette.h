@@ -245,4 +245,42 @@ static inline volatile u16 *NGPalGetColorPtr(u8 palette, u8 index) {
 
 /** @} */
 
+/** @defgroup palclean Clean API Aliases
+ *  @brief Shorter names without NG_ prefix for cleaner code.
+ *  @{
+ */
+
+/* Constants */
+#define PAL_COUNT    NG_PAL_COUNT
+#define PAL_SIZE     NG_PAL_SIZE
+#define PAL_RAM_BASE NG_PAL_RAM_BASE
+#define PAL_BANK_FIX NG_PAL_BANK_FIX
+#define PAL_BANK_SPR NG_PAL_BANK_SPR
+#define PAL_FIX      NG_PAL_FIX
+
+/* Function aliases */
+#define PalSetColor        NGPalSetColor
+#define PalGetColor        NGPalGetColor
+#define PalSet             NGPalSet
+#define PalCopy            NGPalCopy
+#define PalFill            NGPalFill
+#define PalClear           NGPalClear
+#define PalGradient        NGPalGradient
+#define PalGradientToBlack NGPalGradientToBlack
+#define PalGradientToWhite NGPalGradientToWhite
+#define PalFadeToBlack     NGPalFadeToBlack
+#define PalFadeToWhite     NGPalFadeToWhite
+#define PalFadeToColor     NGPalFadeToColor
+#define PalBackup          NGPalBackup
+#define PalRestore         NGPalRestore
+#define PalSetupShaded     NGPalSetupShaded
+#define PalSetupGrayscale  NGPalSetupGrayscale
+#define PalInitDefault     NGPalInitDefault
+#define PalSetBackdrop     NGPalSetBackdrop
+#define PalGetBackdrop     NGPalGetBackdrop
+#define PalGetPtr          NGPalGetPtr
+#define PalGetColorPtr     NGPalGetColorPtr
+
+/** @} */
+
 #endif // _PALETTE_H_

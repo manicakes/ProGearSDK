@@ -9,15 +9,15 @@
 #define SETTLE_VELOCITY_THRESHOLD FIX_FROM_FLOAT(0.1)
 #define SETTLE_POSITION_THRESHOLD FIX_FROM_FLOAT(0.5)
 
-void NGSpringInit(NGSpring *spring, fixed initial) {
+void SpringInit(Spring *spring, fixed initial) {
     spring->value = initial;
     spring->velocity = 0;
     spring->target = initial;
-    spring->stiffness = NG_SPRING_SNAPPY_STIFFNESS;
-    spring->damping = NG_SPRING_SNAPPY_DAMPING;
+    spring->stiffness = SPRING_SNAPPY_STIFFNESS;
+    spring->damping = SPRING_SNAPPY_DAMPING;
 }
 
-void NGSpringInitEx(NGSpring *spring, fixed initial, fixed stiffness, fixed damping) {
+void SpringInitEx(Spring *spring, fixed initial, fixed stiffness, fixed damping) {
     spring->value = initial;
     spring->velocity = 0;
     spring->target = initial;
@@ -25,22 +25,22 @@ void NGSpringInitEx(NGSpring *spring, fixed initial, fixed stiffness, fixed damp
     spring->damping = damping;
 }
 
-void NGSpringSetTarget(NGSpring *spring, fixed target) {
+void SpringSetTarget(Spring *spring, fixed target) {
     spring->target = target;
 }
 
-void NGSpringSnap(NGSpring *spring, fixed value) {
+void SpringSnap(Spring *spring, fixed value) {
     spring->value = value;
     spring->target = value;
     spring->velocity = 0;
 }
 
-void NGSpringImpulse(NGSpring *spring, fixed impulse) {
+void SpringImpulse(Spring *spring, fixed impulse) {
     spring->velocity += impulse;
 }
 
-void NGSpringUpdate(NGSpring *spring) {
-    // F = -k * displacement - d * velocity
+void SpringUpdate(Spring *spring) {
+    /* F = -k * displacement - d * velocity */
     fixed displacement = spring->value - spring->target;
     fixed spring_force = -FIX_MUL(spring->stiffness, displacement);
     fixed damping_force = -FIX_MUL(spring->damping, spring->velocity);
@@ -50,7 +50,7 @@ void NGSpringUpdate(NGSpring *spring) {
     spring->value += spring->velocity;
 }
 
-u8 NGSpringSettled(NGSpring *spring) {
+u8 SpringSettled(Spring *spring) {
     fixed displacement = spring->value - spring->target;
     if (displacement < 0)
         displacement = -displacement;
@@ -62,31 +62,31 @@ u8 NGSpringSettled(NGSpring *spring) {
     return (displacement < SETTLE_POSITION_THRESHOLD) && (vel < SETTLE_VELOCITY_THRESHOLD);
 }
 
-void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y) {
-    NGSpringInit(&spring->x, x);
-    NGSpringInit(&spring->y, y);
+void Spring2DInit(Spring2D *spring, fixed x, fixed y) {
+    SpringInit(&spring->x, x);
+    SpringInit(&spring->y, y);
 }
 
-void NGSpring2DInitEx(NGSpring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping) {
-    NGSpringInitEx(&spring->x, x, stiffness, damping);
-    NGSpringInitEx(&spring->y, y, stiffness, damping);
+void Spring2DInitEx(Spring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping) {
+    SpringInitEx(&spring->x, x, stiffness, damping);
+    SpringInitEx(&spring->y, y, stiffness, damping);
 }
 
-void NGSpring2DSetTarget(NGSpring2D *spring, fixed x, fixed y) {
+void Spring2DSetTarget(Spring2D *spring, fixed x, fixed y) {
     spring->x.target = x;
     spring->y.target = y;
 }
 
-void NGSpring2DSnap(NGSpring2D *spring, fixed x, fixed y) {
-    NGSpringSnap(&spring->x, x);
-    NGSpringSnap(&spring->y, y);
+void Spring2DSnap(Spring2D *spring, fixed x, fixed y) {
+    SpringSnap(&spring->x, x);
+    SpringSnap(&spring->y, y);
 }
 
-void NGSpring2DUpdate(NGSpring2D *spring) {
-    NGSpringUpdate(&spring->x);
-    NGSpringUpdate(&spring->y);
+void Spring2DUpdate(Spring2D *spring) {
+    SpringUpdate(&spring->x);
+    SpringUpdate(&spring->y);
 }
 
-u8 NGSpring2DSettled(NGSpring2D *spring) {
-    return NGSpringSettled(&spring->x) && NGSpringSettled(&spring->y);
+u8 Spring2DSettled(Spring2D *spring) {
+    return SpringSettled(&spring->x) && SpringSettled(&spring->y);
 }
