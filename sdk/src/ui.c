@@ -14,6 +14,7 @@
 #include <audio.h>
 #include <neogeo.h>
 #include <sprite.h>
+#include <visual.h>
 
 #define MENU_ITEM_HEIGHT     8
 #define MENU_TEXT_OFFSET_X   3
@@ -161,11 +162,50 @@ static u8 calc_panel_height(u8 item_count) {
     return sprite_tiles;
 }
 
-static u16 get_panel_tile(const NGVisualAsset *asset, u8 col, u8 row) {
-    u16 idx = (u16)(row * asset->width_tiles + col);
-    u16 entry = asset->tilemap[idx];
-    u16 tile_offset = entry & 0x7FFF;
-    return asset->base_tile + tile_offset;
+/**
+ * Get tile index and attribute flags for a panel tile.
+ *
+ * For assets with a tilemap, reads from the row-major tilemap array and
+ * extracts the tile index and flip flags. For assets without a tilemap,
+ * calculates the tile index directly using column-major C-ROM layout.
+ *
+ * @param asset Visual asset
+ * @param col Column index
+ * @param row Row index
+ * @param out_tile Output: tile index to write to VRAM
+ * @param out_attr Output: attribute flags (palette, flip bits)
+ * @param palette Palette index for attributes
+ */
+static void get_panel_tile_and_attr(const NGVisualAsset *asset, u8 col, u8 row,
+                                    u16 *out_tile, u16 *out_attr, u8 palette) {
+    u16 tile;
+    u16 attr = ((u16)palette << 8);
+
+    if (asset->tilemap) {
+        /* Use tilemap (row-major order) with proper flip flag handling */
+        u16 idx = (u16)(row * asset->width_tiles + col);
+        u16 entry = asset->tilemap[idx];
+        u16 tile_offset = entry & NG_TILE_MASK;
+        tile = asset->base_tile + tile_offset;
+
+        /* Apply flip flags from tilemap directly to hardware bits.
+         * NG_TILE_HFLIP (0x8000) maps to hardware h_flip (bit 0).
+         * NG_TILE_VFLIP (0x4000) maps to hardware v_flip (bit 1).
+         * The asset pipeline sets these flags to match desired hardware state. */
+        if (entry & NG_TILE_HFLIP) {
+            attr |= 0x01; /* Hardware h_flip bit */
+        }
+        if (entry & NG_TILE_VFLIP) {
+            attr |= 0x02; /* Hardware v_flip bit */
+        }
+    } else {
+        /* Fallback: column-major direct calculation (like backdrop.c) */
+        tile = (u16)(asset->base_tile + (col * asset->height_tiles) + row);
+        attr |= 0x01; /* Default h_flip for normal display */
+    }
+
+    *out_tile = tile;
+    *out_attr = attr;
 }
 
 static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
@@ -193,10 +233,10 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
         NG_REG_VRAMMOD = 1;
 
         u8 row_out = 0;
-        u16 attr = ((u16)palette << 8) | 0x01;
+        u16 tile, attr;
 
         for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
-            u16 tile = get_panel_tile(asset, col, r);
+            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
             NG_REG_VRAMDATA = tile;
             NG_REG_VRAMDATA = attr;
             row_out++;
@@ -206,23 +246,26 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
         u8 orig_middle_end = orig_height - PANEL_BOTTOM_ROWS;
 
         for (u8 r = orig_middle_start; r < orig_middle_end; r++) {
-            u16 tile = get_panel_tile(asset, col, r);
+            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
             NG_REG_VRAMDATA = tile;
             NG_REG_VRAMDATA = attr;
             row_out++;
 
             if (r == PANEL_MIDDLE_ROW) {
-                u16 repeat_tile = get_panel_tile(asset, col, PANEL_MIDDLE_ROW);
+                /* Repeated middle row uses same tile and attr */
+                u16 repeat_tile, repeat_attr;
+                get_panel_tile_and_attr(asset, col, PANEL_MIDDLE_ROW, &repeat_tile, &repeat_attr,
+                                        palette);
                 for (u8 e = 0; e < extra_rows; e++) {
                     NG_REG_VRAMDATA = repeat_tile;
-                    NG_REG_VRAMDATA = attr;
+                    NG_REG_VRAMDATA = repeat_attr;
                     row_out++;
                 }
             }
         }
 
         for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
-            u16 tile = get_panel_tile(asset, col, r);
+            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
             NG_REG_VRAMDATA = tile;
             NG_REG_VRAMDATA = attr;
             row_out++;
