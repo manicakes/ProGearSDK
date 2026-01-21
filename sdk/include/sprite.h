@@ -167,4 +167,189 @@ static inline void NGSpriteHideRange(u16 first_sprite, u8 count) {
 
 /** @} */
 
+/** @defgroup spriteapi Sprite Abstraction API
+ *  @brief Functions for common VRAM/SCB write patterns.
+ *
+ *  These functions encapsulate sprite hardware operations used by
+ *  actor, backdrop, terrain, and UI modules. They use optimized
+ *  indexed VRAM addressing internally.
+ *  @{
+ */
+
+/* ============================================================
+ * SCB1: Tile Column Writing
+ * ============================================================ */
+
+/**
+ * Begin writing tiles to a sprite's SCB1 column.
+ * Sets VRAMADDR to the sprite's tile base and VRAMMOD to 1.
+ * Follow with NGSpriteTileWrite() or NGSpriteTileWriteEmpty() calls.
+ *
+ * @param sprite_idx Hardware sprite index (0-380)
+ */
+void NGSpriteTileBegin(u16 sprite_idx);
+
+/**
+ * Write one tile entry (index + attributes) to current column.
+ * Auto-advances to next row. Requires prior NGSpriteTileBegin().
+ *
+ * @param tile_idx  C-ROM tile index (0-65535)
+ * @param palette   Palette index (0-255)
+ * @param h_flip    Horizontal flip (0=normal, 1=flipped)
+ * @param v_flip    Vertical flip (0=normal, 1=flipped)
+ */
+void NGSpriteTileWrite(u16 tile_idx, u8 palette, u8 h_flip, u8 v_flip);
+
+/**
+ * Write one raw tile entry (pre-computed index and attributes).
+ * For cases where attributes are already calculated (e.g., tilemap lookup).
+ *
+ * @param tile_idx  C-ROM tile index
+ * @param attr      Pre-computed attribute word (palette<<8 | flip bits)
+ */
+void NGSpriteTileWriteRaw(u16 tile_idx, u16 attr);
+
+/**
+ * Write an empty tile slot (tile 0, no attributes).
+ */
+void NGSpriteTileWriteEmpty(void);
+
+/**
+ * Pad remaining rows to 32 with empty tiles.
+ * Call after writing all visible rows to clear unused slots.
+ *
+ * @param rows_written Number of rows already written (0-32)
+ */
+void NGSpriteTilePadTo32(u8 rows_written);
+
+/* ============================================================
+ * SCB2: Shrink Values
+ * ============================================================ */
+
+/**
+ * Set shrink value for a range of consecutive sprites.
+ * Efficiently batches writes using VRAMMOD auto-increment.
+ *
+ * @param first_sprite First hardware sprite index
+ * @param count        Number of sprites to set
+ * @param shrink       Shrink value (0x0FFF = full size, 0x0000 = invisible)
+ */
+void NGSpriteShrinkSet(u16 first_sprite, u8 count, u16 shrink);
+
+/* ============================================================
+ * SCB3: Y Position and Height
+ * ============================================================ */
+
+/**
+ * Set Y position and height for a single sprite.
+ *
+ * @param sprite_idx Hardware sprite index
+ * @param screen_y   Screen Y coordinate (0 = top of screen)
+ * @param height     Sprite height in tiles (1-32)
+ */
+void NGSpriteYSet(u16 sprite_idx, s16 screen_y, u8 height);
+
+/**
+ * Set Y/height for a chained multi-column sprite.
+ * First sprite is "driving" (has Y and height).
+ * Subsequent sprites are "sticky" (inherit from previous).
+ * Used by actors where columns share the same vertical position.
+ *
+ * @param first_sprite First hardware sprite index
+ * @param count        Number of columns in the chain
+ * @param screen_y     Screen Y coordinate
+ * @param height       Sprite height in tiles
+ */
+void NGSpriteYSetChain(u16 first_sprite, u8 count, s16 screen_y, u8 height);
+
+/**
+ * Set same Y/height for a range of independent sprites.
+ * Each sprite gets its own Y position (no sticky bit).
+ * Used by backdrops and terrain where columns move independently.
+ *
+ * @param first_sprite First hardware sprite index
+ * @param count        Number of sprites
+ * @param screen_y     Screen Y coordinate
+ * @param height       Sprite height in tiles
+ */
+void NGSpriteYSetUniform(u16 first_sprite, u8 count, s16 screen_y, u8 height);
+
+/* ============================================================
+ * SCB4: X Positions
+ * ============================================================ */
+
+/**
+ * Set X position for a single sprite.
+ *
+ * @param sprite_idx Hardware sprite index
+ * @param screen_x   Screen X coordinate
+ */
+void NGSpriteXSet(u16 sprite_idx, s16 screen_x);
+
+/**
+ * Set X positions for a range with regular spacing.
+ * Computes: x[col] = base_x + col * spacing
+ *
+ * @param first_sprite First hardware sprite index
+ * @param count        Number of sprites
+ * @param base_x       X position of first sprite
+ * @param spacing      Pixel spacing between sprite columns
+ */
+void NGSpriteXSetSpaced(u16 first_sprite, u8 count, s16 base_x, s16 spacing);
+
+/**
+ * Begin batch X position writing.
+ * Sets up VRAMADDR for SCB4 and VRAMMOD for auto-increment.
+ * Follow with NGSpriteXWriteNext() calls.
+ *
+ * @param first_sprite First hardware sprite index
+ */
+void NGSpriteXBegin(u16 first_sprite);
+
+/**
+ * Write next X position in batch sequence.
+ * Requires prior NGSpriteXBegin(). Auto-advances to next sprite.
+ *
+ * @param screen_x Screen X coordinate
+ */
+void NGSpriteXWriteNext(s16 screen_x);
+
+/* ============================================================
+ * Combined High-Level Operations
+ * ============================================================ */
+
+/**
+ * Setup all position registers for a multi-column sprite strip.
+ * Sets shrink (SCB2), Y position as chain (SCB3), and spaced X (SCB4).
+ * Does NOT write tile data (SCB1) - call NGSpriteTile* separately.
+ *
+ * @param first_sprite First hardware sprite index
+ * @param num_cols     Number of columns
+ * @param screen_x     Screen X of leftmost column
+ * @param screen_y     Screen Y position
+ * @param height       Sprite height in tiles
+ * @param tile_width   Pixel width per column (for X spacing)
+ * @param shrink       Shrink value (0x0FFF = full size)
+ */
+void NGSpriteSetupStrip(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y, u8 height,
+                        s16 tile_width, u16 shrink);
+
+/**
+ * Setup position registers for independent columns (non-chained).
+ * Like NGSpriteSetupStrip but uses uniform Y instead of chained.
+ * Used by backdrops and terrain.
+ *
+ * @param first_sprite First hardware sprite index
+ * @param num_cols     Number of columns
+ * @param screen_x     Screen X of leftmost column
+ * @param screen_y     Screen Y position
+ * @param height       Sprite height in tiles
+ * @param tile_width   Pixel width per column
+ * @param shrink       Shrink value
+ */
+void NGSpriteSetupGrid(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y, u8 height,
+                       s16 tile_width, u16 shrink);
+
+/** @} */
+
 #endif /* _SPRITE_H_ */

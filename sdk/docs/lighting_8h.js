@@ -6,6 +6,8 @@ var lighting_8h =
     [ "NG_LIGHTING_PRIORITY_OVERLAY", "group__lightingpriority.html#gae187daad6494c4c38b8598800939334b", null ],
     [ "NG_LIGHTING_PRIORITY_TRANSIENT", "group__lightingpriority.html#ga63a553fbc037154acded8fef60d568a7", null ],
     [ "NGLightingLayerHandle", "lighting_8h.html#ab2a4eeac78c73ec30409dffe91a58bce", null ],
+    [ "NGLightingApplyStepFn", "group__lightingprebakedsetup.html#ga1aea08be24f005e5b6d4915f73329b66", null ],
+    [ "NGLightingGetInfoFn", "group__lightingprebakedsetup.html#ga4fd50f1280aba8e91bb6380c7a98d295", null ],
     [ "NGLightingPreset", "group__lightingpreset.html#ga4b04b0a0f74e4c2764d3cd33ce967b96", [
       [ "NG_LIGHTING_PRESET_DAY", "group__lightingpreset.html#gga4b04b0a0f74e4c2764d3cd33ce967b96a67bd4f24c96a0b490973fe80e9a865fd", null ],
       [ "NG_LIGHTING_PRESET_NIGHT", "group__lightingpreset.html#gga4b04b0a0f74e4c2764d3cd33ce967b96a906b793a904a5d011eb08840931c9bd1", null ],
@@ -39,5 +41,12 @@ var lighting_8h =
     [ "NGLightingUpdate", "group__lightingupdate.html#gaa50432635a833d46a89be33f22d201eb", null ],
     [ "NGLightingInvalidate", "group__lightingupdate.html#ga5079c4175095b81dc3b96dcd0f542d2d", null ],
     [ "NGLightingIsActive", "group__lightingquery.html#gac152b15a3cfed220fabb03ace7b221bd", null ],
-    [ "NGLightingIsAnimating", "group__lightingquery.html#ga6153c278628362f35e686a0e00c6cdaf", null ]
+    [ "NGLightingIsAnimating", "group__lightingquery.html#ga6153c278628362f35e686a0e00c6cdaf", null ],
+    [ "NGLightingRegisterPrebaked", "group__lightingprebakedsetup.html#ga0732a66957e5c4812500ff8b5bd031c2", null ],
+    [ "NGLightingInitPresets", "group__lightingprebakedsetup.html#gad479b4fa45bef836ac4e103960aa30c4", null ],
+    [ "NGLightingPushPreset", "group__lightingprebaked.html#ga5fcef8b356d5959389a14e13e2931e6b", null ],
+    [ "NGLightingPopPreset", "group__lightingprebaked.html#ga91fb5e1c7c3b37e2f92ec060158afecb", null ],
+    [ "NGLightingUpdatePrebakedFade", "group__lightingprebaked.html#ga722aeeb9037e81f3d83904093931d99d", null ],
+    [ "NGLightingIsPrebakedFading", "group__lightingprebaked.html#gab18b8a23d16a08744a029b23f07d19fb", null ],
+    [ "NGLightingGetActivePreset", "group__lightingprebaked.html#ga1646fffa0a720eb37b1daf340549b39f", null ]
 ];

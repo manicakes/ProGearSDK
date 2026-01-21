@@ -6,7 +6,6 @@
 
 #include <backdrop.h>
 #include <camera.h>
-#include <neogeo.h>
 #include <sprite.h>
 
 #define TILE_SIZE                16
@@ -68,20 +67,11 @@ u8 _NGBackdropGetZ(NGBackdropHandle handle) {
 }
 
 /**
- * Main backdrop rendering function.
- * Uses optimized indexed VRAM addressing for faster writes.
- * "move.w X,d(An)" is faster than "move.w X,xxx.L" per NeoGeo dev wiki.
+ * Main backdrop rendering function using the sprite abstraction API.
  */
 static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
     if (!bd->visible || !bd->asset)
         return;
-
-    /* Declare VRAM base register once - reused for all VRAM operations */
-#ifdef __CPPCHECK__
-    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
-#else
-    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
-#endif
 
     const NGVisualAsset *asset = bd->asset;
 
@@ -135,43 +125,29 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
     }
 
     if (!bd->tiles_loaded) {
+        /* SCB1: Write tile data for all columns */
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
-
-            vram_base[0] = NG_SCB1_BASE + (spr * 64); /* VRAMADDR */
-            vram_base[2] = 1;                         /* VRAMMOD */
-
             u8 asset_col = col % asset_cols;
+
+            NGSpriteTileBegin(spr);
 
             for (u8 row = 0; row < num_rows; row++) {
                 u8 asset_row = row % asset_rows;
                 u16 tile_idx = (u16)(asset->base_tile + (asset_col * asset_rows) + asset_row);
-                vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA */
-                u16 attr = ((u16)bd->palette << 8) | 0x01;
-                vram_base[1] = attr; /* VRAMDATA */
+                NGSpriteTileWrite(tile_idx, bd->palette, 1, 0);
             }
 
-            for (u8 row = num_rows; row < 32; row++) {
-                vram_base[1] = 0;
-                vram_base[1] = 0;
-            }
+            NGSpriteTilePadTo32(num_rows);
         }
 
+        /* SCB2: Shrink values */
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = shrink;
-        }
+        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
 
-        /* Start one tile left of screen for bidirectional scroll buffer */
+        /* SCB4: Start one tile left of screen for bidirectional scroll buffer */
         s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            s16 x = (s16)((col * tile_w) - tile_w);
-            vram_base[1] = NGSpriteSCB4(x);
-        }
+        NGSpriteXSetSpaced(first_sprite, num_cols, -tile_w, tile_w);
 
         bd->hw_sprite_first = first_sprite;
         bd->hw_sprite_count = num_cols;
@@ -188,20 +164,11 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
 
     if (zoom_changed) {
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = shrink;
-        }
+        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
 
         if (infinite_width) {
             s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
-            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-            vram_base[2] = 1;
-            for (u8 col = 0; col < num_cols; col++) {
-                s16 x = (s16)((col * tile_w) - tile_w);
-                vram_base[1] = NGSpriteSCB4(x);
-            }
+            NGSpriteXSetSpaced(first_sprite, num_cols, -tile_w, tile_w);
             bd->leftmost = first_sprite;
             bd->scroll_offset = SCROLL_FIX((TILE_SIZE * zoom) >> 4);
             bd->last_scroll_px = FIX_INT(parallax_offset_x);
@@ -210,18 +177,13 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
         bd->last_zoom = zoom;
     }
 
-    /* Adjust height for zoom: at reduced zoom, shrunk graphics are shorter */
+    /* SCB3: Y position and height */
     u16 shrink = NGCameraGetShrink();
     u8 height_bits = NGSpriteAdjustedHeight(num_rows, (u8)(shrink & 0xFF));
-
     u16 scb3_val = NGSpriteSCB3(base_y, height_bits);
 
     if (scb3_val != bd->last_scb3) {
-        vram_base[0] = NG_SCB3_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = scb3_val;
-        }
+        NGSpriteYSetUniform(first_sprite, num_cols, base_y, height_bits);
         bd->last_scb3 = scb3_val;
     }
 
@@ -253,30 +215,23 @@ static void draw_backdrop(Backdrop *bd, u16 first_sprite) {
                 bd->scroll_offset -= tile_width_fixed;
             }
 
-            /* Calculate X positions mathematically from scroll state.
-             * Eliminates VRAM reads - enables batched sequential writes. */
+            /* Calculate X positions mathematically from scroll state */
             s16 base_left_x = (s16)(SCROLL_INT(bd->scroll_offset) - 2 * tile_width_zoomed);
             u8 leftmost_offset = (u8)(bd->leftmost - first_sprite);
 
-            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-            vram_base[2] = 1;
+            NGSpriteXBegin(first_sprite);
             for (u8 buf = 0; buf < num_cols; buf++) {
                 u8 screen_col = (u8)((buf - leftmost_offset + num_cols) % num_cols);
                 s16 x = (s16)(base_left_x + screen_col * tile_width_zoomed);
-                vram_base[1] = NGSpriteSCB4(x);
+                NGSpriteXWriteNext(x);
             }
         }
     } else {
         s16 base_x = (s16)(bd->viewport_x - FIX_INT(parallax_offset_x));
 
         if (base_x != bd->last_base_x || zoom_changed) {
-            vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-            vram_base[2] = 1;
-            for (u8 col = 0; col < num_cols; col++) {
-                s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
-                s16 x_pos = (s16)(base_x + col_offset);
-                vram_base[1] = NGSpriteSCB4(x_pos);
-            }
+            s16 tile_w = (s16)((TILE_SIZE * zoom) >> 4);
+            NGSpriteXSetSpaced(first_sprite, num_cols, base_x, tile_w);
             bd->last_base_x = base_x;
         }
     }

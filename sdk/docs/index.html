@@ -296,7 +296,7 @@ Actors (actor.h)</h2>
 </div><!-- fragment --><p>See <a class="el" href="group__actorlife.html" title="Lifecycle Functions">Lifecycle Functions</a> and <a class="el" href="group__actorappear.html" title="Appearance Functions">Appearance Functions</a> for all functions.</p>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
 Scene (scene.h)</h2>
-<p>The scene manages all actors and parallax layers, handling updates and rendering.</p>
+<p>The scene manages all actors and backdrop layers, handling updates and rendering.</p>
 <div class="fragment"><div class="line"><span class="comment">// Initialize scene system (NGEngineInit does this)</span></div>
 <div class="line"><a class="code hl_function" href="group__scenefunc.html#gad44e2674e3ce2ad516274149966612c7">NGSceneInit</a>();</div>
 <div class="line"> </div>
@@ -312,7 +312,7 @@ Scene (scene.h)</h2>
 <div class="ttc" id="agroup__scenefunc_html_gad44e2674e3ce2ad516274149966612c7"><div class="ttname"><a href="group__scenefunc.html#gad44e2674e3ce2ad516274149966612c7">NGSceneInit</a></div><div class="ttdeci">void NGSceneInit(void)</div><div class="ttdoc">Initialize the scene system.</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
 Camera System (camera.h)</h2>
-<p>The camera controls what portion of the game world is visible on screen. Actors and parallax layers automatically follow the camera.</p>
+<p>The camera controls what portion of the game world is visible on screen. Actors and backdrop layers automatically follow the camera.</p>
 <p><b>Coordinate System</b>:</p><ul>
 <li>World origin (0,0) is at top-left</li>
 <li>X increases to the right, Y increases downward</li>
@@ -369,7 +369,7 @@ Camera System (camera.h)</h2>
 <div class="ttc" id="agroup__camsys_html_ga16dc82f856333862104a5413f3fbc221"><div class="ttname"><a href="group__camsys.html#ga16dc82f856333862104a5413f3fbc221">NGCameraIsZooming</a></div><div class="ttdeci">u8 NGCameraIsZooming(void)</div><div class="ttdoc">Check if zoom is currently animating.</div></div>
 <div class="ttc" id="agroup__camsys_html_ga87f80799a5780c942463b114e32c0ab1"><div class="ttname"><a href="group__camsys.html#ga87f80799a5780c942463b114e32c0ab1">NGCameraSetZoom</a></div><div class="ttdeci">void NGCameraSetZoom(u8 zoom)</div><div class="ttdoc">Set camera zoom level (instant).</div></div>
 <div class="ttc" id="agroup__camsys_html_gaf958261b972105456e314de17df11216"><div class="ttname"><a href="group__camsys.html#gaf958261b972105456e314de17df11216">NGCameraSetTargetZoom</a></div><div class="ttdeci">void NGCameraSetTargetZoom(u8 zoom)</div><div class="ttdoc">Set target zoom for smooth transition.</div></div>
-<div class="ttc" id="agroup__camzoom_html_ga5c953213ebf0eeeb2f4e450444cb11d0"><div class="ttname"><a href="group__camzoom.html#ga5c953213ebf0eeeb2f4e450444cb11d0">NG_CAM_ZOOM_75</a></div><div class="ttdeci">#define NG_CAM_ZOOM_75</div><div class="ttdoc">75%</div><div class="ttdef"><b>Definition</b> camera.h:72</div></div>
+<div class="ttc" id="agroup__camzoom_html_ga5c953213ebf0eeeb2f4e450444cb11d0"><div class="ttname"><a href="group__camzoom.html#ga5c953213ebf0eeeb2f4e450444cb11d0">NG_CAM_ZOOM_75</a></div><div class="ttdeci">#define NG_CAM_ZOOM_75</div><div class="ttdoc">75%</div><div class="ttdef"><b>Definition</b> camera.h:73</div></div>
 </div><!-- fragment --><p><b>Screen Shake</b>:</p>
 <div class="fragment"><div class="line"><span class="comment">// Start shake effect</span></div>
 <div class="line"><a class="code hl_function" href="group__cameffects.html#gaac78734ed5aa92d866401a57967bec5d">NGCameraShake</a>(4, 15);  <span class="comment">// Intensity 4, duration 15 frames</span></div>
@@ -396,123 +396,123 @@ Camera System (camera.h)</h2>
 <div class="ttc" id="agroup__types_html_gaa980e2c02ba2305e0f489d5650655425"><div class="ttname"><a href="group__types.html#gaa980e2c02ba2305e0f489d5650655425">s16</a></div><div class="ttdeci">int16_t s16</div><div class="ttdoc">Signed 16-bit integer.</div><div class="ttdef"><b>Definition</b> types.h:28</div></div>
 </div><!-- fragment --><p>See <a class="el" href="group__camsys.html" title="Camera System">Camera System</a> and <a class="el" href="group__camutil.html" title="Camera Utilities">Camera Utilities</a> for all functions.</p>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
-Tilemaps (tilemap.h)</h2>
-<p>Tile-based world rendering with built-in collision detection. Ideal for platformers, RPGs, and any game with large scrolling levels.</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="tilemap_8h.html">tilemap.h</a>&gt;</span></div>
+Terrain (terrain.h)</h2>
+<p>Tile-based terrain rendering with built-in collision detection. Ideal for platformers, RPGs, and any game with large scrolling levels.</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="terrain_8h.html">terrain.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;progear_assets.h&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Create tilemap from asset (generated from Tiled TMX file)</span></div>
-<div class="line"><a class="code hl_typedef" href="group__tilemaphandle.html#ga876ccdeecca67775ba97e94952fdd0e7">NGTilemapHandle</a> level = <a class="code hl_function" href="group__tilemaplife.html#ga24072b10756fc7d664e8d70e17a3978d">NGTilemapCreate</a>(&amp;NGTilemapAsset_level1);</div>
+<div class="line"><span class="comment">// Create terrain from asset (generated from Tiled TMX file via tilemaps: section)</span></div>
+<div class="line"><a class="code hl_typedef" href="group__terrainhandle.html#ga1e910837a3cc50b82bec88172770e448">NGTerrainHandle</a> level = <a class="code hl_function" href="group__terrainlife.html#ga7be5c957fc1e7c46e33f5cdfcdfb385b">NGTerrainCreate</a>(&amp;NGTerrainAsset_level1);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Add to scene at world position with Z-index</span></div>
-<div class="line"><a class="code hl_function" href="group__tilemaplife.html#ga6d125dd5bfab54d6afb97df97a2b9308">NGTilemapAddToScene</a>(level, <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(0), <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(0), 0);</div>
+<div class="line"><a class="code hl_function" href="group__terrainlife.html#gae1469bc699217df07b427436cd551c65">NGTerrainAddToScene</a>(level, <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(0), <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(0), 0);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// In game loop - query collision at a point</span></div>
-<div class="line"><a class="code hl_typedef" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> flags = <a class="code hl_function" href="group__tilemapcoll.html#gaa47fafb7e33aae15879a6bf96a50daac">NGTilemapGetCollision</a>(level, player_x, player_y);</div>
-<div class="line"><span class="keywordflow">if</span> (flags &amp; <a class="code hl_define" href="group__tilecoll.html#gafb006b2fd378b0cb3b953cf388834f4c">NG_TILE_HAZARD</a>) {</div>
+<div class="line"><a class="code hl_typedef" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> flags = <a class="code hl_function" href="group__terraincoll.html#gabeb4704c328ef55f0354fdc6ccd21807">NGTerrainGetCollision</a>(level, player_x, player_y);</div>
+<div class="line"><span class="keywordflow">if</span> (flags &amp; <a class="code hl_define" href="group__collflags.html#gafb006b2fd378b0cb3b953cf388834f4c">NG_TILE_HAZARD</a>) {</div>
 <div class="line">    <span class="comment">// Player touched a hazard tile</span></div>
 <div class="line">    take_damage();</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Test AABB overlap with tiles</span></div>
 <div class="line"><a class="code hl_typedef" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> tile_flags;</div>
-<div class="line"><span class="keywordflow">if</span> (<a class="code hl_function" href="group__tilemapcoll.html#ga88b58914dfdfe65b11df27be829ae53a">NGTilemapTestAABB</a>(level, x, y, half_w, half_h, &amp;tile_flags)) {</div>
+<div class="line"><span class="keywordflow">if</span> (<a class="code hl_function" href="group__terraincoll.html#gaf19e48671fa9d72becc8af5fbe7adb03">NGTerrainTestAABB</a>(level, x, y, half_w, half_h, &amp;tile_flags)) {</div>
 <div class="line">    <span class="comment">// Overlapping solid tiles</span></div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Full collision resolution with position correction</span></div>
-<div class="line"><a class="code hl_typedef" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> hit = <a class="code hl_function" href="group__tilemapcoll.html#ga0d5365088a3d0352950f6ba1903986ad">NGTilemapResolveAABB</a>(level,</div>
+<div class="line"><a class="code hl_typedef" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> hit = <a class="code hl_function" href="group__terraincoll.html#gaec23255cdea2ae364552b7a06669c556">NGTerrainResolveAABB</a>(level,</div>
 <div class="line">    &amp;player_x, &amp;player_y,    <span class="comment">// Position (modified on collision)</span></div>
 <div class="line">    <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(8), <a class="code hl_define" href="group__fixed1616.html#ga740431a9a1d25e39e670cd5f48454ce4">FIX</a>(8),          <span class="comment">// Half-size of hitbox</span></div>
 <div class="line">    &amp;vel_x, &amp;vel_y);         <span class="comment">// Velocity (zeroed on collision)</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Check collision directions</span></div>
-<div class="line"><span class="keywordflow">if</span> (hit &amp; <a class="code hl_define" href="group__tilecollres.html#gade3b3ae0cd6630a79786f5cb818b385a">NG_COLL_BOTTOM</a>) {</div>
+<div class="line"><span class="keywordflow">if</span> (hit &amp; <a class="code hl_define" href="group__collflags.html#gade3b3ae0cd6630a79786f5cb818b385a">NG_COLL_BOTTOM</a>) {</div>
 <div class="line">    on_ground = 1;           <span class="comment">// Landed on floor</span></div>
 <div class="line">}</div>
-<div class="line"><span class="keywordflow">if</span> (hit &amp; <a class="code hl_define" href="group__tilecollres.html#gaab454faccfe9c18c138ab33bee84b791">NG_COLL_LEFT</a> || hit &amp; <a class="code hl_define" href="group__tilecollres.html#ga4bcefe2a5c4f31cd2f2002baa34d6284">NG_COLL_RIGHT</a>) {</div>
+<div class="line"><span class="keywordflow">if</span> (hit &amp; <a class="code hl_define" href="group__collflags.html#gaab454faccfe9c18c138ab33bee84b791">NG_COLL_LEFT</a> || hit &amp; <a class="code hl_define" href="group__collflags.html#ga4bcefe2a5c4f31cd2f2002baa34d6284">NG_COLL_RIGHT</a>) {</div>
 <div class="line">    <span class="comment">// Hit a wall</span></div>
 <div class="line">}</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Get tilemap dimensions</span></div>
+<div class="line"><span class="comment">// Get terrain dimensions</span></div>
 <div class="line"><a class="code hl_typedef" href="group__types.html#gace9d960e74685e2cd84b36132dbbf8aa">u16</a> world_width, world_height;</div>
-<div class="line"><a class="code hl_function" href="group__tilemapprop.html#ga46fafe9fc81f43d4eefa36d93245dc0a">NGTilemapGetDimensions</a>(level, &amp;world_width, &amp;world_height);</div>
+<div class="line"><a class="code hl_function" href="group__terrainprop.html#ga1de7bb919028d2aa5e0702218a68c12b">NGTerrainGetDimensions</a>(level, &amp;world_width, &amp;world_height);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Cleanup</span></div>
-<div class="line"><a class="code hl_function" href="group__tilemaplife.html#gaad024181f27203d754790a89d4a4dbb1">NGTilemapRemoveFromScene</a>(level);</div>
-<div class="line"><a class="code hl_function" href="group__tilemaplife.html#gacc6989616ff3bb9e16e9890be01d1a29">NGTilemapDestroy</a>(level);</div>
-<div class="ttc" id="agroup__tilecoll_html_gafb006b2fd378b0cb3b953cf388834f4c"><div class="ttname"><a href="group__tilecoll.html#gafb006b2fd378b0cb3b953cf388834f4c">NG_TILE_HAZARD</a></div><div class="ttdeci">#define NG_TILE_HAZARD</div><div class="ttdoc">Damages player on contact.</div><div class="ttdef"><b>Definition</b> tilemap.h:66</div></div>
-<div class="ttc" id="agroup__tilecollres_html_ga4bcefe2a5c4f31cd2f2002baa34d6284"><div class="ttname"><a href="group__tilecollres.html#ga4bcefe2a5c4f31cd2f2002baa34d6284">NG_COLL_RIGHT</a></div><div class="ttdeci">#define NG_COLL_RIGHT</div><div class="ttdoc">Hit tile on right.</div><div class="ttdef"><b>Definition</b> tilemap.h:79</div></div>
-<div class="ttc" id="agroup__tilecollres_html_gaab454faccfe9c18c138ab33bee84b791"><div class="ttname"><a href="group__tilecollres.html#gaab454faccfe9c18c138ab33bee84b791">NG_COLL_LEFT</a></div><div class="ttdeci">#define NG_COLL_LEFT</div><div class="ttdoc">Hit tile on left.</div><div class="ttdef"><b>Definition</b> tilemap.h:78</div></div>
-<div class="ttc" id="agroup__tilecollres_html_gade3b3ae0cd6630a79786f5cb818b385a"><div class="ttname"><a href="group__tilecollres.html#gade3b3ae0cd6630a79786f5cb818b385a">NG_COLL_BOTTOM</a></div><div class="ttdeci">#define NG_COLL_BOTTOM</div><div class="ttdoc">Hit tile below (landed).</div><div class="ttdef"><b>Definition</b> tilemap.h:81</div></div>
-<div class="ttc" id="agroup__tilemapcoll_html_ga0d5365088a3d0352950f6ba1903986ad"><div class="ttname"><a href="group__tilemapcoll.html#ga0d5365088a3d0352950f6ba1903986ad">NGTilemapResolveAABB</a></div><div class="ttdeci">u8 NGTilemapResolveAABB(NGTilemapHandle tilemap, fixed *x, fixed *y, fixed half_w, fixed half_h, fixed *vel_x, fixed *vel_y)</div><div class="ttdoc">Resolve AABB collision against tilemap.</div></div>
-<div class="ttc" id="agroup__tilemapcoll_html_ga88b58914dfdfe65b11df27be829ae53a"><div class="ttname"><a href="group__tilemapcoll.html#ga88b58914dfdfe65b11df27be829ae53a">NGTilemapTestAABB</a></div><div class="ttdeci">u8 NGTilemapTestAABB(NGTilemapHandle tilemap, fixed x, fixed y, fixed half_w, fixed half_h, u8 *flags_out)</div><div class="ttdoc">Test AABB collision against tilemap.</div></div>
-<div class="ttc" id="agroup__tilemapcoll_html_gaa47fafb7e33aae15879a6bf96a50daac"><div class="ttname"><a href="group__tilemapcoll.html#gaa47fafb7e33aae15879a6bf96a50daac">NGTilemapGetCollision</a></div><div class="ttdeci">u8 NGTilemapGetCollision(NGTilemapHandle tilemap, fixed world_x, fixed world_y)</div><div class="ttdoc">Query tile collision at world position.</div></div>
-<div class="ttc" id="agroup__tilemaphandle_html_ga876ccdeecca67775ba97e94952fdd0e7"><div class="ttname"><a href="group__tilemaphandle.html#ga876ccdeecca67775ba97e94952fdd0e7">NGTilemapHandle</a></div><div class="ttdeci">s8 NGTilemapHandle</div><div class="ttdoc">Tilemap handle type.</div><div class="ttdef"><b>Definition</b> tilemap.h:90</div></div>
-<div class="ttc" id="agroup__tilemaplife_html_ga24072b10756fc7d664e8d70e17a3978d"><div class="ttname"><a href="group__tilemaplife.html#ga24072b10756fc7d664e8d70e17a3978d">NGTilemapCreate</a></div><div class="ttdeci">NGTilemapHandle NGTilemapCreate(const NGTilemapAsset *asset)</div><div class="ttdoc">Create a tilemap from an asset.</div></div>
-<div class="ttc" id="agroup__tilemaplife_html_ga6d125dd5bfab54d6afb97df97a2b9308"><div class="ttname"><a href="group__tilemaplife.html#ga6d125dd5bfab54d6afb97df97a2b9308">NGTilemapAddToScene</a></div><div class="ttdeci">void NGTilemapAddToScene(NGTilemapHandle tilemap, fixed world_x, fixed world_y, u8 z)</div><div class="ttdoc">Add tilemap to scene.</div></div>
-<div class="ttc" id="agroup__tilemaplife_html_gaad024181f27203d754790a89d4a4dbb1"><div class="ttname"><a href="group__tilemaplife.html#gaad024181f27203d754790a89d4a4dbb1">NGTilemapRemoveFromScene</a></div><div class="ttdeci">void NGTilemapRemoveFromScene(NGTilemapHandle tilemap)</div><div class="ttdoc">Remove tilemap from scene (can re-add later).</div></div>
-<div class="ttc" id="agroup__tilemaplife_html_gacc6989616ff3bb9e16e9890be01d1a29"><div class="ttname"><a href="group__tilemaplife.html#gacc6989616ff3bb9e16e9890be01d1a29">NGTilemapDestroy</a></div><div class="ttdeci">void NGTilemapDestroy(NGTilemapHandle tilemap)</div><div class="ttdoc">Destroy tilemap and free resources.</div></div>
-<div class="ttc" id="agroup__tilemapprop_html_ga46fafe9fc81f43d4eefa36d93245dc0a"><div class="ttname"><a href="group__tilemapprop.html#ga46fafe9fc81f43d4eefa36d93245dc0a">NGTilemapGetDimensions</a></div><div class="ttdeci">void NGTilemapGetDimensions(NGTilemapHandle tilemap, u16 *width_out, u16 *height_out)</div><div class="ttdoc">Get tilemap world dimensions.</div></div>
+<div class="line"><a class="code hl_function" href="group__terrainlife.html#ga88b0c7639b5f691396182c48571de05c">NGTerrainRemoveFromScene</a>(level);</div>
+<div class="line"><a class="code hl_function" href="group__terrainlife.html#ga93d86e01458f953a68d11df0a257415f">NGTerrainDestroy</a>(level);</div>
+<div class="ttc" id="agroup__collflags_html_ga4bcefe2a5c4f31cd2f2002baa34d6284"><div class="ttname"><a href="group__collflags.html#ga4bcefe2a5c4f31cd2f2002baa34d6284">NG_COLL_RIGHT</a></div><div class="ttdeci">#define NG_COLL_RIGHT</div><div class="ttdoc">Hit terrain on right.</div><div class="ttdef"><b>Definition</b> scene.h:55</div></div>
+<div class="ttc" id="agroup__collflags_html_gaab454faccfe9c18c138ab33bee84b791"><div class="ttname"><a href="group__collflags.html#gaab454faccfe9c18c138ab33bee84b791">NG_COLL_LEFT</a></div><div class="ttdeci">#define NG_COLL_LEFT</div><div class="ttdoc">Hit terrain on left.</div><div class="ttdef"><b>Definition</b> scene.h:54</div></div>
+<div class="ttc" id="agroup__collflags_html_gade3b3ae0cd6630a79786f5cb818b385a"><div class="ttname"><a href="group__collflags.html#gade3b3ae0cd6630a79786f5cb818b385a">NG_COLL_BOTTOM</a></div><div class="ttdeci">#define NG_COLL_BOTTOM</div><div class="ttdoc">Hit terrain below (landed).</div><div class="ttdef"><b>Definition</b> scene.h:57</div></div>
+<div class="ttc" id="agroup__collflags_html_gafb006b2fd378b0cb3b953cf388834f4c"><div class="ttname"><a href="group__collflags.html#gafb006b2fd378b0cb3b953cf388834f4c">NG_TILE_HAZARD</a></div><div class="ttdeci">#define NG_TILE_HAZARD</div><div class="ttdoc">Damages player on contact.</div><div class="ttdef"><b>Definition</b> scene.h:64</div></div>
+<div class="ttc" id="agroup__terraincoll_html_gabeb4704c328ef55f0354fdc6ccd21807"><div class="ttname"><a href="group__terraincoll.html#gabeb4704c328ef55f0354fdc6ccd21807">NGTerrainGetCollision</a></div><div class="ttdeci">u8 NGTerrainGetCollision(NGTerrainHandle terrain, fixed world_x, fixed world_y)</div><div class="ttdoc">Query tile collision at world position.</div></div>
+<div class="ttc" id="agroup__terraincoll_html_gaec23255cdea2ae364552b7a06669c556"><div class="ttname"><a href="group__terraincoll.html#gaec23255cdea2ae364552b7a06669c556">NGTerrainResolveAABB</a></div><div class="ttdeci">u8 NGTerrainResolveAABB(NGTerrainHandle terrain, fixed *x, fixed *y, fixed half_w, fixed half_h, fixed *vel_x, fixed *vel_y)</div><div class="ttdoc">Resolve AABB collision against terrain.</div></div>
+<div class="ttc" id="agroup__terraincoll_html_gaf19e48671fa9d72becc8af5fbe7adb03"><div class="ttname"><a href="group__terraincoll.html#gaf19e48671fa9d72becc8af5fbe7adb03">NGTerrainTestAABB</a></div><div class="ttdeci">u8 NGTerrainTestAABB(NGTerrainHandle terrain, fixed x, fixed y, fixed half_w, fixed half_h, u8 *flags_out)</div><div class="ttdoc">Test AABB collision against terrain.</div></div>
+<div class="ttc" id="agroup__terrainhandle_html_ga1e910837a3cc50b82bec88172770e448"><div class="ttname"><a href="group__terrainhandle.html#ga1e910837a3cc50b82bec88172770e448">NGTerrainHandle</a></div><div class="ttdeci">s8 NGTerrainHandle</div><div class="ttdoc">Terrain handle type.</div><div class="ttdef"><b>Definition</b> terrain.h:90</div></div>
+<div class="ttc" id="agroup__terrainlife_html_ga7be5c957fc1e7c46e33f5cdfcdfb385b"><div class="ttname"><a href="group__terrainlife.html#ga7be5c957fc1e7c46e33f5cdfcdfb385b">NGTerrainCreate</a></div><div class="ttdeci">NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset)</div><div class="ttdoc">Create a terrain from an asset.</div></div>
+<div class="ttc" id="agroup__terrainlife_html_ga88b0c7639b5f691396182c48571de05c"><div class="ttname"><a href="group__terrainlife.html#ga88b0c7639b5f691396182c48571de05c">NGTerrainRemoveFromScene</a></div><div class="ttdeci">void NGTerrainRemoveFromScene(NGTerrainHandle terrain)</div><div class="ttdoc">Remove terrain from scene (can re-add later).</div></div>
+<div class="ttc" id="agroup__terrainlife_html_ga93d86e01458f953a68d11df0a257415f"><div class="ttname"><a href="group__terrainlife.html#ga93d86e01458f953a68d11df0a257415f">NGTerrainDestroy</a></div><div class="ttdeci">void NGTerrainDestroy(NGTerrainHandle terrain)</div><div class="ttdoc">Destroy terrain and free resources.</div></div>
+<div class="ttc" id="agroup__terrainlife_html_gae1469bc699217df07b427436cd551c65"><div class="ttname"><a href="group__terrainlife.html#gae1469bc699217df07b427436cd551c65">NGTerrainAddToScene</a></div><div class="ttdeci">void NGTerrainAddToScene(NGTerrainHandle terrain, fixed world_x, fixed world_y, u8 z)</div><div class="ttdoc">Add terrain to scene.</div></div>
+<div class="ttc" id="agroup__terrainprop_html_ga1de7bb919028d2aa5e0702218a68c12b"><div class="ttname"><a href="group__terrainprop.html#ga1de7bb919028d2aa5e0702218a68c12b">NGTerrainGetDimensions</a></div><div class="ttdeci">void NGTerrainGetDimensions(NGTerrainHandle terrain, u16 *width_out, u16 *height_out)</div><div class="ttdoc">Get terrain world dimensions.</div></div>
 <div class="ttc" id="agroup__types_html_ga92c50087ca0e64fa93fc59402c55f8ca"><div class="ttname"><a href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a></div><div class="ttdeci">uint8_t u8</div><div class="ttdoc">Unsigned 8-bit integer.</div><div class="ttdef"><b>Definition</b> types.h:24</div></div>
-<div class="ttc" id="atilemap_8h_html"><div class="ttname"><a href="tilemap_8h.html">tilemap.h</a></div><div class="ttdoc">Tile-based world rendering with collision support.</div></div>
+<div class="ttc" id="aterrain_8h_html"><div class="ttname"><a href="terrain_8h.html">terrain.h</a></div><div class="ttdoc">Tile-based terrain rendering with collision support.</div></div>
 </div><!-- fragment --><p><b>Collision Flags</b> (set in Tiled as custom tile properties):</p><ul>
-<li><span class="tt"><a class="el" href="group__tilecoll.html#ga2d7b6f634c047f6e13b4cb4e35bad04c" title="Blocks movement (walls/floors).">NG_TILE_SOLID</a></span> - Blocks movement (walls, floors)</li>
-<li><span class="tt"><a class="el" href="group__tilecoll.html#ga55b87f87e412ba7844fd3f48b08002ed" title="One-way platform (solid from above).">NG_TILE_PLATFORM</a></span> - One-way platform (pass through from below)</li>
-<li><span class="tt"><a class="el" href="group__tilecoll.html#gafb006b2fd378b0cb3b953cf388834f4c" title="Damages player on contact.">NG_TILE_HAZARD</a></span> - Damages on contact</li>
-<li><span class="tt"><a class="el" href="group__tilecoll.html#gaf16fa89b93d9d25dd2d9423e44c06e63" title="Climbable tile.">NG_TILE_LADDER</a></span> - Climbable tile</li>
-<li><span class="tt"><a class="el" href="group__tilecoll.html#ga49330ef3a6eeac42212f574f51b5d389" title="Triggers callback on contact.">NG_TILE_TRIGGER</a></span> - Triggers callback</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#ga2d7b6f634c047f6e13b4cb4e35bad04c" title="Blocks movement (walls/floors).">NG_TILE_SOLID</a></span> - Blocks movement (walls, floors)</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#ga55b87f87e412ba7844fd3f48b08002ed" title="One-way platform (solid from above).">NG_TILE_PLATFORM</a></span> - One-way platform (pass through from below)</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#gafb006b2fd378b0cb3b953cf388834f4c" title="Damages player on contact.">NG_TILE_HAZARD</a></span> - Damages on contact</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#gaf16fa89b93d9d25dd2d9423e44c06e63" title="Climbable tile.">NG_TILE_LADDER</a></span> - Climbable tile</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#ga49330ef3a6eeac42212f574f51b5d389" title="Triggers callback on contact.">NG_TILE_TRIGGER</a></span> - Triggers callback</li>
 </ul>
-<p><b>Resolution Flags</b> (returned by NGTilemapResolveAABB):</p><ul>
-<li><span class="tt"><a class="el" href="group__tilecollres.html#gaab454faccfe9c18c138ab33bee84b791" title="Hit tile on left.">NG_COLL_LEFT</a></span> - Hit tile on left</li>
-<li><span class="tt"><a class="el" href="group__tilecollres.html#ga4bcefe2a5c4f31cd2f2002baa34d6284" title="Hit tile on right.">NG_COLL_RIGHT</a></span> - Hit tile on right</li>
-<li><span class="tt"><a class="el" href="group__tilecollres.html#ga467c4566f31cf1bdfb0632d13fadd1f3" title="Hit tile above.">NG_COLL_TOP</a></span> - Hit tile above (head bump)</li>
-<li><span class="tt"><a class="el" href="group__tilecollres.html#gade3b3ae0cd6630a79786f5cb818b385a" title="Hit tile below (landed).">NG_COLL_BOTTOM</a></span> - Hit tile below (landed)</li>
+<p><b>Resolution Flags</b> (returned by NGTerrainResolveAABB):</p><ul>
+<li><span class="tt"><a class="el" href="group__collflags.html#gaab454faccfe9c18c138ab33bee84b791" title="Hit terrain on left.">NG_COLL_LEFT</a></span> - Hit tile on left</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#ga4bcefe2a5c4f31cd2f2002baa34d6284" title="Hit terrain on right.">NG_COLL_RIGHT</a></span> - Hit tile on right</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#ga467c4566f31cf1bdfb0632d13fadd1f3" title="Hit terrain above.">NG_COLL_TOP</a></span> - Hit tile above (head bump)</li>
+<li><span class="tt"><a class="el" href="group__collflags.html#gade3b3ae0cd6630a79786f5cb818b385a" title="Hit terrain below (landed).">NG_COLL_BOTTOM</a></span> - Hit tile below (landed)</li>
 </ul>
-<p>See <a class="el" href="group__tilemaplife.html" title="Lifecycle Functions">Lifecycle Functions</a> and <a class="el" href="group__tilemapcoll.html" title="Collision Functions">Collision Functions</a> for all functions.</p>
+<p>See <a class="el" href="group__terrainlife.html" title="Lifecycle Functions">Lifecycle Functions</a> and <a class="el" href="group__terraincoll.html" title="Collision Functions">Collision Functions</a> for all functions.</p>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
-Parallax Layers (parallax.h)</h2>
-<p>Hardware-accelerated tilemap scrolling using NeoGeo's sprite system. Parallax layers automatically follow the camera with configurable scroll rates.</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="parallax_8h.html">parallax.h</a>&gt;</span></div>
+Backdrops (backdrop.h)</h2>
+<p>Scrolling background and foreground layers using NeoGeo's sprite system. Backdrops automatically follow the camera with configurable parallax scroll rates.</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="backdrop_8h.html">backdrop.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;progear_assets.h&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Create parallax layer from visual asset</span></div>
-<div class="line"><a class="code hl_typedef" href="group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9">NGParallaxHandle</a> bg = <a class="code hl_function" href="group__parallaxlife.html#ga1e67855ad4a5cc7c9a5bba31cdff1bd3">NGParallaxCreate</a>(</div>
+<div class="line"><span class="comment">// Create backdrop from visual asset</span></div>
+<div class="line"><a class="code hl_typedef" href="group__backdrophandle.html#ga53dde957b339cfa3dc8d9cb68490c6c9">NGBackdropHandle</a> bg = <a class="code hl_function" href="group__backdroplife.html#ga3c2e55ea7695fdff3367b504cdc1216f">NGBackdropCreate</a>(</div>
 <div class="line">    &amp;NGVisualAsset_background,</div>
-<div class="line">    <a class="code hl_define" href="group__parallaxconst.html#ga5cdf1b5ca5dd1e65d8c767cbe4e634be">NG_PARALLAX_WIDTH_INFINITE</a>,  <span class="comment">// Infinite width for seamless scrolling</span></div>
+<div class="line">    <a class="code hl_define" href="group__backdropconst.html#ga3cfb96b04372b2e6d433c04a57b4c9bf">NG_BACKDROP_WIDTH_INFINITE</a>,  <span class="comment">// Infinite width for seamless scrolling</span></div>
 <div class="line">    0,                            <span class="comment">// Use asset height</span></div>
 <div class="line">    <a class="code hl_define" href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb">FIX_FROM_FLOAT</a>(0.5),         <span class="comment">// Horizontal parallax (0.5 = half camera speed)</span></div>
 <div class="line">    <a class="code hl_define" href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb">FIX_FROM_FLOAT</a>(0.5)          <span class="comment">// Vertical parallax</span></div>
 <div class="line">);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Add to scene at viewport position with Z-index</span></div>
-<div class="line"><a class="code hl_function" href="group__parallaxlife.html#gac18e7c2950c798a398cdd7a6ac9e773e">NGParallaxAddToScene</a>(bg, 0, 0, 0);  <span class="comment">// Z=0, furthest back</span></div>
+<div class="line"><a class="code hl_function" href="group__backdroplife.html#ga8d1b7adc303f9c43caf982e1bcba8a60">NGBackdropAddToScene</a>(bg, 0, 0, 0);  <span class="comment">// Z=0, furthest back</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Create multiple layers for depth</span></div>
-<div class="line"><a class="code hl_typedef" href="group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9">NGParallaxHandle</a> mid = <a class="code hl_function" href="group__parallaxlife.html#ga1e67855ad4a5cc7c9a5bba31cdff1bd3">NGParallaxCreate</a>(&amp;NGVisualAsset_midground, ...);</div>
-<div class="line"><a class="code hl_function" href="group__parallaxlife.html#gac18e7c2950c798a398cdd7a6ac9e773e">NGParallaxAddToScene</a>(mid, 0, 50, 1);  <span class="comment">// Z=1, in front of bg</span></div>
+<div class="line"><a class="code hl_typedef" href="group__backdrophandle.html#ga53dde957b339cfa3dc8d9cb68490c6c9">NGBackdropHandle</a> mid = <a class="code hl_function" href="group__backdroplife.html#ga3c2e55ea7695fdff3367b504cdc1216f">NGBackdropCreate</a>(&amp;NGVisualAsset_midground, ...);</div>
+<div class="line"><a class="code hl_function" href="group__backdroplife.html#ga8d1b7adc303f9c43caf982e1bcba8a60">NGBackdropAddToScene</a>(mid, 0, 50, 1);  <span class="comment">// Z=1, in front of bg</span></div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_typedef" href="group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9">NGParallaxHandle</a> fg = <a class="code hl_function" href="group__parallaxlife.html#ga1e67855ad4a5cc7c9a5bba31cdff1bd3">NGParallaxCreate</a>(&amp;NGVisualAsset_foreground, ...);</div>
-<div class="line"><a class="code hl_function" href="group__parallaxlife.html#gac18e7c2950c798a398cdd7a6ac9e773e">NGParallaxAddToScene</a>(fg, 0, 100, 2);  <span class="comment">// Z=2, closest</span></div>
+<div class="line"><a class="code hl_typedef" href="group__backdrophandle.html#ga53dde957b339cfa3dc8d9cb68490c6c9">NGBackdropHandle</a> fg = <a class="code hl_function" href="group__backdroplife.html#ga3c2e55ea7695fdff3367b504cdc1216f">NGBackdropCreate</a>(&amp;NGVisualAsset_foreground, ...);</div>
+<div class="line"><a class="code hl_function" href="group__backdroplife.html#ga8d1b7adc303f9c43caf982e1bcba8a60">NGBackdropAddToScene</a>(fg, 0, 100, 2);  <span class="comment">// Z=2, closest</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Cleanup</span></div>
-<div class="line"><a class="code hl_function" href="group__parallaxlife.html#ga9b1023aa644fd7a2f11445cfeb41b4a2">NGParallaxRemoveFromScene</a>(bg);</div>
-<div class="line"><a class="code hl_function" href="group__parallaxlife.html#ga52fdd50d3ccb59ab90bb6b27e676157c">NGParallaxDestroy</a>(bg);</div>
+<div class="line"><a class="code hl_function" href="group__backdroplife.html#gad0c61686ec5eb9a667e54a19618bef17">NGBackdropRemoveFromScene</a>(bg);</div>
+<div class="line"><a class="code hl_function" href="group__backdroplife.html#ga66d2293415acd0a65507512975a549a3">NGBackdropDestroy</a>(bg);</div>
+<div class="ttc" id="abackdrop_8h_html"><div class="ttname"><a href="backdrop_8h.html">backdrop.h</a></div><div class="ttdoc">Backdrop (parallax layer) management.</div></div>
+<div class="ttc" id="agroup__backdropconst_html_ga3cfb96b04372b2e6d433c04a57b4c9bf"><div class="ttname"><a href="group__backdropconst.html#ga3cfb96b04372b2e6d433c04a57b4c9bf">NG_BACKDROP_WIDTH_INFINITE</a></div><div class="ttdeci">#define NG_BACKDROP_WIDTH_INFINITE</div><div class="ttdoc">Infinite width value.</div><div class="ttdef"><b>Definition</b> backdrop.h:51</div></div>
+<div class="ttc" id="agroup__backdrophandle_html_ga53dde957b339cfa3dc8d9cb68490c6c9"><div class="ttname"><a href="group__backdrophandle.html#ga53dde957b339cfa3dc8d9cb68490c6c9">NGBackdropHandle</a></div><div class="ttdeci">s8 NGBackdropHandle</div><div class="ttdoc">Backdrop handle type.</div><div class="ttdef"><b>Definition</b> backdrop.h:60</div></div>
+<div class="ttc" id="agroup__backdroplife_html_ga3c2e55ea7695fdff3367b504cdc1216f"><div class="ttname"><a href="group__backdroplife.html#ga3c2e55ea7695fdff3367b504cdc1216f">NGBackdropCreate</a></div><div class="ttdeci">NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 height, fixed parallax_x, fixed parallax_y)</div><div class="ttdoc">Create a backdrop from a visual asset.</div></div>
+<div class="ttc" id="agroup__backdroplife_html_ga66d2293415acd0a65507512975a549a3"><div class="ttname"><a href="group__backdroplife.html#ga66d2293415acd0a65507512975a549a3">NGBackdropDestroy</a></div><div class="ttdeci">void NGBackdropDestroy(NGBackdropHandle backdrop)</div><div class="ttdoc">Destroy backdrop and free resources.</div></div>
+<div class="ttc" id="agroup__backdroplife_html_ga8d1b7adc303f9c43caf982e1bcba8a60"><div class="ttname"><a href="group__backdroplife.html#ga8d1b7adc303f9c43caf982e1bcba8a60">NGBackdropAddToScene</a></div><div class="ttdeci">void NGBackdropAddToScene(NGBackdropHandle backdrop, s16 viewport_x, s16 viewport_y, u8 z)</div><div class="ttdoc">Add backdrop to the scene.</div></div>
+<div class="ttc" id="agroup__backdroplife_html_gad0c61686ec5eb9a667e54a19618bef17"><div class="ttname"><a href="group__backdroplife.html#gad0c61686ec5eb9a667e54a19618bef17">NGBackdropRemoveFromScene</a></div><div class="ttdeci">void NGBackdropRemoveFromScene(NGBackdropHandle backdrop)</div><div class="ttdoc">Remove backdrop from scene (can re-add later).</div></div>
 <div class="ttc" id="agroup__fixed1616_html_ga485478deea5ba033b373a6e9653a66bb"><div class="ttname"><a href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb">FIX_FROM_FLOAT</a></div><div class="ttdeci">#define FIX_FROM_FLOAT(x)</div><div class="ttdoc">Convert float literal to fixed (compile-time only).</div><div class="ttdef"><b>Definition</b> ngmath.h:54</div></div>
-<div class="ttc" id="agroup__parallaxconst_html_ga5cdf1b5ca5dd1e65d8c767cbe4e634be"><div class="ttname"><a href="group__parallaxconst.html#ga5cdf1b5ca5dd1e65d8c767cbe4e634be">NG_PARALLAX_WIDTH_INFINITE</a></div><div class="ttdeci">#define NG_PARALLAX_WIDTH_INFINITE</div><div class="ttdoc">Infinite width value.</div><div class="ttdef"><b>Definition</b> parallax.h:51</div></div>
-<div class="ttc" id="agroup__parallaxhandle_html_gad9ad715a46640e1bfb27922d347034c9"><div class="ttname"><a href="group__parallaxhandle.html#gad9ad715a46640e1bfb27922d347034c9">NGParallaxHandle</a></div><div class="ttdeci">s8 NGParallaxHandle</div><div class="ttdoc">Parallax handle type.</div><div class="ttdef"><b>Definition</b> parallax.h:60</div></div>
-<div class="ttc" id="agroup__parallaxlife_html_ga1e67855ad4a5cc7c9a5bba31cdff1bd3"><div class="ttname"><a href="group__parallaxlife.html#ga1e67855ad4a5cc7c9a5bba31cdff1bd3">NGParallaxCreate</a></div><div class="ttdeci">NGParallaxHandle NGParallaxCreate(const NGVisualAsset *asset, u16 width, u16 height, fixed parallax_x, fixed parallax_y)</div><div class="ttdoc">Create a parallax effect from a visual asset.</div></div>
-<div class="ttc" id="agroup__parallaxlife_html_ga52fdd50d3ccb59ab90bb6b27e676157c"><div class="ttname"><a href="group__parallaxlife.html#ga52fdd50d3ccb59ab90bb6b27e676157c">NGParallaxDestroy</a></div><div class="ttdeci">void NGParallaxDestroy(NGParallaxHandle parallax)</div><div class="ttdoc">Destroy parallax effect and free resources.</div></div>
-<div class="ttc" id="agroup__parallaxlife_html_ga9b1023aa644fd7a2f11445cfeb41b4a2"><div class="ttname"><a href="group__parallaxlife.html#ga9b1023aa644fd7a2f11445cfeb41b4a2">NGParallaxRemoveFromScene</a></div><div class="ttdeci">void NGParallaxRemoveFromScene(NGParallaxHandle parallax)</div><div class="ttdoc">Remove parallax from scene (can re-add later).</div></div>
-<div class="ttc" id="agroup__parallaxlife_html_gac18e7c2950c798a398cdd7a6ac9e773e"><div class="ttname"><a href="group__parallaxlife.html#gac18e7c2950c798a398cdd7a6ac9e773e">NGParallaxAddToScene</a></div><div class="ttdeci">void NGParallaxAddToScene(NGParallaxHandle parallax, s16 viewport_x, s16 viewport_y, u8 z)</div><div class="ttdoc">Add parallax effect to the scene.</div></div>
-<div class="ttc" id="aparallax_8h_html"><div class="ttname"><a href="parallax_8h.html">parallax.h</a></div><div class="ttdoc">Parallax effect management.</div></div>
-</div><!-- fragment --><p><b>Parallax Values</b>:</p><ul>
+</div><!-- fragment --><p><b>Parallax Scroll Rates</b>:</p><ul>
 <li><span class="tt"><a class="el" href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb" title="Convert float literal to fixed (compile-time only).">FIX_FROM_FLOAT</a>(0.0)</span> - Static, doesn't move</li>
 <li><span class="tt"><a class="el" href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb" title="Convert float literal to fixed (compile-time only).">FIX_FROM_FLOAT</a>(0.25)</span> - Slow, distant background</li>
 <li><span class="tt"><a class="el" href="group__fixed1616.html#ga485478deea5ba033b373a6e9653a66bb" title="Convert float literal to fixed (compile-time only).">FIX_FROM_FLOAT</a>(0.5)</span> - Medium, mid-ground</li>
 <li><span class="tt"><a class="el" href="group__fixed1616.html#ga4ceea0e31ae25efeaa7a4c76d85ed950" title="1.0 in fixed format">FIX_ONE</a></span> - 1:1 with camera, same as game objects</li>
 </ul>
-<p>See <a class="el" href="group__parallaxlife.html" title="Lifecycle Functions">Lifecycle Functions</a> for all functions.</p>
+<p>See <a class="el" href="group__backdroplife.html" title="Lifecycle Functions">Lifecycle Functions</a> for all functions.</p>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
 Lighting Effects (lighting.h)</h2>
 <p>The lighting system provides stackable visual effects through palette manipulation. Effects are composited using a priority-based layer stack, with all palette updates batched into a single VRAM write per frame.</p>
@@ -749,7 +749,7 @@ Fixed-Point Math (ngmath.h)</h2>
 <h1 class="doxsection"><a class="anchor" id="autotoc_md15"></a>
 Asset Pipeline</h1>
 <p>The <span class="tt">progear_assets.py</span> tool processes <span class="tt">assets.yaml</span> to generate:</p><ul>
-<li>C-ROM graphics (sprite and parallax layer tiles)</li>
+<li>C-ROM graphics (sprite and backdrop layer tiles)</li>
 <li>V-ROM data (ADPCM audio)</li>
 <li>Palette data</li>
 <li>C header with asset definitions</li>
@@ -838,7 +838,7 @@ Manual Control</h2>
 <div class="ttc" id="agroup__arenacore_html_ga6ca41028d8e36c94a2b3c365b255791c"><div class="ttname"><a href="group__arenacore.html#ga6ca41028d8e36c94a2b3c365b255791c">NGArenaReset</a></div><div class="ttdeci">void NGArenaReset(NGArena *arena)</div><div class="ttdoc">Reset arena to empty (instant bulk free).</div></div>
 <div class="ttc" id="agroup__arenastd_html_ga65d108e3a46cd3e5baefe40ebe43f526"><div class="ttname"><a href="group__arenastd.html#ga65d108e3a46cd3e5baefe40ebe43f526">ng_arena_frame</a></div><div class="ttdeci">NGArena ng_arena_frame</div><div class="ttdoc">Frame arena - cleared every frame (temp strings, scratch).</div></div>
 <div class="ttc" id="agroup__sysfunc_html_ga0b2d84942932f62ab9b8c499143690cc"><div class="ttname"><a href="group__sysfunc.html#ga0b2d84942932f62ab9b8c499143690cc">NGWaitVBlank</a></div><div class="ttdeci">void NGWaitVBlank(void)</div><div class="ttdoc">Wait for vertical blank period.</div></div>
-<div class="ttc" id="agroup__sysfunc_html_gaeeec9ad408a177434bfb8786f38e9666"><div class="ttname"><a href="group__sysfunc.html#gaeeec9ad408a177434bfb8786f38e9666">NGWatchdogKick</a></div><div class="ttdeci">static void NGWatchdogKick(void)</div><div class="ttdoc">Kick the watchdog timer.</div><div class="ttdef"><b>Definition</b> neogeo.h:69</div></div>
+<div class="ttc" id="agroup__sysfunc_html_gaeeec9ad408a177434bfb8786f38e9666"><div class="ttname"><a href="group__sysfunc.html#gaeeec9ad408a177434bfb8786f38e9666">NGWatchdogKick</a></div><div class="ttdeci">static void NGWatchdogKick(void)</div><div class="ttdoc">Kick the watchdog timer.</div><div class="ttdef"><b>Definition</b> neogeo.h:202</div></div>
 </div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md22"></a>
 Hardware Limits</h1>
 <table class="markdownTable">
@@ -847,7 +847,7 @@ Hardware Limits</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">Screen  </td><td class="markdownTableBodyNone">320x224 pixels  </td><td class="markdownTableBodyNone">Use <span class="tt"><a class="el" href="group__camviewport.html#gaabb75fc049bfd90a9c19c342c595c8a0" title="Screen width in pixels.">NG_CAM_VIEWPORT_WIDTH</a></span>, <span class="tt"><a class="el" href="group__camviewport.html#gaae5089e230f2d4b74972bb015088f14a" title="Screen height in pixels.">NG_CAM_VIEWPORT_HEIGHT</a></span>  </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">Sprites  </td><td class="markdownTableBodyNone">381 total  </td><td class="markdownTableBodyNone">Hardware sprites (used by parallax layers too)  </td></tr>
+<td class="markdownTableBodyNone">Sprites  </td><td class="markdownTableBodyNone">381 total  </td><td class="markdownTableBodyNone">Hardware sprites (used by backdrop layers too)  </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">Sprites/line  </td><td class="markdownTableBodyNone">96  </td><td class="markdownTableBodyNone">Maximum sprites on any scanline  </td></tr>
 <tr class="markdownTableRowEven">
@@ -857,7 +857,7 @@ Hardware Limits</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">Colors  </td><td class="markdownTableBodyNone">65536  </td><td class="markdownTableBodyNone">15-bit RGB + dark bit  </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">C-ROM tiles  </td><td class="markdownTableBodyNone">65536 max  </td><td class="markdownTableBodyNone">Sprite/parallax graphics  </td></tr>
+<td class="markdownTableBodyNone">C-ROM tiles  </td><td class="markdownTableBodyNone">65536 max  </td><td class="markdownTableBodyNone">Sprite/backdrop graphics  </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">S-ROM tiles  </td><td class="markdownTableBodyNone">8192 max  </td><td class="markdownTableBodyNone">Fix layer graphics  </td></tr>
 </table>

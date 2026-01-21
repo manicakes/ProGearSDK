@@ -104,12 +104,6 @@ Macros</h2></td></tr>
 <tr class="memdesc:ga2eac41dafa42da4481bed2193729c9e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">IRQ acknowledge.  <br /></td></tr>
 <tr class="memitem:gafe7e41282229d6f6d1816b7faf47aad9" id="r_gafe7e41282229d6f6d1816b7faf47aad9"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#gafe7e41282229d6f6d1816b7faf47aad9">NG_REG_WATCHDOG</a>&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga1a2a3100a902c32a55d8b08915bce044">vu8</a> *)0x300001)</td></tr>
 <tr class="memdesc:gafe7e41282229d6f6d1816b7faf47aad9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Watchdog kick.  <br /></td></tr>
-<tr class="memitem:ga3845615075c83527050b22e8980e53b6" id="r_ga3845615075c83527050b22e8980e53b6"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#ga3845615075c83527050b22e8980e53b6">NG_REG_VRAMADDR</a>&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0000)</td></tr>
-<tr class="memdesc:ga3845615075c83527050b22e8980e53b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">VRAM address.  <br /></td></tr>
-<tr class="memitem:gac5cf235dcbf45e2d67c1d397c7cc37c8" id="r_gac5cf235dcbf45e2d67c1d397c7cc37c8"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#gac5cf235dcbf45e2d67c1d397c7cc37c8">NG_REG_VRAMDATA</a>&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0002)</td></tr>
-<tr class="memdesc:gac5cf235dcbf45e2d67c1d397c7cc37c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">VRAM data read/write.  <br /></td></tr>
-<tr class="memitem:ga29e2970168abd233934f1c7dd5b6bdb3" id="r_ga29e2970168abd233934f1c7dd5b6bdb3"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#ga29e2970168abd233934f1c7dd5b6bdb3">NG_REG_VRAMMOD</a>&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0004)</td></tr>
-<tr class="memdesc:ga29e2970168abd233934f1c7dd5b6bdb3"><td class="mdescLeft">&#160;</td><td class="mdescRight">VRAM address auto-increment.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"></div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
@@ -149,48 +143,6 @@ Macros</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define NG_REG_WATCHDOG&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga1a2a3100a902c32a55d8b08915bce044">vu8</a> *)0x300001)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga3845615075c83527050b22e8980e53b6" name="ga3845615075c83527050b22e8980e53b6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3845615075c83527050b22e8980e53b6">&#9670;&#160;</a></span>NG_REG_VRAMADDR</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define NG_REG_VRAMADDR&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0000)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="gac5cf235dcbf45e2d67c1d397c7cc37c8" name="gac5cf235dcbf45e2d67c1d397c7cc37c8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gac5cf235dcbf45e2d67c1d397c7cc37c8">&#9670;&#160;</a></span>NG_REG_VRAMDATA</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define NG_REG_VRAMDATA&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0002)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga29e2970168abd233934f1c7dd5b6bdb3" name="ga29e2970168abd233934f1c7dd5b6bdb3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga29e2970168abd233934f1c7dd5b6bdb3">&#9670;&#160;</a></span>NG_REG_VRAMMOD</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define NG_REG_VRAMMOD&#160;&#160;&#160;(*(<a class="el" href="group__voltypes.html#ga677aa1edce4bbb53741b1cc24eb4c035">vu16</a> *)0x3C0004)</td>
         </tr>
       </table>
 </div><div class="memdoc">

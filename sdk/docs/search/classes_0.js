@@ -11,7 +11,7 @@ var searchData=
   ['ngshape_8',['NGShape',['../struct_n_g_shape.html',1,'']]],
   ['ngspring_9',['NGSpring',['../struct_n_g_spring.html',1,'']]],
   ['ngspring2d_10',['NGSpring2D',['../struct_n_g_spring2_d.html',1,'']]],
-  ['ngtilemapasset_11',['NGTilemapAsset',['../struct_n_g_tilemap_asset.html',1,'']]],
+  ['ngterrainasset_11',['NGTerrainAsset',['../struct_n_g_terrain_asset.html',1,'']]],
   ['ngvec2_12',['NGVec2',['../struct_n_g_vec2.html',1,'']]],
   ['ngvisualasset_13',['NGVisualAsset',['../struct_n_g_visual_asset.html',1,'']]]
 ];

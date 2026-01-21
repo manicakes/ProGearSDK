@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['variables_0',['BIOS Variables',['../group__biosvar.html',1,'']]],
-  ['vectors_1',['2D Vectors',['../group__vec2.html',1,'']]],
-  ['viewport_20dimensions_2',['Viewport Dimensions',['../group__camviewport.html',1,'']]],
-  ['visual_20asset_3',['Visual Asset',['../group__visualasset.html',1,'']]],
-  ['volatile_20types_4',['Volatile Types',['../group__voltypes.html',1,'']]]
+  ['update_0',['Update',['../group__lightingupdate.html',1,'']]],
+  ['utilities_1',['Utilities',['../group__camutil.html',1,'Camera Utilities'],['../group__mathutil.html',1,'Math Utilities'],['../group__palutil.html',1,'Palette Utilities'],['../group__physutil.html',1,'Physics Utilities']]],
+  ['utility_20functions_2',['Utility Functions',['../group__spritefunc.html',1,'Sprite Utility Functions'],['../group__visualutil.html',1,'Utility Functions']]]
 ];

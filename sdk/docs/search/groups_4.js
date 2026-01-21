@@ -1,13 +1,17 @@
 var searchData=
 [
-  ['backdrop_20color_0',['Backdrop Color',['../group__palbackdrop.html',1,'']]],
-  ['backup_20restore_1',['Palette Backup/Restore',['../group__palbackup.html',1,'']]],
-  ['basic_20types_2',['Basic Types',['../group__types.html',1,'']]],
-  ['bios_20variables_3',['BIOS Variables',['../group__biosvar.html',1,'']]],
-  ['blend_20modes_4',['Blend Modes',['../group__lightingblend.html',1,'']]],
-  ['body_5',['Physics Body',['../group__physbody.html',1,'']]],
-  ['body_20management_6',['Body Management',['../group__physbodyfn.html',1,'']]],
-  ['body_20properties_7',['Body Properties',['../group__physprop.html',1,'']]],
-  ['bulk_20operations_8',['Bulk Operations',['../group__palbulk.html',1,'']]],
-  ['button_20masks_9',['Button Masks',['../group__btnmask.html',1,'Button Masks'],['../group__sysbtn.html',1,'System Button Masks']]]
+  ['abstraction_20api_0',['Sprite Abstraction API',['../group__spriteapi.html',1,'']]],
+  ['access_1',['Direct Access',['../group__palaccess.html',1,'']]],
+  ['actor_20constants_2',['Actor Constants',['../group__actorconst.html',1,'']]],
+  ['actor_20handle_3',['Actor Handle',['../group__actorhandle.html',1,'']]],
+  ['actor_20tracking_4',['Actor Tracking',['../group__camtrack.html',1,'']]],
+  ['addresses_5',['SCB Register Addresses',['../group__scbregs.html',1,'']]],
+  ['allocations_6',['Temporary Allocations',['../group__arenatemp.html',1,'']]],
+  ['angles_7',['Angles',['../group__angles.html',1,'']]],
+  ['animation_20definition_8',['Animation Definition',['../group__animdef.html',1,'']]],
+  ['animation_20functions_9',['Animation Functions',['../group__actoranim.html',1,'']]],
+  ['api_10',['Sprite Abstraction API',['../group__spriteapi.html',1,'']]],
+  ['appearance_20functions_11',['Appearance Functions',['../group__actorappear.html',1,'Appearance Functions'],['../group__backdropappear.html',1,'Appearance Functions']]],
+  ['arenas_12',['Standard Arenas',['../group__arenastd.html',1,'']]],
+  ['asset_13',['Visual Asset',['../group__visualasset.html',1,'']]]
 ];

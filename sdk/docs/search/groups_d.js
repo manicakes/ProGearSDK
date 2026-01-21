@@ -1,11 +1,13 @@
 var searchData=
 [
-  ['macros_0',['Convenience Macros',['../group__arenamacro.html',1,'']]],
-  ['management_1',['Management',['../group__physbodyfn.html',1,'Body Management'],['../group__lightinglayer.html',1,'Layer Management'],['../group__physworldfn.html',1,'World Management']]],
-  ['manipulation_2',['Color Manipulation',['../group__colormanip.html',1,'']]],
-  ['masks_3',['Masks',['../group__btnmask.html',1,'Button Masks'],['../group__sysbtn.html',1,'System Button Masks']]],
-  ['math_4',['Math',['../group__fixed1616.html',1,'16.16 Fixed-Point Math'],['../group__fixed88.html',1,'8.8 Fixed-Point Math']]],
-  ['math_20utilities_5',['Math Utilities',['../group__mathutil.html',1,'']]],
-  ['modes_6',['Blend Modes',['../group__lightingblend.html',1,'']]],
-  ['modification_7',['Tile Modification',['../group__tilemapmod.html',1,'']]]
+  ['layer_20configuration_0',['Layer Configuration',['../group__lightingconfig.html',1,'']]],
+  ['layer_20constants_1',['Fix Layer Constants',['../group__fixconst.html',1,'']]],
+  ['layer_20functions_2',['Fix Layer Functions',['../group__fixfunc.html',1,'']]],
+  ['layer_20management_3',['Layer Management',['../group__lightinglayer.html',1,'']]],
+  ['layout_20system_4',['Text Layout System',['../group__fixlayout.html',1,'']]],
+  ['levels_5',['Levels',['../group__lightingpriority.html',1,'Priority Levels'],['../group__camzoom.html',1,'Zoom Levels']]],
+  ['lifecycle_20functions_6',['Lifecycle Functions',['../group__actorlife.html',1,'Lifecycle Functions'],['../group__backdroplife.html',1,'Lifecycle Functions'],['../group__terrainlife.html',1,'Lifecycle Functions']]],
+  ['lighting_20constants_7',['Lighting Constants',['../group__lightingconst.html',1,'']]],
+  ['lighting_20presets_8',['Lighting Presets',['../group__lightingpreset.html',1,'']]],
+  ['limits_9',['World Limits',['../group__camworld.html',1,'']]]
 ];

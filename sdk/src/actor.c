@@ -6,7 +6,6 @@
 
 #include <actor.h>
 #include <camera.h>
-#include <neogeo.h>
 #include <sprite.h>
 
 #define TILE_SIZE 16
@@ -96,24 +95,11 @@ void _NGActorSystemUpdate(void) {
 }
 
 /**
- * Render an actor to VRAM.
- * Uses optimized indexed VRAM addressing for faster writes.
- * SCB register layout per wiki.neogeodev.org/Sprites:
- * - SCB1: Tile index + attributes (palette, flip)
- * - SCB2: Shrink (upper nibble = H, lower byte = V, $0FFF = full size)
- * - SCB3: Y position (496-Y)<<7 | sticky<<6 | height
- * - SCB4: X position << 7
+ * Render an actor to VRAM using the sprite abstraction API.
  */
 static void draw_actor(Actor *actor, u16 first_sprite) {
     if (!actor->visible || !actor->asset)
         return;
-
-    /* Declare VRAM base register for optimized indexed addressing */
-#ifdef __CPPCHECK__
-    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
-#else
-    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
-#endif
 
     const NGVisualAsset *asset = actor->asset;
 
@@ -140,7 +126,7 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         screen_x = FIX_INT(actor->x);
         screen_y = FIX_INT(actor->y);
         zoom = 16;
-        shrink = 0x0FFF;
+        shrink = NG_SPRITE_SHRINK_NONE;
     } else {
         NGCameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
         zoom = NGCameraGetZoom();
@@ -162,8 +148,7 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
             u16 spr = first_sprite + col;
             u8 src_col = col % asset->width_tiles;
 
-            vram_base[0] = NG_SCB1_BASE + (spr * 64); /* VRAMADDR */
-            vram_base[2] = 1;                         /* VRAMMOD */
+            NGSpriteTileBegin(spr);
 
             for (u8 row = 0; row < rows; row++) {
                 u8 src_row = row % asset->height_tiles;
@@ -174,21 +159,11 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
                 u16 tile_idx = (u16)(asset->base_tile + frame_offset +
                                      (tile_col * asset->height_tiles) + tile_row);
 
-                vram_base[1] = tile_idx & 0xFFFF; /* VRAMDATA: tile index */
-
                 /* Default h_flip=1 for correct display, inverted when user flips */
-                u16 attr = ((u16)actor->palette << 8);
-                if (actor->v_flip)
-                    attr |= 0x02;
-                if (!actor->h_flip)
-                    attr |= 0x01;
-                vram_base[1] = attr; /* VRAMDATA: attributes */
+                NGSpriteTileWrite(tile_idx, actor->palette, !actor->h_flip, actor->v_flip);
             }
 
-            for (u8 row = rows; row < 32; row++) {
-                vram_base[1] = 0;
-                vram_base[1] = 0;
-            }
+            NGSpriteTilePadTo32(rows);
         }
 
         actor->last_anim_frame = actor->anim_frame;
@@ -198,39 +173,18 @@ static void draw_actor(Actor *actor, u16 first_sprite) {
         actor->tiles_dirty = 0;
     }
 
-    /* SCB2: Shrink values (upper nibble = H, lower byte = V, $0FFF = full) */
+    /* SCB2: Shrink values */
     if (first_draw || zoom_changed) {
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < cols; col++) {
-            vram_base[1] = shrink;
-        }
+        NGSpriteShrinkSet(first_sprite, cols, shrink);
     }
 
     /* SCB3: Y position and height, SCB4: X position */
     if (first_draw || zoom_changed || position_changed) {
-        /* Adjust height for zoom: at reduced zoom, shrunk graphics are shorter */
         u8 height_bits = NGSpriteAdjustedHeight(rows, (u8)(shrink & 0xFF));
+        s16 tile_width = (s16)((TILE_SIZE * zoom) >> 4);
 
-        /* First sprite is "driving", subsequent sprites are "driven" via sticky bit */
-        u16 scb3_driving = NGSpriteSCB3(screen_y, height_bits);
-        u16 scb3_sticky = NGSpriteSCB3Sticky();
-
-        /* Batch SCB3 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost */
-        vram_base[0] = NG_SCB3_BASE + first_sprite;
-        vram_base[2] = 1;
-        vram_base[1] = scb3_driving;
-        for (u8 col = 1; col < cols; col++) {
-            vram_base[1] = scb3_sticky;
-        }
-
-        /* Batch SCB4 writes - X positions */
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-        for (u8 col = 0; col < cols; col++) {
-            s16 col_offset = (s16)((col * TILE_SIZE * zoom) >> 4);
-            s16 x_pos = (s16)(screen_x + col_offset);
-            vram_base[1] = NGSpriteSCB4(x_pos);
-        }
+        NGSpriteYSetChain(first_sprite, cols, screen_y, height_bits);
+        NGSpriteXSetSpaced(first_sprite, cols, screen_x, tile_width);
 
         actor->last_screen_x = screen_x;
         actor->last_screen_y = screen_y;

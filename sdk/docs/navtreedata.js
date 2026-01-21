@@ -33,8 +33,8 @@ var NAVTREE =
       [ "Actors (actor.h)", "index.html#autotoc_md5", null ],
       [ "Scene (scene.h)", "index.html#autotoc_md6", null ],
       [ "Camera System (camera.h)", "index.html#autotoc_md7", null ],
-      [ "Tilemaps (tilemap.h)", "index.html#autotoc_md8", null ],
-      [ "Parallax Layers (parallax.h)", "index.html#autotoc_md9", null ],
+      [ "Terrain (terrain.h)", "index.html#autotoc_md8", null ],
+      [ "Backdrops (backdrop.h)", "index.html#autotoc_md9", null ],
       [ "Lighting Effects (lighting.h)", "index.html#autotoc_md10", null ],
       [ "Palettes (palette.h)", "index.html#autotoc_md11", null ],
       [ "Colors (color.h)", "index.html#autotoc_md12", null ],
@@ -76,7 +76,7 @@ var NAVTREE =
         [ "Typedefs", "globals_type.html", null ],
         [ "Enumerations", "globals_enum.html", null ],
         [ "Enumerator", "globals_eval.html", null ],
-        [ "Macros", "globals_defs.html", null ]
+        [ "Macros", "globals_defs.html", "globals_defs" ]
       ] ]
     ] ]
   ] ]
@@ -85,9 +85,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "actor_8h.html",
-"group__colormanip.html#ga86801cfc5d61ab43a118b9d8e6f6e7df",
-"group__sysbtn.html#gab3a9e3f7ae1a27e2b2014b177a910c1e",
-"struct_n_g_visual_asset.html#ad99a97386e53df9ef627e23883b1f98c"
+"group__colorconst.html#ga75cc841a148022cd397e2d366250d800",
+"group__physprop.html#gaf95e2b408040f86683af1496776a59fa",
+"spring_8h.html#afca624a2281715dfa0fa23d767cc5db3"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

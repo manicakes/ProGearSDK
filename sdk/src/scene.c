@@ -9,7 +9,7 @@
 #include <backdrop.h>
 #include <terrain.h>
 #include <camera.h>
-#include <neogeo.h>
+#include <sprite.h>
 
 typedef struct {
     u8 type;
@@ -66,11 +66,7 @@ extern u8 NGTerrainGetSpriteCount(NGTerrainHandle handle);
 static void clear_unused_sprites(u16 current, u16 last_max) {
     if (current >= last_max)
         return;
-    NG_REG_VRAMADDR = 0x8200 + current;
-    NG_REG_VRAMMOD = 1;
-    for (u16 i = current; i < last_max; i++) {
-        NG_REG_VRAMDATA = 0;
-    }
+    NGSpriteHideRange(current, (u8)(last_max - current));
 }
 
 void _NGSceneMarkRenderQueueDirty(void) {
@@ -152,11 +148,9 @@ void NGSceneInit(void) {
     hw_sprite_ui_next = HW_SPRITE_UI_BASE;
     hw_sprite_last_ui_max = HW_SPRITE_UI_BASE;
 
-    NG_REG_VRAMADDR = 0x8200;
-    NG_REG_VRAMMOD = 1;
-    for (u16 i = 0; i < HW_SPRITE_MAX; i++) {
-        NG_REG_VRAMDATA = 0; // Height 0 = invisible
-    }
+    /* Clear all sprites by hiding them */
+    NGSpriteHideRange(0, 255);
+    NGSpriteHideRange(255, (u8)(HW_SPRITE_MAX - 255));
 
     scene_initialized = 1;
 }
@@ -248,11 +242,9 @@ void NGSceneReset(void) {
         terrain_in_scene = 0;
     }
 
-    NG_REG_VRAMADDR = 0x8200;
-    NG_REG_VRAMMOD = 1;
-    for (u16 i = 0; i < HW_SPRITE_MAX; i++) {
-        NG_REG_VRAMDATA = 0;
-    }
+    /* Clear all sprites by hiding them */
+    NGSpriteHideRange(0, 255);
+    NGSpriteHideRange(255, (u8)(HW_SPRITE_MAX - 255));
 
     render_count = 0;
     render_queue_dirty = 1;

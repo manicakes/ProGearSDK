@@ -120,13 +120,13 @@ $(function(){initNavTree('progearsdk_8h_source.html','',''); });
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="preprocessor">#include &lt;<a class="code" href="visual_8h.html">visual.h</a>&gt;</span></div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="preprocessor">#include &lt;<a class="code" href="actor_8h.html">actor.h</a>&gt;</span></div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="preprocessor">#include &lt;<a class="code" href="scene_8h.html">scene.h</a>&gt;</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">/* Camera system */</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="preprocessor">#include &lt;<a class="code" href="camera_8h.html">camera.h</a>&gt;</span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment">/* World rendering */</span></div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="preprocessor">#include &lt;<a class="code" href="parallax_8h.html">parallax.h</a>&gt;</span></div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="preprocessor">#include &lt;<a class="code" href="tilemap_8h.html">tilemap.h</a>&gt;</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="preprocessor">#include &lt;<a class="code" href="terrain_8h.html">terrain.h</a>&gt;</span></div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">/* Camera system */</span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="preprocessor">#include &lt;<a class="code" href="camera_8h.html">camera.h</a>&gt;</span></div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span> </div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">/* Backdrops (parallax background layers) */</span></div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="preprocessor">#include &lt;<a class="code" href="backdrop_8h.html">backdrop.h</a>&gt;</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span> </div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment">/* Physics */</span></div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="preprocessor">#include &lt;<a class="code" href="physics_8h.html">physics.h</a>&gt;</span></div>
@@ -145,6 +145,7 @@ $(function(){initNavTree('progearsdk_8h_source.html','',''); });
 <div class="ttc" id="aactor_8h_html"><div class="ttname"><a href="actor_8h.html">actor.h</a></div><div class="ttdoc">Scene actor management.</div></div>
 <div class="ttc" id="aarena_8h_html"><div class="ttname"><a href="arena_8h.html">arena.h</a></div></div>
 <div class="ttc" id="aaudio_8h_html"><div class="ttname"><a href="audio_8h.html">audio.h</a></div><div class="ttdoc">NeoGeo audio system - ADPCM-A (SFX) and ADPCM-B (Music) playback.</div></div>
+<div class="ttc" id="abackdrop_8h_html"><div class="ttname"><a href="backdrop_8h.html">backdrop.h</a></div><div class="ttdoc">Backdrop (parallax layer) management.</div></div>
 <div class="ttc" id="acamera_8h_html"><div class="ttname"><a href="camera_8h.html">camera.h</a></div><div class="ttdoc">Camera system for viewing the scene.</div></div>
 <div class="ttc" id="acolor_8h_html"><div class="ttname"><a href="color_8h.html">color.h</a></div><div class="ttdoc">NeoGeo color definitions and utilities.</div></div>
 <div class="ttc" id="aengine_8h_html"><div class="ttname"><a href="engine_8h.html">engine.h</a></div></div>
@@ -154,11 +155,10 @@ $(function(){initNavTree('progearsdk_8h_source.html','',''); });
 <div class="ttc" id="aneogeo_8h_html"><div class="ttname"><a href="neogeo_8h.html">neogeo.h</a></div><div class="ttdoc">Main ProGearSDK header.</div></div>
 <div class="ttc" id="angmath_8h_html"><div class="ttname"><a href="ngmath_8h.html">ngmath.h</a></div><div class="ttdoc">Fixed-point math types and functions.</div></div>
 <div class="ttc" id="apalette_8h_html"><div class="ttname"><a href="palette_8h.html">palette.h</a></div><div class="ttdoc">NeoGeo palette management.</div></div>
-<div class="ttc" id="aparallax_8h_html"><div class="ttname"><a href="parallax_8h.html">parallax.h</a></div><div class="ttdoc">Parallax effect management.</div></div>
 <div class="ttc" id="aphysics_8h_html"><div class="ttname"><a href="physics_8h.html">physics.h</a></div><div class="ttdoc">Simple 2D physics engine.</div></div>
 <div class="ttc" id="ascene_8h_html"><div class="ttname"><a href="scene_8h.html">scene.h</a></div><div class="ttdoc">Scene management.</div></div>
 <div class="ttc" id="aspring_8h_html"><div class="ttname"><a href="spring_8h.html">spring.h</a></div></div>
-<div class="ttc" id="atilemap_8h_html"><div class="ttname"><a href="tilemap_8h.html">tilemap.h</a></div><div class="ttdoc">Tile-based world rendering with collision support.</div></div>
+<div class="ttc" id="aterrain_8h_html"><div class="ttname"><a href="terrain_8h.html">terrain.h</a></div><div class="ttdoc">Tile-based terrain rendering with collision support.</div></div>
 <div class="ttc" id="atypes_8h_html"><div class="ttname"><a href="types_8h.html">types.h</a></div><div class="ttdoc">Basic type definitions for ProGearSDK.</div></div>
 <div class="ttc" id="aui_8h_html"><div class="ttname"><a href="ui_8h.html">ui.h</a></div></div>
 <div class="ttc" id="avisual_8h_html"><div class="ttname"><a href="visual_8h.html">visual.h</a></div><div class="ttdoc">Visual asset definitions.</div></div>

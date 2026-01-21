@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['camera_2eh_0',['camera.h',['../camera_8h.html',1,'']]],
-  ['color_2eh_1',['color.h',['../color_8h.html',1,'']]]
+  ['backdrop_2eh_0',['backdrop.h',['../backdrop_8h.html',1,'']]]
 ];

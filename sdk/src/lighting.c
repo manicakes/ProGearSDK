@@ -637,12 +637,18 @@ static void apply_additive_to_current_palettes(s16 add_r, s16 add_g, s16 add_b, 
             s16 sb = (s16)b + add_b;
 
             /* Clamp to 0-31 */
-            if (sr < 0) sr = 0;
-            if (sr > 31) sr = 31;
-            if (sg < 0) sg = 0;
-            if (sg > 31) sg = 31;
-            if (sb < 0) sb = 0;
-            if (sb > 31) sb = 31;
+            if (sr < 0)
+                sr = 0;
+            if (sr > 31)
+                sr = 31;
+            if (sg < 0)
+                sg = 0;
+            if (sg > 31)
+                sg = 31;
+            if (sb < 0)
+                sb = 0;
+            if (sb > 31)
+                sb = 31;
 
             r = (u16)sr;
             g = (u16)sg;

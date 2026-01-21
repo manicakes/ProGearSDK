@@ -128,8 +128,10 @@ Functions</h2></td></tr>
 <tr class="memdesc:ac82598d131c1a225140978c6995bf478"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hide the menu with exit animation.  <br /></td></tr>
 <tr class="memitem:a9254a7955235eea8ca5ba6a32977b238" id="r_a9254a7955235eea8ca5ba6a32977b238"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a9254a7955235eea8ca5ba6a32977b238">NGMenuUpdate</a> (<a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a> menu)</td></tr>
 <tr class="memdesc:a9254a7955235eea8ca5ba6a32977b238"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update menu state (call once per frame).  <br /></td></tr>
+<tr class="memitem:a8162726d875188197c56f8b4081567e9" id="r_a8162726d875188197c56f8b4081567e9"><td class="memItemLeft"><a class="el" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a>&#160;</td><td class="memItemRight"><a class="el" href="#a8162726d875188197c56f8b4081567e9">NGMenuNeedsDraw</a> (<a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a> menu)</td></tr>
+<tr class="memdesc:a8162726d875188197c56f8b4081567e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if menu needs a fix layer VRAM update.  <br /></td></tr>
 <tr class="memitem:aea09b39b9ecda838eae2d83b9a39f772" id="r_aea09b39b9ecda838eae2d83b9a39f772"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aea09b39b9ecda838eae2d83b9a39f772">NGMenuDraw</a> (<a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a> menu)</td></tr>
-<tr class="memdesc:aea09b39b9ecda838eae2d83b9a39f772"><td class="mdescLeft">&#160;</td><td class="mdescRight">Draw menu to screen (call once per frame during vblank).  <br /></td></tr>
+<tr class="memdesc:aea09b39b9ecda838eae2d83b9a39f772"><td class="mdescLeft">&#160;</td><td class="mdescRight">Draw menu to screen (call during vblank when NGMenuNeedsDraw returns true).  <br /></td></tr>
 <tr class="memitem:a50468696d1632440cccec3a73edfe26f" id="r_a50468696d1632440cccec3a73edfe26f"><td class="memItemLeft"><a class="el" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a>&#160;</td><td class="memItemRight"><a class="el" href="#a50468696d1632440cccec3a73edfe26f">NGMenuIsVisible</a> (<a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a> menu)</td></tr>
 <tr class="memdesc:a50468696d1632440cccec3a73edfe26f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if menu is visible (shown and not fully hidden).  <br /></td></tr>
 <tr class="memitem:a7d086e09f1b9335a2255e7ab8f8bfc67" id="r_a7d086e09f1b9335a2255e7ab8f8bfc67"><td class="memItemLeft"><a class="el" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a>&#160;</td><td class="memItemRight"><a class="el" href="#a7d086e09f1b9335a2255e7ab8f8bfc67">NGMenuIsAnimating</a> (<a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a> menu)</td></tr>
@@ -522,6 +524,30 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a8162726d875188197c56f8b4081567e9" name="a8162726d875188197c56f8b4081567e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8162726d875188197c56f8b4081567e9">&#9670;&#160;</a></span>NGMenuNeedsDraw()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__types.html#ga92c50087ca0e64fa93fc59402c55f8ca">u8</a> NGMenuNeedsDraw </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#a79576d3c90d28a5c9c40aba337faf5fc">NGMenuHandle</a></td>          <td class="paramname"><span class="paramname"><em>menu</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Fix layer tiles persist once written, so we only need to write when text first appears or when content changes (selection, blink). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">menu</td><td>Menu handle </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1 if VRAM update needed, 0 otherwise </dd></dl>
+
+</div>
+</div>
 <a id="aea09b39b9ecda838eae2d83b9a39f772" name="aea09b39b9ecda838eae2d83b9a39f772"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aea09b39b9ecda838eae2d83b9a39f772">&#9670;&#160;</a></span>NGMenuDraw()</h2>
 
@@ -536,7 +562,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Renders panel sprite and updates fix layer text. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Updates fix layer text. Only writes to VRAM when content has changed. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">menu</td><td>Menu handle </td></tr>
   </table>

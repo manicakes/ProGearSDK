@@ -94,5 +94,6 @@ var menudata={children:[
 {text:"Enumerator",url:"globals_eval.html"},
 {text:"Macros",url:"globals_defs.html",children:[
 {text:"a",url:"globals_defs.html#index_a"},
-{text:"f",url:"globals_defs.html#index_f"},
-{text:"n",url:"globals_defs.html#index_n"}]}]}]}]}
+{text:"f",url:"globals_defs_f.html#index_f"},
+{text:"n",url:"globals_defs_n.html#index_n"},
+{text:"s",url:"globals_defs_s.html#index_s"}]}]}]}]}

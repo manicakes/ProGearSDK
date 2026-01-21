@@ -43,10 +43,6 @@
 #define NG_REG_IRQACK   (*(vu16 *)0x3C000C) /**< IRQ acknowledge */
 #define NG_REG_WATCHDOG (*(vu8 *)0x300001)  /**< Watchdog kick */
 
-#define NG_REG_VRAMADDR (*(vu16 *)0x3C0000) /**< VRAM address */
-#define NG_REG_VRAMDATA (*(vu16 *)0x3C0002) /**< VRAM data read/write */
-#define NG_REG_VRAMMOD  (*(vu16 *)0x3C0004) /**< VRAM address auto-increment */
-
 /** @} */
 
 /** @defgroup vramopt VRAM Optimization
@@ -216,7 +212,7 @@ static inline void NGWatchdogKick(void) {
  *  - MOVEQ #0,Dn is faster than CLR.L Dn (saves 2 cycles)
  *  - SUB.L An,An is faster than MOVE.L #0,An (saves 4 cycles)
  *  - ADD.W Dn,Dn is faster than LSL.W #1,Dn (saves 4 cycles)
- *  - LEA d(An),An is faster than ADDA.W #d,An for small constants
+ *  - `LEA d(An),An` is faster than `ADDA.W #d,An` for small constants
  *  @{
  */
 

@@ -6,7 +6,6 @@
 
 #include <terrain.h>
 #include <camera.h>
-#include <neogeo.h>
 #include <sprite.h>
 
 typedef struct {
@@ -59,26 +58,20 @@ u8 _NGTerrainGetZ(NGTerrainHandle handle) {
 }
 
 /**
- * Load tile data for a single column into VRAM.
- * Uses optimized indexed VRAM addressing for faster writes.
+ * Load tile data for a single column into VRAM using the sprite API.
  */
-static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows,
-                              volatile u16 *vram_base) {
+static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows) {
     const NGTerrainAsset *asset = tm->asset;
 
-    /* Use indexed addressing - faster than absolute long addressing.
-     * "move.w X,d(An)" loads faster than "move.w X,xxx.L" */
-    vram_base[0] = NG_SCB1_BASE + (sprite_idx * 64); /* VRAMADDR */
-    vram_base[2] = 1;                                /* VRAMMOD */
+    NGSpriteTileBegin(sprite_idx);
 
     for (u8 row = 0; row < num_rows; row++) {
         s16 terrain_row = tm->viewport_row + row;
 
         if (terrain_col < 0 || terrain_col >= asset->width_tiles || terrain_row < 0 ||
             terrain_row >= asset->height_tiles) {
-            /* Out of bounds - empty tile (2 consecutive zero writes) */
-            vram_base[1] = 0;
-            vram_base[1] = 0;
+            /* Out of bounds - empty tile */
+            NGSpriteTileWriteEmpty();
             continue;
         }
 
@@ -91,34 +84,18 @@ static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 n
             palette = asset->tile_to_palette[tile_idx];
         }
 
-        vram_base[1] = crom_tile & 0xFFFF;
-        u16 attr = ((u16)palette << 8) | 0x01;
-        vram_base[1] = attr;
+        NGSpriteTileWrite(crom_tile, palette, 1, 0);
     }
 
-    /* Fill remaining rows with empty tiles */
-    for (u8 row = num_rows; row < 32; row++) {
-        vram_base[1] = 0;
-        vram_base[1] = 0;
-    }
+    NGSpriteTilePadTo32(num_rows);
 }
 
 /**
- * Main terrain rendering function.
- * Uses optimized indexed VRAM addressing throughout for faster writes.
- * "move.w X,d(An)" is faster than "move.w X,xxx.L" per NeoGeo dev wiki.
+ * Main terrain rendering function using the sprite abstraction API.
  */
 static void draw_terrain(Terrain *tm, u16 first_sprite) {
     if (!tm->visible || !tm->asset)
         return;
-
-    /* Declare VRAM base register once - reused for all VRAM operations.
-     * This reserves a5 as VRAM base pointer for indexed addressing. */
-#ifdef __CPPCHECK__
-    volatile u16 *vram_base = (volatile u16 *)NG_VRAM_BASE;
-#else
-    register volatile u16 *vram_base __asm__("a5") = (volatile u16 *)NG_VRAM_BASE;
-#endif
 
     fixed cam_x = NGCameraGetRenderX();
     fixed cam_y = NGCameraGetRenderY();
@@ -154,29 +131,22 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
         tm->viewport_rows = num_rows;
         tm->leftmost_sprite_offset = 0;
 
+        /* SCB1: Load tile data for all columns */
         for (u8 col = 0; col < num_cols; col++) {
             u16 spr = first_sprite + col;
             s16 terrain_col = first_col + col;
-            load_column_tiles(tm, spr, terrain_col, num_rows, vram_base);
+            load_column_tiles(tm, spr, terrain_col, num_rows);
         }
 
+        /* SCB2: Shrink values */
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite; /* VRAMADDR */
-        vram_base[2] = 1;                           /* VRAMMOD */
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = shrink; /* VRAMDATA */
-        }
+        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
 
+        /* SCB4: X positions */
         s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
         s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
         base_screen_x = (s16)((base_screen_x * zoom) >> 4);
-
-        vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite); /* VRAMADDR */
-        vram_base[2] = 1;                                  /* VRAMMOD */
-        for (u8 col = 0; col < num_cols; col++) {
-            s16 x = (s16)(base_screen_x + (col * tile_w));
-            vram_base[1] = NGSpriteSCB4(x); /* VRAMDATA */
-        }
+        NGSpriteXSetSpaced(first_sprite, num_cols, base_screen_x, tile_w);
 
         tm->hw_sprite_first = first_sprite;
         tm->hw_sprite_count = num_cols;
@@ -189,11 +159,7 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
 
     if (zoom_changed) {
         u16 shrink = NGCameraGetShrink();
-        vram_base[0] = NG_SCB2_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = shrink;
-        }
+        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
         tm->last_zoom = zoom;
     }
 
@@ -205,7 +171,7 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
                 u16 spr = first_sprite + sprite_offset;
                 s16 new_col = (s16)(tm->viewport_col + num_cols + i);
 
-                load_column_tiles(tm, spr, new_col, num_rows, vram_base);
+                load_column_tiles(tm, spr, new_col, num_rows);
 
                 tm->leftmost_sprite_offset = (u8)((tm->leftmost_sprite_offset + 1) % num_cols);
             }
@@ -219,7 +185,7 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
                 u8 sprite_offset = tm->leftmost_sprite_offset;
                 u16 spr = first_sprite + sprite_offset;
                 s16 new_col = (s16)(first_col - i);
-                load_column_tiles(tm, spr, new_col, num_rows, vram_base);
+                load_column_tiles(tm, spr, new_col, num_rows);
             }
         }
         tm->viewport_col = first_col;
@@ -233,11 +199,12 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
             u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
             u16 spr = first_sprite + sprite_offset;
             s16 terrain_col = first_col + col;
-            load_column_tiles(tm, spr, terrain_col, num_rows, vram_base);
+            load_column_tiles(tm, spr, terrain_col, num_rows);
         }
         tm->last_viewport_row = first_row;
     }
 
+    /* SCB3: Y position and height */
     u16 shrink = NGCameraGetShrink();
     u8 height_bits = NGSpriteAdjustedHeight(num_rows, (u8)(shrink & 0xFF));
 
@@ -247,26 +214,20 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
     u16 scb3_val = NGSpriteSCB3(base_screen_y, height_bits);
 
     if (scb3_val != tm->last_scb3) {
-        vram_base[0] = NG_SCB3_BASE + first_sprite;
-        vram_base[2] = 1;
-        for (u8 col = 0; col < num_cols; col++) {
-            vram_base[1] = scb3_val;
-        }
+        NGSpriteYSetUniform(first_sprite, num_cols, base_screen_y, height_bits);
         tm->last_scb3 = scb3_val;
     }
 
+    /* SCB4: X positions - calculated with circular buffer offset */
     s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
     s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
     base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
-    /* Batch SCB4 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost.
-     * Iterate by sprite index; calculate screen column via inverse offset mapping. */
-    vram_base[0] = (u16)(NG_SCB4_BASE + first_sprite);
-    vram_base[2] = 1;
+    NGSpriteXBegin(first_sprite);
     for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
         u8 screen_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
         s16 x = (s16)(base_screen_x + (screen_col * tile_w));
-        vram_base[1] = NGSpriteSCB4(x);
+        NGSpriteXWriteNext(x);
     }
 }
 

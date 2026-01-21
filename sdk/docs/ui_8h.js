@@ -14,6 +14,7 @@ var ui_8h =
     [ "NGMenuShow", "ui_8h.html#a3e9f486ebcdd9c8fdab1c267a4821378", null ],
     [ "NGMenuHide", "ui_8h.html#ac82598d131c1a225140978c6995bf478", null ],
     [ "NGMenuUpdate", "ui_8h.html#a9254a7955235eea8ca5ba6a32977b238", null ],
+    [ "NGMenuNeedsDraw", "ui_8h.html#a8162726d875188197c56f8b4081567e9", null ],
     [ "NGMenuDraw", "ui_8h.html#aea09b39b9ecda838eae2d83b9a39f772", null ],
     [ "NGMenuIsVisible", "ui_8h.html#a50468696d1632440cccec3a73edfe26f", null ],
     [ "NGMenuIsAnimating", "ui_8h.html#a7d086e09f1b9335a2255e7ab8f8bfc67", null ],

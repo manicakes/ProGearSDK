@@ -178,7 +178,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>The engine will call <a class="el" href="ui_8h.html#aea09b39b9ecda838eae2d83b9a39f772" title="Draw menu to screen (call once per frame during vblank).">NGMenuDraw()</a> on this menu in <a class="el" href="#ab581b5bb0d999b3b0a82aa73a7fa8435" title="Call at the end of each frame (bottom of main loop).">NGEngineFrameEnd()</a>. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>The engine will call <a class="el" href="ui_8h.html#aea09b39b9ecda838eae2d83b9a39f772" title="Draw menu to screen (call during vblank when NGMenuNeedsDraw returns true).">NGMenuDraw()</a> on this menu in <a class="el" href="#ab581b5bb0d999b3b0a82aa73a7fa8435" title="Call at the end of each frame (bottom of main loop).">NGEngineFrameEnd()</a>. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">menu</td><td>Menu handle, or NULL to disable menu drawing </td></tr>
   </table>

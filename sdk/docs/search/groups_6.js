@@ -1,9 +1,25 @@
 var searchData=
 [
-  ['data_20structures_0',['Tilemap Data Structures',['../group__tilemapdata.html',1,'']]],
-  ['definition_1',['Animation Definition',['../group__animdef.html',1,'']]],
-  ['dimensions_2',['Viewport Dimensions',['../group__camviewport.html',1,'']]],
-  ['direct_20access_3',['Direct Access',['../group__palaccess.html',1,'']]],
-  ['direction_20helpers_4',['Direction Helpers',['../group__inputdir.html',1,'']]],
-  ['duration_5',['Charge/Hold Duration',['../group__inputcharge.html',1,'']]]
+  ['camera_20effects_0',['Camera Effects',['../group__cameffects.html',1,'']]],
+  ['camera_20system_1',['Camera System',['../group__camsys.html',1,'']]],
+  ['camera_20utilities_2',['Camera Utilities',['../group__camutil.html',1,'']]],
+  ['charge_20hold_20duration_3',['Charge/Hold Duration',['../group__inputcharge.html',1,'']]],
+  ['collision_20flags_4',['Collision Flags',['../group__collflags.html',1,'Collision Flags'],['../group__tilecoll.html',1,'Tile Collision Flags']]],
+  ['collision_20functions_5',['Collision Functions',['../group__terraincoll.html',1,'']]],
+  ['collision_20info_6',['Collision Info',['../group__physcoll.html',1,'']]],
+  ['collision_20resolution_20flags_7',['Collision Resolution Flags',['../group__tilecollres.html',1,'']]],
+  ['collision_20shapes_8',['Collision Shapes',['../group__physshape.html',1,'']]],
+  ['color_9',['Backdrop Color',['../group__palbackdrop.html',1,'']]],
+  ['color_20constants_10',['Color Constants',['../group__colorconst.html',1,'']]],
+  ['color_20construction_11',['Color Construction',['../group__colorconstruct.html',1,'']]],
+  ['color_20extraction_12',['Color Extraction',['../group__colorextract.html',1,'']]],
+  ['color_20generation_13',['Color Generation',['../group__colorgen.html',1,'']]],
+  ['color_20manipulation_14',['Color Manipulation',['../group__colormanip.html',1,'']]],
+  ['color_20operations_15',['Single Color Operations',['../group__palcolor.html',1,'']]],
+  ['configuration_16',['Configuration',['../group__physconfig.html',1,'Configuration'],['../group__lightingconfig.html',1,'Layer Configuration']]],
+  ['constants_17',['Constants',['../group__actorconst.html',1,'Actor Constants'],['../group__backdropconst.html',1,'Backdrop Constants'],['../group__colorconst.html',1,'Color Constants'],['../group__terrainconst.html',1,'Constants'],['../group__fixconst.html',1,'Fix Layer Constants'],['../group__lightingconst.html',1,'Lighting Constants'],['../group__palconst.html',1,'Palette Constants'],['../group__sceneconst.html',1,'Scene Constants'],['../group__spriteconst.html',1,'Sprite Constants']]],
+  ['construction_18',['Color Construction',['../group__colorconstruct.html',1,'']]],
+  ['convenience_20functions_19',['Convenience Functions',['../group__lightingconvenience.html',1,'']]],
+  ['convenience_20macros_20',['Convenience Macros',['../group__arenamacro.html',1,'']]],
+  ['core_20operations_21',['Core Operations',['../group__arenacore.html',1,'']]]
 ];

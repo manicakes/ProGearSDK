@@ -12,7 +12,6 @@
 #include <palette.h>
 #include <lighting.h>
 #include <audio.h>
-#include <neogeo.h>
 #include <sprite.h>
 #include <visual.h>
 
@@ -176,8 +175,8 @@ static u8 calc_panel_height(u8 item_count) {
  * @param out_attr Output: attribute flags (palette, flip bits)
  * @param palette Palette index for attributes
  */
-static void get_panel_tile_and_attr(const NGVisualAsset *asset, u8 col, u8 row,
-                                    u16 *out_tile, u16 *out_attr, u8 palette) {
+static void get_panel_tile_and_attr(const NGVisualAsset *asset, u8 col, u8 row, u16 *out_tile,
+                                    u16 *out_attr, u8 palette) {
     u16 tile;
     u16 attr = ((u16)palette << 8);
 
@@ -211,7 +210,7 @@ static void get_panel_tile_and_attr(const NGVisualAsset *asset, u8 col, u8 row,
 static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     const NGVisualAsset *asset = menu->panel_asset;
     u8 target_height = calc_panel_height(menu->item_count);
-    u8 orig_height = asset->height_tiles; // 7 for ui_panel
+    u8 orig_height = asset->height_tiles;
     u8 extra_rows = (target_height > orig_height) ? (target_height - orig_height) : 0;
     u8 actual_height = orig_height + extra_rows;
 
@@ -224,80 +223,57 @@ static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     u8 palette = asset->palette;
     u8 num_cols = asset->width_tiles;
 
-    u16 scb3_val = NGSpriteSCB3(screen_y, actual_height);
-
+    /* SCB1: Write tile data for all columns with 9-slice stretching */
     for (u8 col = 0; col < num_cols; col++) {
         u16 spr = first_sprite + col;
 
-        NG_REG_VRAMADDR = NG_SCB1_BASE + (spr * 64);
-        NG_REG_VRAMMOD = 1;
+        NGSpriteTileBegin(spr);
 
         u8 row_out = 0;
         u16 tile, attr;
 
+        /* Top rows */
         for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NG_REG_VRAMDATA = tile;
-            NG_REG_VRAMDATA = attr;
+            NGSpriteTileWriteRaw(tile, attr);
             row_out++;
         }
 
+        /* Middle rows (with stretching) */
         u8 orig_middle_start = PANEL_TOP_ROWS;
         u8 orig_middle_end = orig_height - PANEL_BOTTOM_ROWS;
 
         for (u8 r = orig_middle_start; r < orig_middle_end; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NG_REG_VRAMDATA = tile;
-            NG_REG_VRAMDATA = attr;
+            NGSpriteTileWriteRaw(tile, attr);
             row_out++;
 
             if (r == PANEL_MIDDLE_ROW) {
-                /* Repeated middle row uses same tile and attr */
+                /* Repeat middle row for stretching */
                 u16 repeat_tile, repeat_attr;
                 get_panel_tile_and_attr(asset, col, PANEL_MIDDLE_ROW, &repeat_tile, &repeat_attr,
                                         palette);
                 for (u8 e = 0; e < extra_rows; e++) {
-                    NG_REG_VRAMDATA = repeat_tile;
-                    NG_REG_VRAMDATA = repeat_attr;
+                    NGSpriteTileWriteRaw(repeat_tile, repeat_attr);
                     row_out++;
                 }
             }
         }
 
+        /* Bottom rows */
         for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
             get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NG_REG_VRAMDATA = tile;
-            NG_REG_VRAMDATA = attr;
+            NGSpriteTileWriteRaw(tile, attr);
             row_out++;
         }
 
-        // Clear remaining tile slots (up to 32)
-        while (row_out < 32) {
-            NG_REG_VRAMDATA = 0;
-            NG_REG_VRAMDATA = 0;
-            row_out++;
-        }
+        NGSpriteTilePadTo32(row_out);
     }
 
-    // Batch SCB2 writes - VRAMMOD auto-increment avoids per-sprite VRAMADDR cost
-    NG_REG_VRAMADDR = NG_SCB2_BASE + first_sprite;
-    NG_REG_VRAMMOD = 1;
-    for (u8 col = 0; col < num_cols; col++) {
-        NG_REG_VRAMDATA = NG_SPRITE_SHRINK_NONE;
-    }
-
-    // Batch SCB3 writes - Y position and height
-    NG_REG_VRAMADDR = NG_SCB3_BASE + first_sprite;
-    for (u8 col = 0; col < num_cols; col++) {
-        NG_REG_VRAMDATA = scb3_val;
-    }
-
-    // Batch SCB4 writes - X positions
-    NG_REG_VRAMADDR = (vu16)(NG_SCB4_BASE + first_sprite);
-    for (u8 col = 0; col < num_cols; col++) {
-        s16 x_pos = (s16)(screen_x + (col * 16));
-        NG_REG_VRAMDATA = NGSpriteSCB4(x_pos);
-    }
+    /* SCB2, SCB3, SCB4: Set positions using grid setup (uniform Y) */
+    NGSpriteShrinkSet(first_sprite, num_cols, NG_SPRITE_SHRINK_NONE);
+    NGSpriteYSetUniform(first_sprite, num_cols, screen_y, actual_height);
+    NGSpriteXSetSpaced(first_sprite, num_cols, screen_x, 16);
 }
 
 static void update_panel_position(NGMenu *menu, s16 screen_y) {
@@ -307,13 +283,7 @@ static void update_panel_position(NGMenu *menu, s16 screen_y) {
     u8 num_cols = menu->panel_asset->width_tiles;
     u8 actual_height = menu->panel_height_tiles;
 
-    u16 scb3_val = NGSpriteSCB3(screen_y, actual_height);
-
-    NG_REG_VRAMADDR = NG_SCB3_BASE + first_sprite;
-    NG_REG_VRAMMOD = 1;
-    for (u8 col = 0; col < num_cols; col++) {
-        NG_REG_VRAMDATA = scb3_val;
-    }
+    NGSpriteYSetUniform(first_sprite, num_cols, screen_y, actual_height);
 }
 
 static void hide_panel_sprites(NGMenu *menu) {
