@@ -18,7 +18,6 @@
 #include <progear_assets.h>
 
 #define SCROLL_SPEED  2
-#define SCREEN_WIDTH  320
 #define BOB_AMPLITUDE 10
 
 typedef struct ScrollDemoState {
@@ -141,8 +140,8 @@ u8 ScrollDemoUpdate(void) {
     } else {
         state->scroll_x = (s16)(state->scroll_x + state->scroll_dir * SCROLL_SPEED);
 
-        if (state->scroll_x >= SCREEN_WIDTH) {
-            state->scroll_x = SCREEN_WIDTH;
+        if (state->scroll_x >= CAM_VIEWPORT_WIDTH) {
+            state->scroll_x = CAM_VIEWPORT_WIDTH;
             state->scroll_dir = -1;
         } else if (state->scroll_x <= 0) {
             state->scroll_x = 0;

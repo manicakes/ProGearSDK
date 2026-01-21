@@ -7,10 +7,8 @@
 #include <backdrop.h>
 #include <camera.h>
 #include <hw/sprite.h>
+#include <hw/lspc.h>
 
-#define SCREEN_WIDTH             320
-#define SCREEN_HEIGHT            224
-#define TILE_SIZE                16
 #define MAX_COLUMNS_PER_BACKDROP 42
 
 /* Internal backdrop data structure */

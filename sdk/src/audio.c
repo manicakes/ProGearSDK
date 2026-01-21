@@ -14,9 +14,6 @@
 #include <actor.h>
 #include <camera.h>
 
-#define SCREEN_WIDTH      320
-#define SCREEN_HALF_WIDTH 160
-
 void AudioPlaySfx(u8 sfx_index) {
     hw_audio_play_sfx(sfx_index);
 }

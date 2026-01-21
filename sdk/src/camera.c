@@ -6,9 +6,7 @@
 
 #include <camera.h>
 #include <actor.h>
-
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 224
+#include <hw/lspc.h>
 
 /* Zoom index 0-128 maps to zoom 8-16 (50%-100%). Eliminates fixed-point math.
  * Each entry is (h_shrink << 8) | v_shrink */

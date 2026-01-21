@@ -7,9 +7,7 @@
 #include <terrain.h>
 #include <camera.h>
 #include <hw/sprite.h>
-
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 224
+#include <hw/lspc.h>
 
 typedef struct {
     const TerrainAsset *asset;

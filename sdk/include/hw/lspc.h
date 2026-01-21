@@ -53,6 +53,11 @@
 #define SCB1_SPRITE_SIZE    64
 #define SCB1_WORDS_PER_TILE 2
 
+/* Screen dimensions */
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 224
+#define TILE_SIZE     16
+
 /* Sprite limits */
 #define SPRITE_MAX      381
 #define SPRITE_PER_LINE 96

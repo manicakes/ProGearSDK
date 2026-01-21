@@ -37,7 +37,9 @@
 
 #define TERRAIN_MAX     4    /**< Maximum active terrains */
 #define TERRAIN_INVALID (-1) /**< Invalid handle sentinel */
+#ifndef TILE_SIZE
 #define TILE_SIZE       16   /**< Tile size in pixels */
+#endif
 
 /** Maximum columns renderable (screen width / 16 + 2 for scroll buffer) */
 #define TERRAIN_MAX_COLS 22
