@@ -33,8 +33,9 @@
 /* Fix layer (text/HUD) */
 #include <fix.h>
 
-/* Visual assets and actors */
+/* Visual assets and graphics */
 #include <visual.h>
+#include <graphic.h>
 #include <actor.h>
 #include <scene.h>
 #include <terrain.h>

@@ -41,6 +41,7 @@ C_SOURCES = $(SRC_DIR)/fix.c \
             $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/scene.c \
             $(SRC_DIR)/sprite.c \
+            $(SRC_DIR)/graphic.c \
             $(SRC_DIR)/actor.c \
             $(SRC_DIR)/backdrop.c \
             $(SRC_DIR)/input.c \
