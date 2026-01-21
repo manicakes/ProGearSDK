@@ -24,6 +24,16 @@
 #include <color.h>
 #include <palette.h>
 
+/** @defgroup screen Screen Dimensions
+ *  @brief NeoGeo fixed screen resolution.
+ *  @{
+ */
+
+#define SCREEN_WIDTH  320 /**< Screen width in pixels */
+#define SCREEN_HEIGHT 224 /**< Screen height in pixels */
+
+/** @} */
+
 /** @defgroup hwregs Hardware Registers
  *  @brief Direct hardware register access.
  *  @{

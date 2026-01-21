@@ -35,14 +35,15 @@
 
 #include <types.h>
 #include <ngmath.h>
+#include <neogeo.h>
 
 /** @defgroup camviewport Viewport Dimensions
  *  @brief NeoGeo screen size at 100% zoom.
  *  @{
  */
 
-#define NG_CAM_VIEWPORT_WIDTH  320 /**< Screen width in pixels */
-#define NG_CAM_VIEWPORT_HEIGHT 224 /**< Screen height in pixels */
+#define NG_CAM_VIEWPORT_WIDTH  SCREEN_WIDTH  /**< Screen width in pixels */
+#define NG_CAM_VIEWPORT_HEIGHT SCREEN_HEIGHT /**< Screen height in pixels */
 
 /** @} */
 

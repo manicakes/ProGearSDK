@@ -9,8 +9,6 @@
 #include <neogeo.h>
 #include <sprite.h>
 
-#define SCREEN_WIDTH             320
-#define SCREEN_HEIGHT            224
 #define TILE_SIZE                16
 #define MAX_COLUMNS_PER_BACKDROP 42
 

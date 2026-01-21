@@ -36,8 +36,7 @@
 #define CMD_VOLUME_BASE    0x80 /* 0x80-0x8F: Volume 0-15 */
 
 /* Screen dimensions for pan calculation */
-#define SCREEN_WIDTH      320
-#define SCREEN_HALF_WIDTH 160
+#define SCREEN_HALF_WIDTH (SCREEN_WIDTH / 2)
 
 static u8 current_music_index = 0xFF;
 static u8 music_paused = 0;

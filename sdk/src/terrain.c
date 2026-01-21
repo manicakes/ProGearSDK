@@ -9,9 +9,6 @@
 #include <neogeo.h>
 #include <sprite.h>
 
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 224
-
 typedef struct {
     const NGTerrainAsset *asset;
     fixed world_x, world_y;

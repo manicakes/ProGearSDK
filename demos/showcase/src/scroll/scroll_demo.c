@@ -18,7 +18,6 @@
 #include <progear_assets.h>
 
 #define SCROLL_SPEED  2
-#define SCREEN_WIDTH  320
 #define BOB_AMPLITUDE 10
 
 typedef struct ScrollDemoState {
