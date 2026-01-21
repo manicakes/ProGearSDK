@@ -32,6 +32,10 @@ typedef struct {
 
     // Cycling offset for efficient horizontal scroll (sprite reuse)
     u8 leftmost_sprite_offset;
+
+    // SCB4 dirty tracking
+    s16 last_base_screen_x;
+    u8 last_leftmost_offset;
 } Terrain;
 
 static Terrain terrains[NG_TERRAIN_MAX];
@@ -218,16 +222,21 @@ static void draw_terrain(Terrain *tm, u16 first_sprite) {
         tm->last_scb3 = scb3_val;
     }
 
-    /* SCB4: X positions - calculated with circular buffer offset */
+    /* SCB4: X positions - only update when position or offset changes */
     s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
     s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
     base_screen_x = (s16)((base_screen_x * zoom) >> 4);
 
-    NGSpriteXBegin(first_sprite);
-    for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
-        u8 screen_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
-        s16 x = (s16)(base_screen_x + (screen_col * tile_w));
-        NGSpriteXWriteNext(x);
+    if (base_screen_x != tm->last_base_screen_x ||
+        tm->leftmost_sprite_offset != tm->last_leftmost_offset || zoom_changed) {
+        NGSpriteXBegin(first_sprite);
+        for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
+            u8 screen_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
+            s16 x = (s16)(base_screen_x + (screen_col * tile_w));
+            NGSpriteXWriteNext(x);
+        }
+        tm->last_base_screen_x = base_screen_x;
+        tm->last_leftmost_offset = tm->leftmost_sprite_offset;
     }
 }
 
@@ -265,6 +274,8 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     tm->last_viewport_row = 0;
     tm->last_scb3 = 0xFFFF;
     tm->leftmost_sprite_offset = 0;
+    tm->last_base_screen_x = 0x7FFF;
+    tm->last_leftmost_offset = 0xFF;
 
     return handle;
 }
