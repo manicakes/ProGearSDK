@@ -21,27 +21,32 @@
 #define FIX_H
 
 #include <neogeo.h>
+#include <hw/lspc.h>
 
 /** @defgroup fixconst Fix Layer Constants
  *  @{
+ *
+ *  Core constants (FIX_WIDTH, FIX_HEIGHT, FIX_SAFE_*, FIX_VISIBLE_*) are
+ *  defined in hw/lspc.h as the single source of truth. The NG_ prefixed
+ *  versions below are aliases for the public API.
  */
 
-#define NG_FIX_WIDTH  40     /**< Fix layer width in tiles */
-#define NG_FIX_HEIGHT 32     /**< Fix layer height in tiles */
-#define NG_FIX_VRAM   0x7000 /**< Fix layer VRAM address */
+/* Aliases to hw/lspc.h constants (NG_ prefix for public API consistency) */
+#define NG_FIX_WIDTH          FIX_WIDTH          /**< Fix layer width in tiles */
+#define NG_FIX_HEIGHT         FIX_HEIGHT         /**< Fix layer height in tiles */
+#define NG_FIX_VISIBLE_TOP    FIX_VISIBLE_TOP    /**< First visible row (inclusive) */
+#define NG_FIX_VISIBLE_BOTTOM FIX_VISIBLE_BOTTOM /**< Last visible row (inclusive) */
+#define NG_FIX_SAFE_TOP       FIX_SAFE_TOP       /**< Safe area top row (inclusive) */
+#define NG_FIX_SAFE_BOTTOM    FIX_SAFE_BOTTOM    /**< Safe area bottom row (inclusive) */
+#define NG_FIX_SAFE_LEFT      FIX_SAFE_LEFT      /**< Safe area left column (inclusive) */
+#define NG_FIX_SAFE_RIGHT     FIX_SAFE_RIGHT     /**< Safe area right column (inclusive) */
 
-#define NG_FIX_VISIBLE_TOP    2  /**< First visible row (inclusive) */
-#define NG_FIX_VISIBLE_BOTTOM 29 /**< Last visible row (inclusive) */
-#define NG_FIX_VISIBLE_LEFT   0  /**< First visible column (inclusive) */
-#define NG_FIX_VISIBLE_RIGHT  39 /**< Last visible column (inclusive) */
-
-#define NG_FIX_SAFE_TOP    3  /**< Safe area top row (inclusive) */
-#define NG_FIX_SAFE_BOTTOM 28 /**< Safe area bottom row (inclusive) */
-#define NG_FIX_SAFE_LEFT   1  /**< Safe area left column (inclusive) */
-#define NG_FIX_SAFE_RIGHT  38 /**< Safe area right column (inclusive) */
-
-#define NG_FIX_COLOR_TEXT   1 /**< Main text color index */
-#define NG_FIX_COLOR_SHADOW 2 /**< Shadow/outline color index */
+/* Constants not in hw/lspc.h */
+#define NG_FIX_VRAM           0x7000 /**< Fix layer VRAM address */
+#define NG_FIX_VISIBLE_LEFT   0      /**< First visible column (inclusive) */
+#define NG_FIX_VISIBLE_RIGHT  39     /**< Last visible column (inclusive) */
+#define NG_FIX_COLOR_TEXT     1      /**< Main text color index */
+#define NG_FIX_COLOR_SHADOW   2      /**< Shadow/outline color index */
 
 /** @} */
 
@@ -169,18 +174,12 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...);
  *  @{
  */
 
-/* Constants */
-#define FIX_WIDTH          NG_FIX_WIDTH
-#define FIX_HEIGHT         NG_FIX_HEIGHT
+/* Constants: FIX_WIDTH, FIX_HEIGHT, FIX_SAFE_*, FIX_VISIBLE_TOP/BOTTOM
+ * are already defined in hw/lspc.h (included above). Only define the
+ * remaining aliases here. */
 #define FIX_VRAM           NG_FIX_VRAM
-#define FIX_VISIBLE_TOP    NG_FIX_VISIBLE_TOP
-#define FIX_VISIBLE_BOTTOM NG_FIX_VISIBLE_BOTTOM
 #define FIX_VISIBLE_LEFT   NG_FIX_VISIBLE_LEFT
 #define FIX_VISIBLE_RIGHT  NG_FIX_VISIBLE_RIGHT
-#define FIX_SAFE_TOP       NG_FIX_SAFE_TOP
-#define FIX_SAFE_BOTTOM    NG_FIX_SAFE_BOTTOM
-#define FIX_SAFE_LEFT      NG_FIX_SAFE_LEFT
-#define FIX_SAFE_RIGHT     NG_FIX_SAFE_RIGHT
 #define FIX_COLOR_TEXT     NG_FIX_COLOR_TEXT
 #define FIX_COLOR_SHADOW   NG_FIX_COLOR_SHADOW
 

@@ -30,16 +30,15 @@
 
 #include <types.h>
 #include <ngmath.h>
+#include <hw/lspc.h>
 
 /** @defgroup terrainconst Constants
  *  @{
+ *  TILE_SIZE is defined in hw/lspc.h as the single source of truth.
  */
 
 #define TERRAIN_MAX     4    /**< Maximum active terrains */
 #define TERRAIN_INVALID (-1) /**< Invalid handle sentinel */
-#ifndef TILE_SIZE
-#define TILE_SIZE       16   /**< Tile size in pixels */
-#endif
 
 /** Maximum columns renderable (screen width / 16 + 2 for scroll buffer) */
 #define TERRAIN_MAX_COLS 22

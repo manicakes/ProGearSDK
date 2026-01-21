@@ -62,13 +62,19 @@
 #define SPRITE_MAX      381
 #define SPRITE_PER_LINE 96
 
-/* Fix layer dimensions (guarded - may also be defined in fix.h) */
-#ifndef FIX_WIDTH
+/* Fix layer dimensions */
 #define FIX_WIDTH  40
-#endif
-#ifndef FIX_HEIGHT
 #define FIX_HEIGHT 32
-#endif
+
+/* Fix layer visible area (rows 2-29 are visible on screen) */
+#define FIX_VISIBLE_TOP    2
+#define FIX_VISIBLE_BOTTOM 29
+
+/* Fix layer safe area (avoiding CRT overscan) */
+#define FIX_SAFE_LEFT   1
+#define FIX_SAFE_RIGHT  38
+#define FIX_SAFE_TOP    3
+#define FIX_SAFE_BOTTOM 28
 
 /*
  * ============================================================================
