@@ -9,6 +9,7 @@
  * - Minimized loop overhead for 16-color palettes
  */
 
+#include <neogeo.h>
 #include <palette.h>
 
 void NGPalSetColor(u8 palette, u8 index, NGColor color) {
@@ -223,14 +224,12 @@ void NGPalSetupGrayscale(u8 palette) {
     }
 }
 
-#define NG_BACKDROP_ADDR 0x401FFE
-
 void NGPalSetBackdrop(NGColor color) {
-    *(volatile u16 *)NG_BACKDROP_ADDR = color;
+    NG_REG_BACKDROP = color;
 }
 
 NGColor NGPalGetBackdrop(void) {
-    return *(volatile u16 *)NG_BACKDROP_ADDR;
+    return NG_REG_BACKDROP;
 }
 
 void NGPalInitDefault(void) {

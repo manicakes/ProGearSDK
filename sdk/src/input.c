@@ -5,12 +5,7 @@
  */
 
 #include <input.h>
-
-// Hardware registers (directly mapped, 68000 big-endian)
-#define REG_P1CNT    (*(volatile u8 *)0x300000)
-#define REG_STATUS_A (*(volatile u8 *)0x320001)
-#define REG_P2CNT    (*(volatile u8 *)0x340000)
-#define REG_STATUS_B (*(volatile u8 *)0x380000)
+#include <neogeo.h>
 
 typedef struct {
     u16 current;
@@ -72,7 +67,7 @@ static u16 read_player_input(u8 player) {
 
     // P1CNT/P2CNT: active-low (0 = pressed)
     // Bits 0-7: Up, Down, Left, Right, A, B, C, D
-    u8 joy = (player == 0) ? REG_P1CNT : REG_P2CNT;
+    u8 joy = (player == 0) ? NG_REG_P1CNT : NG_REG_P2CNT;
     joy = ~joy;
 
     if (joy & 0x01)
@@ -93,7 +88,7 @@ static u16 read_player_input(u8 player) {
         result |= NG_BTN_D;
 
     // STATUS_B bits 0-3: Start P1, Select P1, Start P2, Select P2
-    u8 status = REG_STATUS_B;
+    u8 status = NG_REG_STATUS_B;
 
     if (player == 0) {
         if (status & 0x01)
@@ -114,7 +109,7 @@ static u16 read_system_input(void) {
     u16 result = 0;
 
     // STATUS_A: active-low, bits 0-2 = Coin1, Coin2, Service
-    u8 status_a = ~REG_STATUS_A;
+    u8 status_a = ~NG_REG_STATUS_A;
 
     if (status_a & 0x01)
         result |= NG_SYS_COIN1;

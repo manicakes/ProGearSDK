@@ -13,11 +13,8 @@
 
 #include "audio.h"
 #include "camera.h"
+#include "neogeo.h"
 #include "ngmath.h"
-
-/* Hardware registers for 68k/Z80 communication */
-#define REG_SOUND       (*(vu8 *)0x320000) /* Write: send command, Read: get reply */
-#define REG_SOUND_REPLY (*(vu8 *)0x320001) /* Read only: Z80 reply */
 
 /* Audio command codes (must match Z80 driver) */
 #define CMD_NOP            0x00
@@ -46,18 +43,18 @@ void NGAudioSendCommand(u8 cmd) {
     u8 reply;
     u16 timeout;
 
-    REG_SOUND = cmd;
+    NG_REG_SOUND = cmd;
 
     // Wait for Z80 acknowledgment (echoes command with bit 7 set)
     timeout = 0xFFFF;
     do {
-        reply = REG_SOUND;
+        reply = NG_REG_SOUND;
         timeout--;
     } while ((reply != (cmd | 0x80)) && (timeout > 0));
 }
 
 void NGAudioSendCommandAsync(u8 cmd) {
-    REG_SOUND = cmd;
+    NG_REG_SOUND = cmd;
 }
 
 void NGAudioInit(void) {

@@ -39,9 +39,25 @@
  *  @{
  */
 
+/* Video / LSPC registers */
 #define NG_REG_LSPCMODE (*(vu16 *)0x3C0006) /**< LSPC mode register */
 #define NG_REG_IRQACK   (*(vu16 *)0x3C000C) /**< IRQ acknowledge */
-#define NG_REG_WATCHDOG (*(vu8 *)0x300001)  /**< Watchdog kick */
+
+/* System registers */
+#define NG_REG_WATCHDOG (*(vu8 *)0x300001) /**< Watchdog kick */
+
+/* Input registers (directly mapped, active-low) */
+#define NG_REG_P1CNT    (*(vu8 *)0x300000) /**< Player 1 controller: UDLRABCD */
+#define NG_REG_P2CNT    (*(vu8 *)0x340000) /**< Player 2 controller: UDLRABCD */
+#define NG_REG_STATUS_A (*(vu8 *)0x320001) /**< Status A: Coin1, Coin2, Service */
+#define NG_REG_STATUS_B (*(vu8 *)0x380000) /**< Status B: Start/Select P1 & P2 */
+
+/* Audio registers (68k/Z80 communication) */
+#define NG_REG_SOUND       (*(vu8 *)0x320000) /**< Sound cmd (W) / reply (R) */
+#define NG_REG_SOUND_REPLY (*(vu8 *)0x320001) /**< Z80 reply (read only) */
+
+/* Palette RAM */
+#define NG_REG_BACKDROP (*(vu16 *)0x401FFE) /**< Backdrop color */
 
 /** @} */
 
