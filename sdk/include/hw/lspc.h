@@ -62,9 +62,13 @@
 #define SPRITE_MAX      381
 #define SPRITE_PER_LINE 96
 
-/* Fix layer dimensions */
+/* Fix layer dimensions (guarded - may also be defined in fix.h) */
+#ifndef FIX_WIDTH
 #define FIX_WIDTH  40
+#endif
+#ifndef FIX_HEIGHT
 #define FIX_HEIGHT 32
+#endif
 
 /*
  * ============================================================================

@@ -29,14 +29,15 @@
 
 #include <types.h>
 #include <ngmath.h>
+#include <hw/lspc.h>
 
 /** @defgroup camviewport Viewport Dimensions
  *  @{
  */
 
-#define CAM_VIEWPORT_WIDTH   320 /**< Screen width in pixels */
-#define CAM_VIEWPORT_HEIGHT  224 /**< Screen height in pixels */
-#define CAM_MAX_WORLD_HEIGHT 512 /**< Maximum world height for smooth scrolling */
+#define CAM_VIEWPORT_WIDTH   SCREEN_WIDTH  /**< Screen width in pixels */
+#define CAM_VIEWPORT_HEIGHT  SCREEN_HEIGHT /**< Screen height in pixels */
+#define CAM_MAX_WORLD_HEIGHT 512           /**< Maximum world height for smooth scrolling */
 
 /** @} */
 
