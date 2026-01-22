@@ -608,6 +608,188 @@ static void flush_infinite_scroll(NGGraphic *g) {
     g->dirty = 0;
 }
 
+/* ============================================================
+ * Tilemap Scroll (Cycling Buffer for Terrain)
+ * ============================================================ */
+
+/**
+ * Load tile data for a single sprite column from tilemap8.
+ * Used by cycling buffer to update only changed columns.
+ */
+static void load_tilemap8_column(NGGraphic *g, u16 sprite_idx, s16 src_col) {
+    u8 src_tiles_w = g->src_tiles_w;
+    u8 src_tiles_h = g->src_tiles_h;
+    u16 effective_base = g->effective_base;
+    const u8 *tilemap8 = g->tilemap8;
+    const u8 *tile_to_palette = g->tile_to_palette;
+    u8 default_pal = g->palette;
+    s16 src_row_offset = g->src_offset_y / TILE_SIZE;
+
+    NGSpriteTileBegin(sprite_idx);
+
+    for (u8 row = 0; row < g->num_rows; row++) {
+        s16 src_row = (s16)row + src_row_offset;
+
+        /* Clip mode: check bounds */
+        if (src_col < 0 || src_col >= src_tiles_w ||
+            src_row < 0 || src_row >= src_tiles_h) {
+            NGSpriteTileWriteEmpty();
+            continue;
+        }
+
+        u16 idx = (u16)((u16)src_row * src_tiles_w + (u16)src_col);
+        u8 tile_idx = tilemap8[idx];
+        u16 tile = effective_base + tile_idx;
+        u8 pal = tile_to_palette ? tile_to_palette[tile_idx] : default_pal;
+
+        /* Default h_flip for correct display */
+        NGSpriteTileWrite(tile, pal, 1, 0);
+    }
+
+    NGSpriteTilePadTo32(g->num_rows);
+}
+
+/**
+ * Flush tilemap with cycling buffer - optimized for scrolling terrain.
+ * Only updates the tile columns that actually change when crossing boundaries.
+ */
+static void flush_tilemap_scroll(NGGraphic *g) {
+    u8 first_draw = (g->hw_sprite_first != g->cache.last_hw_sprite);
+
+    /* Detect sprite reallocation - need to reload all tiles */
+    if (g->tiles_loaded && first_draw) {
+        g->tiles_loaded = 0;
+    }
+
+    s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+    if (tile_width < 1)
+        tile_width = 1;
+
+    /* Current tile offset (which source column is at display column 0) */
+    s16 cur_tile_col = g->src_offset_x / TILE_SIZE;
+
+    /* First draw or tiles invalidated - write all tiles and initialize state */
+    if (!g->tiles_loaded) {
+        /* Load tiles for all columns */
+        for (u8 col = 0; col < g->num_cols; col++) {
+            s16 src_col = cur_tile_col + col;
+            load_tilemap8_column(g, g->hw_sprite_first + col, src_col);
+        }
+
+        /* SCB2: Shrink values */
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 h_shrink = shrink >> 4;
+        u16 shrink_val = (u16)((h_shrink << 8) | shrink);
+        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, shrink_val);
+
+        /* Initialize cycling state */
+        g->scroll_leftmost = 0;
+        g->scroll_last_px = cur_tile_col;  /* Track tile column, not pixels */
+        g->scroll_last_scb3 = 0xFFFF;
+        g->tiles_loaded = 1;
+
+        g->cache.last_scale = g->scale;
+        g->cache.last_src_offset_x = g->src_offset_x;
+        g->cache.last_src_offset_y = g->src_offset_y;
+        g->cache.last_hw_sprite = g->hw_sprite_first;
+    }
+
+    /* Handle scale changes - reload all tiles */
+    if (g->scale != g->cache.last_scale) {
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 h_shrink = shrink >> 4;
+        u16 shrink_val = (u16)((h_shrink << 8) | shrink);
+        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, shrink_val);
+
+        /* Recalculate tile width */
+        tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+        if (tile_width < 1)
+            tile_width = 1;
+
+        /* Reload all tiles */
+        for (u8 col = 0; col < g->num_cols; col++) {
+            s16 src_col = cur_tile_col + col;
+            load_tilemap8_column(g, g->hw_sprite_first + col, src_col);
+        }
+
+        g->scroll_leftmost = 0;
+        g->scroll_last_px = cur_tile_col;
+        g->scroll_last_scb3 = 0xFFFF;
+        g->cache.last_scale = g->scale;
+    }
+
+    /* Check for Y offset changes - need to reload all tiles */
+    s16 cur_tile_row = g->src_offset_y / TILE_SIZE;
+    s16 last_tile_row = g->cache.last_src_offset_y / TILE_SIZE;
+    if (cur_tile_row != last_tile_row) {
+        for (u8 col = 0; col < g->num_cols; col++) {
+            u8 sprite_offset = (u8)((g->scroll_leftmost + col) % g->num_cols);
+            s16 src_col = cur_tile_col + col;
+            load_tilemap8_column(g, g->hw_sprite_first + sprite_offset, src_col);
+        }
+        g->cache.last_src_offset_y = g->src_offset_y;
+    }
+
+    /* Handle horizontal scrolling with cycling buffer */
+    s16 last_tile_col = g->scroll_last_px;
+    s16 col_delta = cur_tile_col - last_tile_col;
+
+    if (col_delta != 0) {
+        if (col_delta > 0) {
+            /* Scrolling right: load new columns on the right */
+            for (s16 i = 0; i < col_delta && i < (s16)g->num_cols; i++) {
+                /* The leftmost sprite will become the new rightmost */
+                u8 sprite_offset = g->scroll_leftmost;
+                u16 spr = g->hw_sprite_first + sprite_offset;
+                s16 new_col = (s16)(last_tile_col + (s16)g->num_cols + i);
+
+                load_tilemap8_column(g, spr, new_col);
+
+                g->scroll_leftmost = (u8)((g->scroll_leftmost + 1) % g->num_cols);
+            }
+        } else {
+            /* Scrolling left: load new columns on the left */
+            for (s16 i = 0; i > col_delta && i > -(s16)g->num_cols; i--) {
+                /* Move leftmost back, then load new column */
+                if (g->scroll_leftmost == 0) {
+                    g->scroll_leftmost = g->num_cols;
+                }
+                g->scroll_leftmost--;
+
+                u8 sprite_offset = g->scroll_leftmost;
+                u16 spr = g->hw_sprite_first + sprite_offset;
+                s16 new_col = cur_tile_col - i;
+
+                load_tilemap8_column(g, spr, new_col);
+            }
+        }
+        g->scroll_last_px = cur_tile_col;
+    }
+
+    /* SCB3: Y position - only write if changed */
+    u8 shrink = scale_to_shrink(g->scale);
+    u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, (u8)(shrink & 0xFF));
+    u16 scb3_val = NGSpriteSCB3(g->screen_y, hw_height);
+
+    if (scb3_val != g->scroll_last_scb3) {
+        NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, g->screen_y, hw_height);
+        g->scroll_last_scb3 = scb3_val;
+    }
+
+    /* SCB4: X positions - account for cycling offset */
+    /* Write positions so sprite at scroll_leftmost appears at screen_x */
+    NGSpriteXBegin(g->hw_sprite_first);
+    for (u8 spr_idx = 0; spr_idx < g->num_cols; spr_idx++) {
+        /* screen_col: which visual column (0=leftmost) this sprite index represents */
+        u8 screen_col = (u8)((spr_idx + g->num_cols - g->scroll_leftmost) % g->num_cols);
+        s16 x = (s16)(g->screen_x + screen_col * tile_width);
+        NGSpriteXWriteNext(x);
+    }
+
+    g->cache.last_src_offset_x = g->src_offset_x;
+    g->dirty = 0;
+}
+
 /**
  * Flush a single graphic to hardware.
  */
@@ -619,6 +801,12 @@ static void flush_graphic(NGGraphic *g) {
     /* Infinite scroll mode has its own optimized path */
     if (g->tile_mode == NG_GRAPHIC_TILE_INFINITE) {
         flush_infinite_scroll(g);
+        return;
+    }
+
+    /* Tilemap8 with CLIP mode uses cycling buffer for efficient scrolling */
+    if (g->tilemap8 && g->tile_mode == NG_GRAPHIC_TILE_CLIP) {
+        flush_tilemap_scroll(g);
         return;
     }
 
