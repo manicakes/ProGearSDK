@@ -22,6 +22,7 @@
 #include <graphic.h>
 #include <visual.h>
 #include <sprite.h>
+#include <palette.h>
 
 /* ============================================================
  * Constants
@@ -755,6 +756,11 @@ void NGGraphicSetSource(NGGraphic *g, const NGVisualAsset *asset, u8 palette) {
     g->palette = palette;
     g->tiles_per_frame = asset->tiles_per_frame;
     g->dirty |= DIRTY_SOURCE;
+
+    /* Load palette data to ensure fresh colors (e.g., after lighting effects) */
+    if (asset->palette_data && palette == asset->palette) {
+        NGPalSet(palette, asset->palette_data);
+    }
 }
 
 void NGGraphicSetSourceRaw(NGGraphic *g, u16 base_tile, u16 src_width, u16 src_height, u8 palette) {
