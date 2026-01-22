@@ -23,6 +23,7 @@
 #include <visual.h>
 #include <sprite.h>
 #include <palette.h>
+#include <neogeo.h>
 
 /* ============================================================
  * Constants
@@ -72,6 +73,11 @@ struct NGGraphic {
     u16 tiles_per_frame;
     s16 src_offset_x; /* Viewport offset into source */
     s16 src_offset_y;
+
+    /* Precomputed values for fast tile lookup (avoids division in inner loop) */
+    u8 src_tiles_w;        /* Source width in tiles */
+    u8 src_tiles_h;        /* Source height in tiles */
+    u16 effective_base;    /* base_tile + (anim_frame * tiles_per_frame) */
 
     /* Tile mode and 9-slice */
     NGGraphicTileMode tile_mode;
@@ -204,10 +210,11 @@ static void rebuild_render_order(void) {
 
 /**
  * Get tile and attributes for column-major source (actors, backdrops).
+ * Uses precomputed src_tiles_w/h and effective_base to avoid division/multiply in inner loop.
  */
 static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 *out_attr) {
-    u8 src_tiles_w = pixels_to_tiles(g->src_width);
-    u8 src_tiles_h = pixels_to_tiles(g->src_height);
+    u8 src_tiles_w = g->src_tiles_w;
+    u8 src_tiles_h = g->src_tiles_h;
 
     /* Apply source offset (in tiles) with proper negative handling */
     s16 offset_col = g->src_offset_x / TILE_SIZE;
@@ -229,9 +236,9 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
         src_row = (u8)(src_tiles_h - 1 - src_row);
     }
 
-    /* Column-major: tile = base + frame_offset + col * height + row */
-    u16 frame_offset = g->anim_frame * g->tiles_per_frame;
-    u16 tile = (u16)(g->base_tile + frame_offset + (src_col * src_tiles_h) + src_row);
+    /* Column-major: tile = effective_base + col * height + row */
+    /* effective_base already includes base_tile + frame_offset */
+    u16 tile = (u16)(g->effective_base + (src_col * src_tiles_h) + src_row);
 
     /* Build attributes: palette + flip bits */
     /* Default h_flip=1 for correct NeoGeo display, invert when user flips */
@@ -247,6 +254,7 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
 
 /**
  * Get tile and attributes for row-major tilemap (terrain, UI).
+ * Uses precomputed src_tiles_w/h and effective_base to avoid division/multiply in inner loop.
  */
 static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 *out_attr) {
     if (!g->tilemap && !g->tilemap8) {
@@ -254,8 +262,8 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
         return;
     }
 
-    u8 src_tiles_w = pixels_to_tiles(g->src_width);
-    u8 src_tiles_h = pixels_to_tiles(g->src_height);
+    u8 src_tiles_w = g->src_tiles_w;
+    u8 src_tiles_h = g->src_tiles_h;
 
     /* Apply source offset (in tiles) with proper negative handling */
     s16 offset_col = g->src_offset_x / TILE_SIZE;
@@ -289,7 +297,7 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
     if (g->tilemap8) {
         /* 8-bit tilemap (terrain): simple index lookup, no flip flags */
         u8 tile_idx = g->tilemap8[idx];
-        tile = g->base_tile + tile_idx;
+        tile = g->effective_base + tile_idx;
         pal = g->tile_to_palette ? g->tile_to_palette[tile_idx] : g->palette;
 
         /* Default h_flip for correct display, no v_flip */
@@ -301,9 +309,9 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
     /* 16-bit tilemap with flip flags */
     u16 entry = g->tilemap[idx];
 
-    /* Extract tile offset and add to base */
+    /* Extract tile offset and add to effective_base (includes frame offset) */
     u16 tile_offset = entry & 0x0FFF; /* NG_TILE_MASK */
-    tile = g->base_tile + tile_offset;
+    tile = (u16)(g->effective_base + tile_offset);
 
     /* Build attributes from tilemap flip flags */
     pal = g->tile_to_palette ? g->tile_to_palette[tile_offset] : g->palette;
@@ -320,29 +328,94 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
 }
 
 /**
+ * Fast path for simple animated sprites with 16-bit tilemaps.
+ * Conditions: has tilemap, no source offset, no flip, no tile_to_palette.
+ * This covers the common case of animated sprites like the ball.
+ */
+static void flush_tiles_tilemap_fast(NGGraphic *g) {
+    NG_VRAM_DECLARE_BASE();
+
+    u16 first_sprite = g->hw_sprite_first;
+    u8 src_tiles_w = g->src_tiles_w;
+    u8 src_tiles_h = g->src_tiles_h;
+    u16 effective_base = g->effective_base;
+    const u16 *tilemap = g->tilemap;
+    u16 base_attr = (u16)((u16)g->palette << 8);
+
+    for (u8 col = 0; col < g->num_cols; col++) {
+        /* Wrap column for repeat mode */
+        u8 src_col = col % src_tiles_w;
+
+        /* Set VRAM address for this sprite column (SCB1 base + sprite * 64) */
+        NG_VRAM_SETUP_FAST(NG_SCB1_BASE + ((first_sprite + col) * 64), 1);
+
+        for (u8 row = 0; row < g->num_rows; row++) {
+            /* Wrap row for repeat mode */
+            u8 src_row = row % src_tiles_h;
+
+            /* Row-major index: row * width + col */
+            u16 idx = (u16)((u16)src_row * src_tiles_w + src_col);
+            u16 entry = tilemap[idx];
+
+            /* Extract tile and compute final tile index */
+            u16 tile = (u16)(effective_base + (entry & 0x0FFF));
+
+            /* Build attr from tilemap flip flags */
+            u16 attr = base_attr;
+            if (entry & 0x8000) attr |= 0x01; /* h_flip */
+            if (entry & 0x4000) attr |= 0x02; /* v_flip */
+
+            /* Write tile and attr (auto-increment handles addressing) */
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
+        }
+
+        /* Pad remaining tiles to 32 */
+        if (g->num_rows < 32) {
+            NG_VRAM_CLEAR_FAST((32 - g->num_rows) * 2);
+        }
+    }
+}
+
+/**
  * Write tiles for standard/repeat mode.
+ * Uses fast path when possible, falls back to generic path otherwise.
  */
 static void flush_tiles_standard(NGGraphic *g) {
+    /* Fast path: simple animated sprites with 16-bit tilemaps */
+    if (g->tilemap && !g->tilemap8 && !g->tile_to_palette &&
+        g->src_offset_x == 0 && g->src_offset_y == 0 &&
+        g->flip == NG_GRAPHIC_FLIP_NONE) {
+        flush_tiles_tilemap_fast(g);
+        return;
+    }
+
+    /* Generic path for complex cases */
+    NG_VRAM_DECLARE_BASE();
     u16 first_sprite = g->hw_sprite_first;
 
     for (u8 col = 0; col < g->num_cols; col++) {
-        u16 spr = first_sprite + col;
-
-        NGSpriteTileBegin(spr);
+        /* Set VRAM address for this sprite column */
+        NG_VRAM_SETUP_FAST(NG_SCB1_BASE + ((first_sprite + col) * 64), 1);
 
         for (u8 row = 0; row < g->num_rows; row++) {
             u16 tile, attr;
 
-            if (g->tilemap) {
+            if (g->tilemap || g->tilemap8) {
                 get_tile_row_major(g, col, row, &tile, &attr);
             } else {
                 get_tile_column_major(g, col, row, &tile, &attr);
             }
 
-            NGSpriteTileWriteRaw(tile, attr);
+            /* Write tile and attr (auto-increment handles addressing) */
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
         }
 
-        NGSpriteTilePadTo32(g->num_rows);
+        /* Pad remaining tiles to 32 */
+        if (g->num_rows < 32) {
+            NG_VRAM_CLEAR_FAST((32 - g->num_rows) * 2);
+        }
     }
 }
 
@@ -351,7 +424,7 @@ static void flush_tiles_standard(NGGraphic *g) {
  */
 static void flush_tiles_9slice(NGGraphic *g) {
     u16 first_sprite = g->hw_sprite_first;
-    u8 src_tiles_h = pixels_to_tiles(g->src_height);
+    u8 src_tiles_h = g->src_tiles_h;
 
     /* Convert pixel borders to tile borders */
     u8 top_rows = pixels_to_tiles(g->slice_top);
@@ -679,6 +752,11 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
     g->src_offset_x = 0;
     g->src_offset_y = 0;
 
+    /* Precomputed values (will be set properly by NGGraphicSetSource) */
+    g->src_tiles_w = pixels_to_tiles(config->width);
+    g->src_tiles_h = pixels_to_tiles(config->height);
+    g->effective_base = 0;
+
     g->tile_mode = config->tile_mode;
     g->slice_top = 16;
     g->slice_bottom = 16;
@@ -755,6 +833,12 @@ void NGGraphicSetSource(NGGraphic *g, const NGVisualAsset *asset, u8 palette) {
     g->tilemap8 = NULL;
     g->palette = palette;
     g->tiles_per_frame = asset->tiles_per_frame;
+
+    /* Precompute tile dimensions and effective base (avoids division/multiply in inner loop) */
+    g->src_tiles_w = pixels_to_tiles(asset->width_pixels);
+    g->src_tiles_h = pixels_to_tiles(asset->height_pixels);
+    g->effective_base = (u16)(asset->base_tile + g->anim_frame * asset->tiles_per_frame);
+
     g->dirty |= DIRTY_SOURCE;
 
     /* Load palette data to ensure fresh colors (e.g., after lighting effects) */
@@ -773,7 +857,13 @@ void NGGraphicSetSourceRaw(NGGraphic *g, u16 base_tile, u16 src_width, u16 src_h
     g->tilemap = NULL;
     g->tilemap8 = NULL;
     g->palette = palette;
-    g->tiles_per_frame = (u16)(pixels_to_tiles(src_width) * pixels_to_tiles(src_height));
+
+    /* Precompute tile dimensions and effective base */
+    g->src_tiles_w = pixels_to_tiles(src_width);
+    g->src_tiles_h = pixels_to_tiles(src_height);
+    g->tiles_per_frame = (u16)(g->src_tiles_w * g->src_tiles_h);
+    g->effective_base = (u16)(base_tile + g->anim_frame * g->tiles_per_frame);
+
     g->dirty |= DIRTY_SOURCE;
 }
 
@@ -790,6 +880,12 @@ void NGGraphicSetSourceTilemap(NGGraphic *g, u16 base_tile, const u16 *tilemap, 
     g->tile_to_palette = tile_to_palette;
     g->palette = palette;
     g->tiles_per_frame = 0;
+
+    /* Precompute tile dimensions */
+    g->src_tiles_w = (u8)map_width;
+    g->src_tiles_h = (u8)map_height;
+    g->effective_base = base_tile; /* No animation for tilemaps */
+
     g->dirty |= DIRTY_SOURCE;
 }
 
@@ -806,6 +902,12 @@ void NGGraphicSetSourceTilemap8(NGGraphic *g, u16 base_tile, const u8 *tilemap, 
     g->tile_to_palette = tile_to_palette;
     g->palette = palette;
     g->tiles_per_frame = 0;
+
+    /* Precompute tile dimensions */
+    g->src_tiles_w = (u8)map_width;
+    g->src_tiles_h = (u8)map_height;
+    g->effective_base = base_tile; /* No animation for tilemaps */
+
     g->dirty |= DIRTY_SOURCE;
 }
 
@@ -836,6 +938,8 @@ void NGGraphicSetFrame(NGGraphic *g, u16 frame) {
 
     if (g->anim_frame != frame) {
         g->anim_frame = frame;
+        /* Precompute effective base tile (avoids multiply in inner loop) */
+        g->effective_base = (u16)(g->base_tile + frame * g->tiles_per_frame);
         g->dirty |= DIRTY_SOURCE;
     }
 }
