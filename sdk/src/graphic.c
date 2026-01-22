@@ -507,6 +507,7 @@ static void flush_infinite_scroll(NGGraphic *g) {
         g->scroll_leftmost = 0;
         g->scroll_offset = SCROLL_FIX(tile_width);
         g->scroll_last_px = g->src_offset_x;
+        g->scroll_last_scb3 = 0xFFFF;  /* Force SCB3 update for new height */
 
         g->cache.last_scale = g->scale;
     }

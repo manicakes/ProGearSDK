@@ -73,8 +73,11 @@ static void sync_backdrop_graphic(Backdrop *bd) {
 
     NGGraphicSetPosition(bd->graphic, screen_x, screen_y);
 
-    /* No scaling for backdrops - they're screen-relative */
-    NGGraphicSetScale(bd->graphic, NG_GRAPHIC_SCALE_ONE);
+    /* Apply camera zoom to backdrop scale */
+    /* Camera zoom: 16 = 100%, 8 = 50%. Graphic scale: 256 = 100%, 128 = 50% */
+    u8 zoom = NGCameraGetZoom();
+    u16 scale = (u16)(zoom * 16);  /* Convert: zoom * 256 / 16 = zoom * 16 */
+    NGGraphicSetScale(bd->graphic, scale);
 }
 
 NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 height,
