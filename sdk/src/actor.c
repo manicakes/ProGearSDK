@@ -6,9 +6,7 @@
 
 #include <actor.h>
 #include <camera.h>
-#include <sprite.h>
-
-#define TILE_SIZE 16
+#include <graphic.h>
 
 typedef struct {
     const NGVisualAsset *asset;
@@ -26,23 +24,7 @@ typedef struct {
     u16 anim_frame;
     u8 anim_counter;
 
-    u16 hw_sprite_first;
-    u8 hw_sprite_count;
-
-    // Dirty tracking: flags indicate which SCB registers need VRAM updates
-    u8 tiles_dirty;
-    u8 shrink_dirty;
-    u8 position_dirty;
-
-    // Cached values to detect changes
-    u16 last_anim_frame;
-    u8 last_h_flip;
-    u8 last_v_flip;
-    u8 last_palette;
-    u8 last_zoom;
-    s16 last_screen_x;
-    s16 last_screen_y;
-    u8 last_cols;
+    NGGraphic *graphic; // Graphics abstraction handles rendering
 } Actor;
 
 static Actor actors[NG_ACTOR_MAX];
@@ -61,6 +43,7 @@ void _NGActorSystemInit(void) {
     for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
         actors[i].active = 0;
         actors[i].in_scene = 0;
+        actors[i].graphic = NULL;
     }
 }
 
@@ -87,113 +70,51 @@ void _NGActorSystemUpdate(void) {
                 }
             }
 
-            if (actor->anim_frame != old_frame) {
-                actor->tiles_dirty = 1;
+            // Update graphic with new animation frame
+            if (actor->anim_frame != old_frame && actor->graphic) {
+                u16 actual_frame = anim->first_frame + actor->anim_frame;
+                NGGraphicSetFrame(actor->graphic, actual_frame);
             }
         }
     }
 }
 
 /**
- * Render an actor to VRAM using the sprite abstraction API.
+ * Sync actor state to its graphic.
+ * Called during scene draw to update graphic properties.
  */
-static void draw_actor(Actor *actor, u16 first_sprite) {
-    if (!actor->visible || !actor->asset)
+static void sync_actor_graphic(Actor *actor) {
+    if (!actor->graphic || !actor->asset)
         return;
 
-    const NGVisualAsset *asset = actor->asset;
-
-    u16 disp_w = actor->width ? actor->width : asset->width_pixels;
-    u16 disp_h = actor->height ? actor->height : asset->height_pixels;
-
-    u8 cols = (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
-    u8 rows = (u8)((disp_h + TILE_SIZE - 1) / TILE_SIZE);
-    if (rows > 32)
-        rows = 32;
-
-    u16 frame_offset = 0;
-    if (asset->anims && actor->anim_index < asset->anim_count) {
-        const NGAnimDef *anim = &asset->anims[actor->anim_index];
-        u16 actual_frame = anim->first_frame + actor->anim_frame;
-        frame_offset = actual_frame * asset->tiles_per_frame;
-    }
-
+    // Calculate screen position
     s16 screen_x, screen_y;
-    u8 zoom;
-    u16 shrink;
+    u16 scale;
 
     if (actor->screen_space) {
         screen_x = FIX_INT(actor->x);
         screen_y = FIX_INT(actor->y);
-        zoom = 16;
-        shrink = NG_SPRITE_SHRINK_NONE;
+        scale = NG_GRAPHIC_SCALE_ONE;
     } else {
         NGCameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
-        zoom = NGCameraGetZoom();
-        shrink = NGCameraGetShrink();
+        // Convert camera zoom (1-16, where 16 is full) to scale (256 = 1.0x)
+        u8 zoom = NGCameraGetZoom();
+        scale = (u16)((zoom * NG_GRAPHIC_SCALE_ONE) >> 4);
     }
 
-    u8 first_draw = (actor->hw_sprite_first != first_sprite) || (actor->last_cols != cols);
-    u8 zoom_changed = (zoom != actor->last_zoom);
-    u8 position_changed = (screen_x != actor->last_screen_x) || (screen_y != actor->last_screen_y);
+    NGGraphicSetPosition(actor->graphic, screen_x, screen_y);
+    NGGraphicSetScale(actor->graphic, scale);
 
-    if (actor->h_flip != actor->last_h_flip || actor->v_flip != actor->last_v_flip ||
-        actor->palette != actor->last_palette || actor->anim_frame != actor->last_anim_frame) {
-        actor->tiles_dirty = 1;
-    }
+    // Update flip flags
+    NGGraphicFlip flip = NG_GRAPHIC_FLIP_NONE;
+    if (actor->h_flip)
+        flip = (NGGraphicFlip)(flip | NG_GRAPHIC_FLIP_H);
+    if (actor->v_flip)
+        flip = (NGGraphicFlip)(flip | NG_GRAPHIC_FLIP_V);
+    NGGraphicSetFlip(actor->graphic, flip);
 
-    /* SCB1: Write tile indices and attributes (palette, flip bits) */
-    if (first_draw || actor->tiles_dirty) {
-        for (u8 col = 0; col < cols; col++) {
-            u16 spr = first_sprite + col;
-            u8 src_col = col % asset->width_tiles;
-
-            NGSpriteTileBegin(spr);
-
-            for (u8 row = 0; row < rows; row++) {
-                u8 src_row = row % asset->height_tiles;
-                u8 tile_col = (u8)(actor->h_flip ? (asset->width_tiles - 1 - src_col) : src_col);
-                u8 tile_row = (u8)(actor->v_flip ? (asset->height_tiles - 1 - src_row) : src_row);
-
-                /* Column-major layout: each column is height_tiles sequential tiles */
-                u16 tile_idx = (u16)(asset->base_tile + frame_offset +
-                                     (tile_col * asset->height_tiles) + tile_row);
-
-                /* Default h_flip=1 for correct display, inverted when user flips */
-                NGSpriteTileWrite(tile_idx, actor->palette, !actor->h_flip, actor->v_flip);
-            }
-
-            NGSpriteTilePadTo32(rows);
-        }
-
-        actor->last_anim_frame = actor->anim_frame;
-        actor->last_h_flip = actor->h_flip;
-        actor->last_v_flip = actor->v_flip;
-        actor->last_palette = actor->palette;
-        actor->tiles_dirty = 0;
-    }
-
-    /* SCB2: Shrink values */
-    if (first_draw || zoom_changed) {
-        NGSpriteShrinkSet(first_sprite, cols, shrink);
-    }
-
-    /* SCB3: Y position and height, SCB4: X position */
-    if (first_draw || zoom_changed || position_changed) {
-        u8 height_bits = NGSpriteAdjustedHeight(rows, (u8)(shrink & 0xFF));
-        s16 tile_width = (s16)((TILE_SIZE * zoom) >> 4);
-
-        NGSpriteYSetChain(first_sprite, cols, screen_y, height_bits);
-        NGSpriteXSetSpaced(first_sprite, cols, screen_x, tile_width);
-
-        actor->last_screen_x = screen_x;
-        actor->last_screen_y = screen_y;
-    }
-
-    actor->last_zoom = zoom;
-    actor->hw_sprite_first = first_sprite;
-    actor->hw_sprite_count = cols;
-    actor->last_cols = cols;
+    // Visibility
+    NGGraphicSetVisible(actor->graphic, actor->visible);
 }
 
 u8 _NGActorIsInScene(NGActorHandle handle) {
@@ -229,6 +150,28 @@ NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
         return NG_ACTOR_INVALID;
 
     Actor *actor = &actors[handle];
+
+    // Determine display dimensions
+    u16 disp_w = width ? width : asset->width_pixels;
+    u16 disp_h = height ? height : asset->height_pixels;
+
+    // Create graphic for this actor
+    NGGraphicConfig cfg = {.width = disp_w,
+                           .height = disp_h,
+                           .tile_mode = NG_GRAPHIC_TILE_REPEAT,
+                           .layer = NG_GRAPHIC_LAYER_ENTITY,
+                           .z_order = 0};
+    actor->graphic = NGGraphicCreate(&cfg);
+    if (!actor->graphic) {
+        return NG_ACTOR_INVALID;
+    }
+
+    // Configure graphic source
+    NGGraphicSetSource(actor->graphic, asset, asset->palette);
+
+    // Initially hidden (not in scene yet)
+    NGGraphicSetVisible(actor->graphic, 0);
+
     actor->asset = asset;
     actor->x = 0;
     actor->y = 0;
@@ -245,20 +188,6 @@ NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
     actor->anim_index = 0;
     actor->anim_frame = 0;
     actor->anim_counter = 0;
-    actor->hw_sprite_first = 0xFFFF;
-    actor->hw_sprite_count = 0;
-
-    actor->tiles_dirty = 1;
-    actor->shrink_dirty = 1;
-    actor->position_dirty = 1;
-    actor->last_anim_frame = 0xFFFF;
-    actor->last_h_flip = 0xFF;
-    actor->last_v_flip = 0xFF;
-    actor->last_palette = 0xFF;
-    actor->last_zoom = 0xFF;
-    actor->last_screen_x = 0x7FFF;
-    actor->last_screen_y = 0x7FFF;
-    actor->last_cols = 0;
 
     return handle;
 }
@@ -275,8 +204,14 @@ void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
     actor->z = z;
     actor->in_scene = 1;
 
-    actor->tiles_dirty = 1;
-    actor->hw_sprite_first = 0xFFFF;
+    // Update graphic z-order and make visible
+    if (actor->graphic) {
+        NGGraphicSetZOrder(actor->graphic, z);
+        NGGraphicSetLayer(actor->graphic, actor->screen_space ? NG_GRAPHIC_LAYER_UI
+                                                              : NG_GRAPHIC_LAYER_ENTITY);
+        NGGraphicSetVisible(actor->graphic, actor->visible);
+        sync_actor_graphic(actor);
+    }
 
     _NGSceneMarkRenderQueueDirty();
 }
@@ -291,9 +226,9 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
     u8 was_in_scene = actor->in_scene;
     actor->in_scene = 0;
 
-    /* Clear sprite heights to hide sprites */
-    if (actor->hw_sprite_count > 0) {
-        NGSpriteHideRange(actor->hw_sprite_first, actor->hw_sprite_count);
+    // Hide graphic
+    if (actor->graphic) {
+        NGGraphicSetVisible(actor->graphic, 0);
     }
 
     if (was_in_scene) {
@@ -304,8 +239,17 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
 void NGActorDestroy(NGActorHandle handle) {
     if (handle < 0 || handle >= NG_ACTOR_MAX)
         return;
+
+    Actor *actor = &actors[handle];
+
+    // Destroy graphic
+    if (actor->graphic) {
+        NGGraphicDestroy(actor->graphic);
+        actor->graphic = NULL;
+    }
+
     NGActorRemoveFromScene(handle);
-    actors[handle].active = 0;
+    actor->active = 0;
 }
 
 void NGActorSetPos(NGActorHandle handle, fixed x, fixed y) {
@@ -336,6 +280,9 @@ void NGActorSetZ(NGActorHandle handle, u8 z) {
         return;
     if (actor->z != z) {
         actor->z = z;
+        if (actor->graphic) {
+            NGGraphicSetZOrder(actor->graphic, z);
+        }
         if (actor->in_scene) {
             _NGSceneMarkRenderQueueDirty();
         }
@@ -373,7 +320,12 @@ void NGActorSetAnim(NGActorHandle handle, u8 anim_index) {
         actor->anim_index = anim_index;
         actor->anim_frame = 0;
         actor->anim_counter = 0;
-        actor->tiles_dirty = 1;
+
+        // Update graphic frame
+        if (actor->graphic && actor->asset->anims) {
+            const NGAnimDef *anim = &actor->asset->anims[anim_index];
+            NGGraphicSetFrame(actor->graphic, anim->first_frame);
+        }
     }
 }
 
@@ -405,7 +357,10 @@ void NGActorSetFrame(NGActorHandle handle, u16 frame) {
     if (actor->anim_frame != frame) {
         actor->anim_frame = frame;
         actor->anim_counter = 0;
-        actor->tiles_dirty = 1;
+
+        if (actor->graphic) {
+            NGGraphicSetFrame(actor->graphic, frame);
+        }
     }
 }
 
@@ -431,6 +386,11 @@ void NGActorSetVisible(NGActorHandle handle, u8 visible) {
     if (!actor->active)
         return;
     actor->visible = visible ? 1 : 0;
+
+    // Only update graphic visibility if in scene
+    if (actor->in_scene && actor->graphic) {
+        NGGraphicSetVisible(actor->graphic, actor->visible);
+    }
 }
 
 void NGActorSetPalette(NGActorHandle handle, u8 palette) {
@@ -441,7 +401,11 @@ void NGActorSetPalette(NGActorHandle handle, u8 palette) {
         return;
     if (actor->palette != palette) {
         actor->palette = palette;
-        actor->tiles_dirty = 1;
+
+        // Update graphic source with new palette
+        if (actor->graphic && actor->asset) {
+            NGGraphicSetSource(actor->graphic, actor->asset, palette);
+        }
     }
 }
 
@@ -451,11 +415,7 @@ void NGActorSetHFlip(NGActorHandle handle, u8 flip) {
     Actor *actor = &actors[handle];
     if (!actor->active)
         return;
-    u8 new_flip = flip ? 1 : 0;
-    if (actor->h_flip != new_flip) {
-        actor->h_flip = new_flip;
-        actor->tiles_dirty = 1;
-    }
+    actor->h_flip = flip ? 1 : 0;
 }
 
 void NGActorSetVFlip(NGActorHandle handle, u8 flip) {
@@ -464,11 +424,7 @@ void NGActorSetVFlip(NGActorHandle handle, u8 flip) {
     Actor *actor = &actors[handle];
     if (!actor->active)
         return;
-    u8 new_flip = flip ? 1 : 0;
-    if (actor->v_flip != new_flip) {
-        actor->v_flip = new_flip;
-        actor->tiles_dirty = 1;
-    }
+    actor->v_flip = flip ? 1 : 0;
 }
 
 void NGActorSetScreenSpace(NGActorHandle handle, u8 enabled) {
@@ -480,30 +436,26 @@ void NGActorSetScreenSpace(NGActorHandle handle, u8 enabled) {
     u8 new_val = enabled ? 1 : 0;
     if (actor->screen_space != new_val) {
         actor->screen_space = new_val;
-        actor->shrink_dirty = 1;
-        actor->position_dirty = 1;
+
+        // Update graphic layer
+        if (actor->graphic) {
+            NGGraphicSetLayer(actor->graphic,
+                              new_val ? NG_GRAPHIC_LAYER_UI : NG_GRAPHIC_LAYER_ENTITY);
+        }
     }
 }
 
-void NGActorDraw(NGActorHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return;
-    Actor *actor = &actors[handle];
-    if (!actor->active || !actor->in_scene)
-        return;
-
-    draw_actor(actor, first_sprite);
-}
-
-u8 NGActorGetSpriteCount(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return 0;
-    Actor *actor = &actors[handle];
-    if (!actor->active || !actor->asset)
-        return 0;
-
-    u16 disp_w = actor->width ? actor->width : actor->asset->width_pixels;
-    return (u8)((disp_w + TILE_SIZE - 1) / TILE_SIZE);
+/**
+ * Sync all in-scene actors to their graphics.
+ * Called by scene before graphic system draw.
+ */
+void _NGActorSyncGraphics(void) {
+    for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
+        Actor *actor = &actors[i];
+        if (actor->active && actor->in_scene) {
+            sync_actor_graphic(actor);
+        }
+    }
 }
 
 /* Internal: collect palettes from all actors in scene into bitmask */

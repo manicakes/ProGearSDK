@@ -63,7 +63,8 @@ struct NGGraphic {
     u16 base_tile;
     u16 src_width;      /* Source width in pixels */
     u16 src_height;     /* Source height in pixels */
-    const u16 *tilemap; /* Row-major tilemap, or NULL */
+    const u16 *tilemap; /* Row-major tilemap (u16), or NULL */
+    const u8 *tilemap8; /* Row-major tilemap (u8 indices), or NULL */
     const u8 *tile_to_palette;
     u8 palette;
     u16 anim_frame;
@@ -84,6 +85,13 @@ struct NGGraphic {
     u16 hw_sprite_first;
     u8 hw_sprite_count;
     u8 hw_allocated;
+
+    /* Infinite scroll state (circular buffer) */
+    u8 scroll_leftmost;   /* Index of leftmost column (0 to num_cols-1) */
+    u8 tiles_loaded;      /* Tiles written flag */
+    s16 scroll_offset;    /* Sub-tile offset (4 fractional bits) */
+    s16 scroll_last_px;   /* Last scroll position for delta calc */
+    u16 scroll_last_scb3; /* Cached SCB3 value for Y optimization */
 
     /* Computed values (derived from display size and scale) */
     u8 num_cols; /* Sprite columns needed */
@@ -200,13 +208,17 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
     u8 src_tiles_w = pixels_to_tiles(g->src_width);
     u8 src_tiles_h = pixels_to_tiles(g->src_height);
 
-    /* Apply source offset (in tiles) */
-    u8 offset_col = (u8)(g->src_offset_x / TILE_SIZE);
-    u8 offset_row = (u8)(g->src_offset_y / TILE_SIZE);
+    /* Apply source offset (in tiles) with proper negative handling */
+    s16 offset_col = g->src_offset_x / TILE_SIZE;
+    s16 offset_row = g->src_offset_y / TILE_SIZE;
 
-    /* Handle tiling/repeat */
-    u8 src_col = (u8)((col + offset_col) % src_tiles_w);
-    u8 src_row = (u8)((row + offset_row) % src_tiles_h);
+    /* Handle tiling/repeat with proper modulo for negative values */
+    s16 temp_col = (s16)(((s16)col + offset_col) % (s16)src_tiles_w);
+    s16 temp_row = (s16)(((s16)row + offset_row) % (s16)src_tiles_h);
+    if (temp_col < 0) temp_col += src_tiles_w;
+    if (temp_row < 0) temp_row += src_tiles_h;
+    u8 src_col = (u8)temp_col;
+    u8 src_row = (u8)temp_row;
 
     /* Apply flip to source coordinates */
     if (g->flip & NG_GRAPHIC_FLIP_H) {
@@ -236,7 +248,7 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
  * Get tile and attributes for row-major tilemap (terrain, UI).
  */
 static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 *out_attr) {
-    if (!g->tilemap) {
+    if (!g->tilemap && !g->tilemap8) {
         get_tile_column_major(g, col, row, out_tile, out_attr);
         return;
     }
@@ -244,37 +256,56 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
     u8 src_tiles_w = pixels_to_tiles(g->src_width);
     u8 src_tiles_h = pixels_to_tiles(g->src_height);
 
-    /* Apply source offset (in tiles) */
-    u16 offset_col = (u16)(g->src_offset_x / TILE_SIZE);
-    u16 offset_row = (u16)(g->src_offset_y / TILE_SIZE);
+    /* Apply source offset (in tiles) with proper negative handling */
+    s16 offset_col = g->src_offset_x / TILE_SIZE;
+    s16 offset_row = g->src_offset_y / TILE_SIZE;
 
     /* Map to source coordinates */
-    u16 src_col = (u16)(col + offset_col);
-    u16 src_row = (u16)(row + offset_row);
+    s16 temp_col = (s16)col + offset_col;
+    s16 temp_row = (s16)row + offset_row;
 
     /* Clip mode: check bounds */
     if (g->tile_mode == NG_GRAPHIC_TILE_CLIP) {
-        if (src_col >= src_tiles_w || src_row >= src_tiles_h) {
+        if (temp_col < 0 || temp_col >= src_tiles_w || temp_row < 0 || temp_row >= src_tiles_h) {
             *out_tile = 0;
             *out_attr = 0;
             return;
         }
     } else {
-        /* Repeat mode */
-        src_col = src_col % src_tiles_w;
-        src_row = src_row % src_tiles_h;
+        /* Repeat mode with proper modulo for negative values */
+        temp_col = temp_col % (s16)src_tiles_w;
+        temp_row = temp_row % (s16)src_tiles_h;
+        if (temp_col < 0) temp_col += src_tiles_w;
+        if (temp_row < 0) temp_row += src_tiles_h;
     }
 
     /* Row-major: index = row * width + col */
-    u16 idx = (u16)(src_row * src_tiles_w + src_col);
+    u16 idx = (u16)((u16)temp_row * src_tiles_w + (u16)temp_col);
+
+    u16 tile;
+    u8 pal;
+
+    if (g->tilemap8) {
+        /* 8-bit tilemap (terrain): simple index lookup, no flip flags */
+        u8 tile_idx = g->tilemap8[idx];
+        tile = g->base_tile + tile_idx;
+        pal = g->tile_to_palette ? g->tile_to_palette[tile_idx] : g->palette;
+
+        /* Default h_flip for correct display, no v_flip */
+        *out_tile = tile;
+        *out_attr = (u16)(((u16)pal << 8) | 0x01);
+        return;
+    }
+
+    /* 16-bit tilemap with flip flags */
     u16 entry = g->tilemap[idx];
 
     /* Extract tile offset and add to base */
     u16 tile_offset = entry & 0x0FFF; /* NG_TILE_MASK */
-    u16 tile = g->base_tile + tile_offset;
+    tile = g->base_tile + tile_offset;
 
     /* Build attributes from tilemap flip flags */
-    u8 pal = g->tile_to_palette ? g->tile_to_palette[tile_offset] : g->palette;
+    pal = g->tile_to_palette ? g->tile_to_palette[tile_offset] : g->palette;
     u16 attr = (u16)((u16)pal << 8);
 
     /* Apply tilemap flip flags */
@@ -380,6 +411,128 @@ static void flush_tiles_9slice(NGGraphic *g) {
     }
 }
 
+/* ============================================================
+ * Infinite Scroll (Circular Buffer)
+ * ============================================================ */
+
+#define SCROLL_FRAC_BITS 4
+#define SCROLL_FIX(x)    ((s16)((x) << SCROLL_FRAC_BITS))
+#define SCROLL_INT(x)    ((s16)((x) >> SCROLL_FRAC_BITS))
+
+/**
+ * Update X positions for infinite scroll using circular buffer.
+ * Only writes SCB4 - no tile rewrites needed.
+ */
+static void update_scroll_positions(NGGraphic *g, s16 pixel_diff, s16 tile_width) {
+    s16 tile_width_fixed = SCROLL_FIX(tile_width);
+
+    /* Update scroll offset by pixel delta */
+    g->scroll_offset = (s16)(g->scroll_offset - SCROLL_FIX(pixel_diff));
+
+    /* Wrap leftmost pointer when crossing tile boundaries */
+    while (g->scroll_offset <= 0) {
+        g->scroll_leftmost = (u8)((g->scroll_leftmost + 1) % g->num_cols);
+        g->scroll_offset = (s16)(g->scroll_offset + tile_width_fixed);
+    }
+
+    while (g->scroll_offset > tile_width_fixed * 2) {
+        g->scroll_leftmost = (u8)((g->scroll_leftmost + g->num_cols - 1) % g->num_cols);
+        g->scroll_offset = (s16)(g->scroll_offset - tile_width_fixed);
+    }
+
+    /* Calculate X positions mathematically from scroll state */
+    s16 base_left_x = (s16)(SCROLL_INT(g->scroll_offset) - 2 * tile_width);
+
+    NGSpriteXBegin(g->hw_sprite_first);
+    for (u8 i = 0; i < g->num_cols; i++) {
+        u8 screen_col = (u8)((i - g->scroll_leftmost + g->num_cols) % g->num_cols);
+        s16 x = (s16)(base_left_x + screen_col * tile_width);
+        NGSpriteXWriteNext(x);
+    }
+}
+
+/**
+ * Flush infinite scroll graphic - optimized for scrolling backdrops.
+ * Tiles are written once, scrolling only updates X positions.
+ */
+static void flush_infinite_scroll(NGGraphic *g) {
+    u8 first_draw = (g->hw_sprite_first != g->cache.last_hw_sprite);
+
+    /* Detect sprite reallocation - need to reload tiles */
+    if (g->tiles_loaded && first_draw) {
+        g->tiles_loaded = 0;
+    }
+
+    s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+    if (tile_width < 1)
+        tile_width = 1;
+
+    /* First draw or tiles invalidated - write tiles once */
+    if (!g->tiles_loaded) {
+        /* SCB1: Write tile data for all columns */
+        flush_tiles_standard(g);
+
+        /* SCB2: Shrink values */
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 h_shrink = shrink >> 4;
+        u16 shrink_val = (u16)((h_shrink << 8) | shrink);
+        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, shrink_val);
+
+        /* SCB4: Initial X positions - start one tile left for buffer */
+        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, -tile_width, tile_width);
+
+        /* Initialize scroll state */
+        g->scroll_leftmost = 0;
+        g->scroll_offset = SCROLL_FIX(tile_width);  /* Start mid-range */
+        g->scroll_last_px = g->src_offset_x;
+        g->scroll_last_scb3 = 0xFFFF;
+        g->tiles_loaded = 1;
+
+        g->cache.last_scale = g->scale;
+        g->cache.last_hw_sprite = g->hw_sprite_first;
+    }
+
+    /* Handle scale changes */
+    if (g->scale != g->cache.last_scale) {
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 h_shrink = shrink >> 4;
+        u16 shrink_val = (u16)((h_shrink << 8) | shrink);
+        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, shrink_val);
+
+        /* Reset scroll state for new scale */
+        tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+        if (tile_width < 1)
+            tile_width = 1;
+        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, -tile_width, tile_width);
+        g->scroll_leftmost = 0;
+        g->scroll_offset = SCROLL_FIX(tile_width);
+        g->scroll_last_px = g->src_offset_x;
+
+        g->cache.last_scale = g->scale;
+    }
+
+    /* SCB3: Y position - only write if changed */
+    u8 shrink = scale_to_shrink(g->scale);
+    u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, (u8)(shrink & 0xFF));
+    u16 scb3_val = NGSpriteSCB3(g->screen_y, hw_height);
+
+    if (scb3_val != g->scroll_last_scb3) {
+        NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, g->screen_y, hw_height);
+        g->scroll_last_scb3 = scb3_val;
+    }
+
+    /* Handle scrolling - only updates X positions, no tile rewrites! */
+    s16 scroll_px = g->src_offset_x;
+    s16 pixel_diff = (s16)(scroll_px - g->scroll_last_px);
+
+    if (pixel_diff != 0) {
+        update_scroll_positions(g, pixel_diff, tile_width);
+        g->scroll_last_px = scroll_px;
+    }
+
+    g->dirty = 0;
+}
+
 /**
  * Flush a single graphic to hardware.
  */
@@ -388,22 +541,34 @@ static void flush_graphic(NGGraphic *g) {
         return;
     }
 
+    /* Infinite scroll mode has its own optimized path */
+    if (g->tile_mode == NG_GRAPHIC_TILE_INFINITE) {
+        flush_infinite_scroll(g);
+        return;
+    }
+
     u8 first_draw = (g->hw_sprite_first != g->cache.last_hw_sprite);
 
     /* Check what needs updating */
+    /* Compare tile offsets, not pixel offsets, to avoid rewriting tiles for sub-tile movement */
+    s16 cur_tile_off_x = g->src_offset_x / TILE_SIZE;
+    s16 cur_tile_off_y = g->src_offset_y / TILE_SIZE;
+    s16 last_tile_off_x = g->cache.last_src_offset_x / TILE_SIZE;
+    s16 last_tile_off_y = g->cache.last_src_offset_y / TILE_SIZE;
+
     u8 source_changed = (g->dirty & DIRTY_SOURCE) || g->base_tile != g->cache.last_base_tile ||
                         g->anim_frame != g->cache.last_anim_frame ||
                         g->palette != g->cache.last_palette || (u8)g->flip != g->cache.last_flip ||
-                        g->src_offset_x != g->cache.last_src_offset_x ||
-                        g->src_offset_y != g->cache.last_src_offset_y;
+                        cur_tile_off_x != last_tile_off_x || cur_tile_off_y != last_tile_off_y;
 
     u8 size_changed = (g->dirty & DIRTY_SIZE) || g->display_width != g->cache.last_display_width ||
                       g->display_height != g->cache.last_display_height;
 
     u8 scale_changed = (g->dirty & DIRTY_SHRINK) || g->scale != g->cache.last_scale;
 
-    u8 position_changed = (g->dirty & DIRTY_POSITION) || g->screen_x != g->cache.last_screen_x ||
-                          g->screen_y != g->cache.last_screen_y;
+    /* Track X and Y changes separately to minimize VRAM writes */
+    u8 x_changed = g->screen_x != g->cache.last_screen_x;
+    u8 y_changed = g->screen_y != g->cache.last_screen_y;
 
     /* SCB1: Write tile data */
     if (first_draw || source_changed || size_changed) {
@@ -424,13 +589,15 @@ static void flush_graphic(NGGraphic *g) {
     /* SCB2: Shrink values */
     if (first_draw || scale_changed) {
         u8 shrink = scale_to_shrink(g->scale);
-        u16 shrink_val = (u16)(((shrink & 0x0F) << 8) | shrink);
+        /* Horizontal shrink is 4 bits (0-15), vertical is 8 bits (0-255) */
+        u8 h_shrink = shrink >> 4;
+        u16 shrink_val = (u16)((h_shrink << 8) | shrink);
         NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, shrink_val);
         g->cache.last_scale = g->scale;
     }
 
-    /* SCB3/SCB4: Position */
-    if (first_draw || position_changed || scale_changed || size_changed) {
+    /* SCB3: Y Position - only write if Y changed */
+    if (first_draw || y_changed || scale_changed || size_changed) {
         u8 shrink = scale_to_shrink(g->scale);
         u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, shrink);
 
@@ -443,6 +610,11 @@ static void flush_graphic(NGGraphic *g) {
             NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, g->screen_y, hw_height);
         }
 
+        g->cache.last_screen_y = g->screen_y;
+    }
+
+    /* SCB4: X Position - only write if X changed */
+    if (first_draw || x_changed || scale_changed || size_changed) {
         /* Calculate tile width based on scale */
         s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
         if (tile_width < 1)
@@ -451,7 +623,6 @@ static void flush_graphic(NGGraphic *g) {
         NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, g->screen_x, tile_width);
 
         g->cache.last_screen_x = g->screen_x;
-        g->cache.last_screen_y = g->screen_y;
     }
 
     g->cache.last_display_width = g->display_width;
@@ -498,6 +669,7 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
     g->src_width = config->width;
     g->src_height = config->height;
     g->tilemap = NULL;
+    g->tilemap8 = NULL;
     g->tile_to_palette = NULL;
     g->palette = 0;
     g->anim_frame = 0;
@@ -514,6 +686,13 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
     g->hw_sprite_first = 0;
     g->hw_sprite_count = 0;
     g->hw_allocated = 0;
+
+    /* Infinite scroll state */
+    g->scroll_leftmost = 0;
+    g->tiles_loaded = 0;
+    g->scroll_offset = 0;
+    g->scroll_last_px = 0;
+    g->scroll_last_scb3 = 0xFFFF;
 
     /* Calculate sprite requirements */
     g->num_cols = pixels_to_tiles(config->width);
@@ -571,6 +750,7 @@ void NGGraphicSetSource(NGGraphic *g, const NGVisualAsset *asset, u8 palette) {
     g->src_width = asset->width_pixels;
     g->src_height = asset->height_pixels;
     g->tilemap = asset->tilemap;
+    g->tilemap8 = NULL;
     g->palette = palette;
     g->tiles_per_frame = asset->tiles_per_frame;
     g->dirty |= DIRTY_SOURCE;
@@ -584,6 +764,7 @@ void NGGraphicSetSourceRaw(NGGraphic *g, u16 base_tile, u16 src_width, u16 src_h
     g->src_width = src_width;
     g->src_height = src_height;
     g->tilemap = NULL;
+    g->tilemap8 = NULL;
     g->palette = palette;
     g->tiles_per_frame = (u16)(pixels_to_tiles(src_width) * pixels_to_tiles(src_height));
     g->dirty |= DIRTY_SOURCE;
@@ -596,6 +777,23 @@ void NGGraphicSetSourceTilemap(NGGraphic *g, u16 base_tile, const u16 *tilemap, 
 
     g->base_tile = base_tile;
     g->tilemap = tilemap;
+    g->tilemap8 = NULL;
+    g->src_width = tiles_to_pixels((u8)map_width);
+    g->src_height = tiles_to_pixels((u8)map_height);
+    g->tile_to_palette = tile_to_palette;
+    g->palette = palette;
+    g->tiles_per_frame = 0;
+    g->dirty |= DIRTY_SOURCE;
+}
+
+void NGGraphicSetSourceTilemap8(NGGraphic *g, u16 base_tile, const u8 *tilemap, u16 map_width,
+                                u16 map_height, const u8 *tile_to_palette, u8 palette) {
+    if (!g)
+        return;
+
+    g->base_tile = base_tile;
+    g->tilemap = NULL;
+    g->tilemap8 = tilemap;
     g->src_width = tiles_to_pixels((u8)map_width);
     g->src_height = tiles_to_pixels((u8)map_height);
     g->tile_to_palette = tile_to_palette;
@@ -608,23 +806,38 @@ void NGGraphicSetSourceOffset(NGGraphic *g, s16 x, s16 y) {
     if (!g)
         return;
 
-    g->src_offset_x = x;
-    g->src_offset_y = y;
-    g->dirty |= DIRTY_SOURCE;
+    if (g->src_offset_x != x || g->src_offset_y != y) {
+        /* Only mark source dirty if tile offset changed (not just pixel offset) */
+        /* This avoids rewriting all tiles when scrolling sub-tile amounts */
+        s16 old_tile_x = g->src_offset_x / TILE_SIZE;
+        s16 old_tile_y = g->src_offset_y / TILE_SIZE;
+        s16 new_tile_x = x / TILE_SIZE;
+        s16 new_tile_y = y / TILE_SIZE;
+
+        g->src_offset_x = x;
+        g->src_offset_y = y;
+
+        if (old_tile_x != new_tile_x || old_tile_y != new_tile_y) {
+            g->dirty |= DIRTY_SOURCE;
+        }
+    }
 }
 
 void NGGraphicSetFrame(NGGraphic *g, u16 frame) {
     if (!g)
         return;
 
-    g->anim_frame = frame;
-    g->dirty |= DIRTY_SOURCE;
+    if (g->anim_frame != frame) {
+        g->anim_frame = frame;
+        g->dirty |= DIRTY_SOURCE;
+    }
 }
 
 void NGGraphicInvalidateSource(NGGraphic *g) {
     if (!g)
         return;
     g->dirty |= DIRTY_SOURCE;
+    g->tiles_loaded = 0; /* Force tile reload for infinite scroll */
 }
 
 /* ============================================================
@@ -635,42 +848,50 @@ void NGGraphicSetPosition(NGGraphic *g, s16 x, s16 y) {
     if (!g)
         return;
 
-    g->screen_x = x;
-    g->screen_y = y;
-    g->dirty |= DIRTY_POSITION;
+    if (g->screen_x != x || g->screen_y != y) {
+        g->screen_x = x;
+        g->screen_y = y;
+        g->dirty |= DIRTY_POSITION;
+    }
 }
 
 void NGGraphicSetSize(NGGraphic *g, u16 width, u16 height) {
     if (!g)
         return;
 
-    g->display_width = width;
-    g->display_height = height;
+    if (g->display_width != width || g->display_height != height) {
+        g->display_width = width;
+        g->display_height = height;
 
-    /* Recalculate sprite requirements */
-    g->num_cols = pixels_to_tiles(width);
-    g->num_rows = pixels_to_tiles(height);
-    if (g->num_rows > MAX_SPRITE_HEIGHT) {
-        g->num_rows = MAX_SPRITE_HEIGHT;
+        /* Recalculate sprite requirements */
+        g->num_cols = pixels_to_tiles(width);
+        g->num_rows = pixels_to_tiles(height);
+        if (g->num_rows > MAX_SPRITE_HEIGHT) {
+            g->num_rows = MAX_SPRITE_HEIGHT;
+        }
+
+        g->dirty |= DIRTY_SIZE;
     }
-
-    g->dirty |= DIRTY_SIZE;
 }
 
 void NGGraphicSetScale(NGGraphic *g, u16 scale) {
     if (!g)
         return;
 
-    g->scale = scale;
-    g->dirty |= DIRTY_SHRINK;
+    if (g->scale != scale) {
+        g->scale = scale;
+        g->dirty |= DIRTY_SHRINK;
+    }
 }
 
 void NGGraphicSetFlip(NGGraphic *g, NGGraphicFlip flip) {
     if (!g)
         return;
 
-    g->flip = flip;
-    g->dirty |= DIRTY_SOURCE;
+    if (g->flip != flip) {
+        g->flip = flip;
+        g->dirty |= DIRTY_SOURCE;
+    }
 }
 
 void NGGraphicSetZOrder(NGGraphic *g, u8 z) {
@@ -779,7 +1000,7 @@ s16 NGGraphicGetY(const NGGraphic *g) {
  * System Functions
  * ============================================================ */
 
-void _NGGraphicSystemInit(void) {
+void NGGraphicSystemInit(void) {
     for (u8 i = 0; i < NG_GRAPHIC_MAX; i++) {
         graphics[i].active = 0;
         graphics[i].hw_allocated = 0;
@@ -789,7 +1010,7 @@ void _NGGraphicSystemInit(void) {
     graphics_initialized = 1;
 }
 
-void _NGGraphicSystemDraw(void) {
+void NGGraphicSystemDraw(void) {
     if (!graphics_initialized) {
         return;
     }
@@ -850,7 +1071,7 @@ void _NGGraphicSystemDraw(void) {
     }
 }
 
-void _NGGraphicSystemReset(void) {
+void NGGraphicSystemReset(void) {
     /* Hide all sprites */
     NGSpriteHideRange(0, 255);
     NGSpriteHideRange(255, (u8)(HW_SPRITE_MAX - 255));

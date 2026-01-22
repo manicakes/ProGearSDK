@@ -6,7 +6,7 @@
 
 #include <terrain.h>
 #include <camera.h>
-#include <sprite.h>
+#include <graphic.h>
 
 typedef struct {
     const NGTerrainAsset *asset;
@@ -16,26 +16,7 @@ typedef struct {
     u8 in_scene;
     u8 active;
 
-    s16 viewport_col;
-    s16 viewport_row;
-    u8 viewport_cols;
-    u8 viewport_rows;
-
-    u16 hw_sprite_first;
-    u8 hw_sprite_count;
-    u8 tiles_loaded;
-
-    u8 last_zoom;
-    s16 last_viewport_col;
-    s16 last_viewport_row;
-    u16 last_scb3;
-
-    // Cycling offset for efficient horizontal scroll (sprite reuse)
-    u8 leftmost_sprite_offset;
-
-    // SCB4 dirty tracking
-    s16 last_base_screen_x;
-    u8 last_leftmost_offset;
+    NGGraphic *graphic;
 } Terrain;
 
 static Terrain terrains[NG_TERRAIN_MAX];
@@ -46,198 +27,40 @@ void _NGTerrainSystemInit(void) {
     for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
         terrains[i].active = 0;
         terrains[i].in_scene = 0;
+        terrains[i].graphic = NULL;
     }
 }
 
-u8 _NGTerrainIsInScene(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    return terrains[handle].active && terrains[handle].in_scene;
-}
-
-u8 _NGTerrainGetZ(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    return terrains[handle].z;
-}
-
 /**
- * Load tile data for a single column into VRAM using the sprite API.
+ * Sync terrain graphic with camera state.
+ * Updates position and source offset based on camera viewport.
  */
-static void load_column_tiles(Terrain *tm, u16 sprite_idx, s16 terrain_col, u8 num_rows) {
-    const NGTerrainAsset *asset = tm->asset;
-
-    NGSpriteTileBegin(sprite_idx);
-
-    for (u8 row = 0; row < num_rows; row++) {
-        s16 terrain_row = tm->viewport_row + row;
-
-        if (terrain_col < 0 || terrain_col >= asset->width_tiles || terrain_row < 0 ||
-            terrain_row >= asset->height_tiles) {
-            /* Out of bounds - empty tile */
-            NGSpriteTileWriteEmpty();
-            continue;
-        }
-
-        u16 tile_array_idx = (u16)(terrain_row * asset->width_tiles + terrain_col);
-        u8 tile_idx = asset->tile_data[tile_array_idx];
-        u16 crom_tile = asset->base_tile + tile_idx;
-
-        u8 palette = asset->default_palette;
-        if (asset->tile_to_palette) {
-            palette = asset->tile_to_palette[tile_idx];
-        }
-
-        NGSpriteTileWrite(crom_tile, palette, 1, 0);
-    }
-
-    NGSpriteTilePadTo32(num_rows);
-}
-
-/**
- * Main terrain rendering function using the sprite abstraction API.
- */
-static void draw_terrain(Terrain *tm, u16 first_sprite) {
-    if (!tm->visible || !tm->asset)
+static void sync_terrain_graphic(Terrain *tm) {
+    if (!tm->graphic || !tm->asset || !tm->visible)
         return;
 
     fixed cam_x = NGCameraGetRenderX();
     fixed cam_y = NGCameraGetRenderY();
     u8 zoom = NGCameraGetZoom();
 
-    u16 view_width = (SCREEN_WIDTH * 16) / zoom;
-    u16 view_height = (SCREEN_HEIGHT * 16) / zoom;
-
+    /* Calculate view bounds in world space */
     s16 view_left = FIX_INT(cam_x - tm->world_x);
     s16 view_top = FIX_INT(cam_y - tm->world_y);
 
-    s16 first_col = view_left / NG_TILE_SIZE;
-    s16 first_row = view_top / NG_TILE_SIZE;
+    /* Snap to tile boundaries for source offset */
+    s16 tile_offset_x = (view_left / NG_TILE_SIZE) * NG_TILE_SIZE;
+    s16 tile_offset_y = (view_top / NG_TILE_SIZE) * NG_TILE_SIZE;
 
-    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
-    u8 num_rows = (u8)((view_height / NG_TILE_SIZE) + 2);
+    /* Calculate screen position (where first visible tile appears) */
+    s16 screen_x = (s16)((FIX_INT(tm->world_x - cam_x) + tile_offset_x) * zoom / 16);
+    s16 screen_y = (s16)((FIX_INT(tm->world_y - cam_y) + tile_offset_y) * zoom / 16);
 
-    if (num_cols > NG_TERRAIN_MAX_COLS)
-        num_cols = NG_TERRAIN_MAX_COLS;
-    if (num_rows > NG_TERRAIN_MAX_ROWS)
-        num_rows = NG_TERRAIN_MAX_ROWS;
+    NGGraphicSetPosition(tm->graphic, screen_x, screen_y);
+    NGGraphicSetSourceOffset(tm->graphic, tile_offset_x, tile_offset_y);
 
-    u8 zoom_changed = (zoom != tm->last_zoom);
-
-    if (tm->tiles_loaded && tm->hw_sprite_first != first_sprite) {
-        tm->tiles_loaded = 0;
-    }
-
-    if (!tm->tiles_loaded) {
-        tm->viewport_col = first_col;
-        tm->viewport_row = first_row;
-        tm->viewport_cols = num_cols;
-        tm->viewport_rows = num_rows;
-        tm->leftmost_sprite_offset = 0;
-
-        /* SCB1: Load tile data for all columns */
-        for (u8 col = 0; col < num_cols; col++) {
-            u16 spr = first_sprite + col;
-            s16 terrain_col = first_col + col;
-            load_column_tiles(tm, spr, terrain_col, num_rows);
-        }
-
-        /* SCB2: Shrink values */
-        u16 shrink = NGCameraGetShrink();
-        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
-
-        /* SCB4: X positions */
-        s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
-        s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
-        base_screen_x = (s16)((base_screen_x * zoom) >> 4);
-        NGSpriteXSetSpaced(first_sprite, num_cols, base_screen_x, tile_w);
-
-        tm->hw_sprite_first = first_sprite;
-        tm->hw_sprite_count = num_cols;
-        tm->tiles_loaded = 1;
-        tm->last_zoom = zoom;
-        tm->last_scb3 = 0xFFFF; /* Force SCB3 write */
-        tm->last_viewport_col = first_col;
-        tm->last_viewport_row = first_row;
-    }
-
-    if (zoom_changed) {
-        u16 shrink = NGCameraGetShrink();
-        NGSpriteShrinkSet(first_sprite, num_cols, shrink);
-        tm->last_zoom = zoom;
-    }
-
-    s16 col_delta = first_col - tm->last_viewport_col;
-    if (col_delta != 0) {
-        if (col_delta > 0) {
-            for (s16 i = 0; i < col_delta && i < num_cols; i++) {
-                u8 sprite_offset = tm->leftmost_sprite_offset;
-                u16 spr = first_sprite + sprite_offset;
-                s16 new_col = (s16)(tm->viewport_col + num_cols + i);
-
-                load_column_tiles(tm, spr, new_col, num_rows);
-
-                tm->leftmost_sprite_offset = (u8)((tm->leftmost_sprite_offset + 1) % num_cols);
-            }
-        } else {
-            for (s16 i = 0; i > col_delta && i > -num_cols; i--) {
-                if (tm->leftmost_sprite_offset == 0) {
-                    tm->leftmost_sprite_offset = num_cols;
-                }
-                tm->leftmost_sprite_offset--;
-
-                u8 sprite_offset = tm->leftmost_sprite_offset;
-                u16 spr = first_sprite + sprite_offset;
-                s16 new_col = (s16)(first_col - i);
-                load_column_tiles(tm, spr, new_col, num_rows);
-            }
-        }
-        tm->viewport_col = first_col;
-        tm->last_viewport_col = first_col;
-    }
-
-    s16 row_delta = first_row - tm->last_viewport_row;
-    if (row_delta != 0) {
-        tm->viewport_row = first_row;
-        for (u8 col = 0; col < num_cols; col++) {
-            u8 sprite_offset = (u8)((tm->leftmost_sprite_offset + col) % num_cols);
-            u16 spr = first_sprite + sprite_offset;
-            s16 terrain_col = first_col + col;
-            load_column_tiles(tm, spr, terrain_col, num_rows);
-        }
-        tm->last_viewport_row = first_row;
-    }
-
-    /* SCB3: Y position and height */
-    u16 shrink = NGCameraGetShrink();
-    u8 height_bits = NGSpriteAdjustedHeight(num_rows, (u8)(shrink & 0xFF));
-
-    s16 base_screen_y = (s16)(FIX_INT(tm->world_y - cam_y) + (first_row * NG_TILE_SIZE));
-    base_screen_y = (s16)((base_screen_y * zoom) >> 4);
-
-    u16 scb3_val = NGSpriteSCB3(base_screen_y, height_bits);
-
-    if (scb3_val != tm->last_scb3) {
-        NGSpriteYSetUniform(first_sprite, num_cols, base_screen_y, height_bits);
-        tm->last_scb3 = scb3_val;
-    }
-
-    /* SCB4: X positions - only update when position or offset changes */
-    s16 tile_w = (s16)((NG_TILE_SIZE * zoom) >> 4);
-    s16 base_screen_x = (s16)(FIX_INT(tm->world_x - cam_x) + (first_col * NG_TILE_SIZE));
-    base_screen_x = (s16)((base_screen_x * zoom) >> 4);
-
-    if (base_screen_x != tm->last_base_screen_x ||
-        tm->leftmost_sprite_offset != tm->last_leftmost_offset || zoom_changed) {
-        NGSpriteXBegin(first_sprite);
-        for (u8 spr_idx = 0; spr_idx < num_cols; spr_idx++) {
-            u8 screen_col = (u8)((spr_idx + num_cols - tm->leftmost_sprite_offset) % num_cols);
-            s16 x = (s16)(base_screen_x + (screen_col * tile_w));
-            NGSpriteXWriteNext(x);
-        }
-        tm->last_base_screen_x = base_screen_x;
-        tm->last_leftmost_offset = tm->leftmost_sprite_offset;
-    }
+    /* Apply camera zoom as scale */
+    u16 scale = (u16)((zoom * NG_GRAPHIC_SCALE_ONE) >> 4);
+    NGGraphicSetScale(tm->graphic, scale);
 }
 
 NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
@@ -255,6 +78,30 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
         return NG_TERRAIN_INVALID;
 
     Terrain *tm = &terrains[handle];
+
+    /* Calculate display dimensions to cover viewport with buffer */
+    u16 disp_w = (u16)((NG_TERRAIN_MAX_COLS) * NG_TILE_SIZE);
+    u16 disp_h = (u16)((NG_TERRAIN_MAX_ROWS) * NG_TILE_SIZE);
+
+    /* Create graphic with clip mode (don't tile outside terrain bounds) */
+    NGGraphicConfig cfg = {.width = disp_w,
+                           .height = disp_h,
+                           .tile_mode = NG_GRAPHIC_TILE_CLIP,
+                           .layer = NG_GRAPHIC_LAYER_WORLD,
+                           .z_order = 0};
+    tm->graphic = NGGraphicCreate(&cfg);
+    if (!tm->graphic) {
+        return NG_TERRAIN_INVALID;
+    }
+
+    /* Configure graphic source from terrain asset */
+    NGGraphicSetSourceTilemap8(tm->graphic, asset->base_tile, asset->tile_data,
+                               asset->width_tiles, asset->height_tiles, asset->tile_to_palette,
+                               asset->default_palette);
+
+    /* Initially hidden */
+    NGGraphicSetVisible(tm->graphic, 0);
+
     tm->asset = asset;
     tm->world_x = 0;
     tm->world_y = 0;
@@ -262,20 +109,6 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     tm->visible = 1;
     tm->in_scene = 0;
     tm->active = 1;
-    tm->viewport_col = 0;
-    tm->viewport_row = 0;
-    tm->viewport_cols = 0;
-    tm->viewport_rows = 0;
-    tm->hw_sprite_first = 0;
-    tm->hw_sprite_count = 0;
-    tm->tiles_loaded = 0;
-    tm->last_zoom = 0;
-    tm->last_viewport_col = 0;
-    tm->last_viewport_row = 0;
-    tm->last_scb3 = 0xFFFF;
-    tm->leftmost_sprite_offset = 0;
-    tm->last_base_screen_x = 0x7FFF;
-    tm->last_leftmost_offset = 0xFF;
 
     return handle;
 }
@@ -291,9 +124,13 @@ void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u
     tm->world_y = world_y;
     tm->z = z;
     tm->in_scene = 1;
-    tm->tiles_loaded = 0;
 
-    _NGSceneMarkRenderQueueDirty();
+    /* Update graphic z-order and make visible */
+    if (tm->graphic) {
+        NGGraphicSetZOrder(tm->graphic, z);
+        NGGraphicSetVisible(tm->graphic, tm->visible);
+        sync_terrain_graphic(tm);
+    }
 }
 
 void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
@@ -303,24 +140,28 @@ void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
     if (!tm->active)
         return;
 
-    u8 was_in_scene = tm->in_scene;
     tm->in_scene = 0;
 
-    /* Clear sprite heights to hide sprites */
-    if (tm->hw_sprite_count > 0) {
-        NGSpriteHideRange(tm->hw_sprite_first, tm->hw_sprite_count);
-    }
-
-    if (was_in_scene) {
-        _NGSceneMarkRenderQueueDirty();
+    /* Hide graphic */
+    if (tm->graphic) {
+        NGGraphicSetVisible(tm->graphic, 0);
     }
 }
 
 void NGTerrainDestroy(NGTerrainHandle handle) {
     if (handle < 0 || handle >= NG_TERRAIN_MAX)
         return;
+
+    Terrain *tm = &terrains[handle];
+
+    /* Destroy graphic */
+    if (tm->graphic) {
+        NGGraphicDestroy(tm->graphic);
+        tm->graphic = NULL;
+    }
+
     NGTerrainRemoveFromScene(handle);
-    terrains[handle].active = 0;
+    tm->active = 0;
 }
 
 void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
@@ -342,8 +183,8 @@ void NGTerrainSetZ(NGTerrainHandle handle, u8 z) {
         return;
     if (tm->z != z) {
         tm->z = z;
-        if (tm->in_scene) {
-            _NGSceneMarkRenderQueueDirty();
+        if (tm->graphic) {
+            NGGraphicSetZOrder(tm->graphic, z);
         }
     }
 }
@@ -355,6 +196,11 @@ void NGTerrainSetVisible(NGTerrainHandle handle, u8 visible) {
     if (!tm->active)
         return;
     tm->visible = visible ? 1 : 0;
+
+    /* Update graphic visibility if in scene */
+    if (tm->in_scene && tm->graphic) {
+        NGGraphicSetVisible(tm->graphic, tm->visible);
+    }
 }
 
 void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_out) {
@@ -572,30 +418,17 @@ void NGTerrainSetCollision(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 co
     (void)collision;
 }
 
-void NGTerrainDraw(NGTerrainHandle handle, u16 first_sprite) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->in_scene)
-        return;
-
-    draw_terrain(tm, first_sprite);
-}
-
-u8 NGTerrainGetSpriteCount(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset)
-        return 0;
-
-    u8 zoom = NGCameraGetZoom();
-    u16 view_width = (SCREEN_WIDTH * 16) / zoom;
-    u8 num_cols = (u8)((view_width / NG_TILE_SIZE) + 2);
-    if (num_cols > NG_TERRAIN_MAX_COLS)
-        num_cols = NG_TERRAIN_MAX_COLS;
-
-    return num_cols;
+/**
+ * Sync all in-scene terrains to their graphics.
+ * Called by scene before graphic system draw.
+ */
+void _NGTerrainSyncGraphics(void) {
+    for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
+        Terrain *tm = &terrains[i];
+        if (tm->active && tm->in_scene) {
+            sync_terrain_graphic(tm);
+        }
+    }
 }
 
 /* Internal: collect palettes from all terrains in scene into bitmask */

@@ -35,7 +35,7 @@
  * NGGraphicSetPosition(g, screen_x, screen_y);
  * @endcode
  *
- * Graphics are automatically rendered by _NGGraphicSystemDraw() which is
+ * Graphics are automatically rendered by NGGraphicSystemDraw() which is
  * called by the engine. Manual NGGraphicCommit() is only needed for
  * immediate updates.
  */
@@ -69,7 +69,9 @@ typedef enum {
     /** Repeat/tile source when display exceeds source size */
     NG_GRAPHIC_TILE_REPEAT,
     /** 9-slice stretching for resizable UI panels */
-    NG_GRAPHIC_TILE_9SLICE
+    NG_GRAPHIC_TILE_9SLICE,
+    /** Infinite horizontal scroll with circular buffer (backdrops) */
+    NG_GRAPHIC_TILE_INFINITE
 } NGGraphicTileMode;
 
 /**
@@ -174,6 +176,21 @@ void NGGraphicSetSourceRaw(NGGraphic *g, u16 base_tile, u16 src_width, u16 src_h
  */
 void NGGraphicSetSourceTilemap(NGGraphic *g, u16 base_tile, const u16 *tilemap, u16 map_width,
                                u16 map_height, const u8 *tile_to_palette, u8 palette);
+
+/**
+ * Set source from a byte-indexed tilemap (row-major layout).
+ * Used for terrain where tile indices are 8-bit.
+ *
+ * @param g Graphic
+ * @param base_tile Base tile index (added to tilemap offsets)
+ * @param tilemap Tilemap data (row-major, 8-bit tile indices)
+ * @param map_width Map width in tiles
+ * @param map_height Map height in tiles
+ * @param tile_to_palette Per-tile palette lookup (NULL for uniform palette)
+ * @param palette Uniform palette (used if tile_to_palette is NULL)
+ */
+void NGGraphicSetSourceTilemap8(NGGraphic *g, u16 base_tile, const u8 *tilemap, u16 map_width,
+                                u16 map_height, const u8 *tile_to_palette, u8 palette);
 
 /**
  * Set viewport offset into source.
@@ -304,7 +321,7 @@ u8 NGGraphicIsVisible(const NGGraphic *g);
 
 /**
  * Commit pending changes to backend immediately.
- * Normally not needed - _NGGraphicSystemDraw() handles this automatically.
+ * Normally not needed - NGGraphicSystemDraw() handles this automatically.
  * Use only when immediate visual update is required.
  *
  * @param g Graphic
@@ -365,20 +382,20 @@ s16 NGGraphicGetY(const NGGraphic *g);
  * Initialize graphics system.
  * Called by NGEngineInit().
  */
-void _NGGraphicSystemInit(void);
+void NGGraphicSystemInit(void);
 
 /**
  * Draw all active graphics in layer/z-order.
  * Handles resource allocation and optimization internally.
  * Called by NGSceneDraw().
  */
-void _NGGraphicSystemDraw(void);
+void NGGraphicSystemDraw(void);
 
 /**
  * Reset graphics system, destroying all graphics.
  * Called on scene transitions.
  */
-void _NGGraphicSystemReset(void);
+void NGGraphicSystemReset(void);
 
 /** @} */
 

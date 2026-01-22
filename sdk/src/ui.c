@@ -12,7 +12,7 @@
 #include <palette.h>
 #include <lighting.h>
 #include <audio.h>
-#include <sprite.h>
+#include <graphic.h>
 #include <visual.h>
 
 #define MENU_ITEM_HEIGHT     8
@@ -23,11 +23,8 @@
 #define MENU_CURSOR_OFFSET_Y -4
 
 #define PANEL_MIN_ROWS    7
-#define PANEL_COLS        11
 #define PANEL_TOP_ROWS    1
 #define PANEL_BOTTOM_ROWS 1
-#define PANEL_MIDDLE_ROW  3
-#define PANEL_SPRITE_BASE 320
 
 #define MENU_HIDDEN_OFFSET_FIX FIX_FROM_FLOAT(-120.0)
 
@@ -41,9 +38,8 @@ typedef struct NGMenu {
     const NGVisualAsset *panel_asset;
     const NGVisualAsset *cursor_asset;
 
-    u16 panel_first_sprite;
-    u8 panel_height_tiles;
-    u8 panel_sprites_allocated;
+    NGGraphic *panel_graphic;
+    u8 panel_height_pixels;
 
     NGActorHandle cursor_actor;
 
@@ -152,145 +148,66 @@ static void draw_menu_text(NGMenu *menu) {
     }
 }
 
-static u8 calc_panel_height(u8 item_count) {
+static u16 calc_panel_height_pixels(u8 item_count) {
     u8 text_fix_rows = MENU_TITLE_OFFSET_Y + MENU_TEXT_OFFSET_Y + item_count;
     u16 content_height_px = (u16)((text_fix_rows * 8) + 8);
-    u8 sprite_tiles = (u8)((content_height_px + 15) / 16);
-    if (sprite_tiles < PANEL_MIN_ROWS)
-        sprite_tiles = PANEL_MIN_ROWS;
-    return sprite_tiles;
+    u16 min_height_px = (u16)(PANEL_MIN_ROWS * 16);
+    if (content_height_px < min_height_px)
+        content_height_px = min_height_px;
+    return content_height_px;
 }
 
 /**
- * Get tile index and attribute flags for a panel tile.
- *
- * For assets with a tilemap, reads from the row-major tilemap array and
- * extracts the tile index and flip flags. For assets without a tilemap,
- * calculates the tile index directly using column-major C-ROM layout.
- *
- * @param asset Visual asset
- * @param col Column index
- * @param row Row index
- * @param out_tile Output: tile index to write to VRAM
- * @param out_attr Output: attribute flags (palette, flip bits)
- * @param palette Palette index for attributes
+ * Create or update the panel graphic for the menu.
  */
-static void get_panel_tile_and_attr(const NGVisualAsset *asset, u8 col, u8 row, u16 *out_tile,
-                                    u16 *out_attr, u8 palette) {
-    u16 tile;
-    u16 attr = ((u16)palette << 8);
-
-    if (asset->tilemap) {
-        /* Use tilemap (row-major order) with proper flip flag handling */
-        u16 idx = (u16)(row * asset->width_tiles + col);
-        u16 entry = asset->tilemap[idx];
-        u16 tile_offset = entry & NG_TILE_MASK;
-        tile = asset->base_tile + tile_offset;
-
-        /* Apply flip flags from tilemap directly to hardware bits.
-         * NG_TILE_HFLIP (0x8000) maps to hardware h_flip (bit 0).
-         * NG_TILE_VFLIP (0x4000) maps to hardware v_flip (bit 1).
-         * The asset pipeline sets these flags to match desired hardware state. */
-        if (entry & NG_TILE_HFLIP) {
-            attr |= 0x01; /* Hardware h_flip bit */
-        }
-        if (entry & NG_TILE_VFLIP) {
-            attr |= 0x02; /* Hardware v_flip bit */
-        }
-    } else {
-        /* Fallback: column-major direct calculation (like backdrop.c) */
-        tile = (u16)(asset->base_tile + (col * asset->height_tiles) + row);
-        attr |= 0x01; /* Default h_flip for normal display */
+static void setup_panel_graphic(NGMenu *menu) {
+    if (menu->panel_graphic) {
+        return; /* Already created */
     }
 
-    *out_tile = tile;
-    *out_attr = attr;
-}
-
-static void render_panel_9slice(NGMenu *menu, s16 screen_x, s16 screen_y) {
     const NGVisualAsset *asset = menu->panel_asset;
-    u8 target_height = calc_panel_height(menu->item_count);
-    u8 orig_height = asset->height_tiles;
-    u8 extra_rows = (target_height > orig_height) ? (target_height - orig_height) : 0;
-    u8 actual_height = orig_height + extra_rows;
+    u16 height_px = calc_panel_height_pixels(menu->item_count);
 
-    if (actual_height > 32)
-        actual_height = 32;
-
-    menu->panel_height_tiles = actual_height;
-
-    u16 first_sprite = menu->panel_first_sprite;
-    u8 palette = asset->palette;
-    u8 num_cols = asset->width_tiles;
-
-    /* SCB1: Write tile data for all columns with 9-slice stretching */
-    for (u8 col = 0; col < num_cols; col++) {
-        u16 spr = first_sprite + col;
-
-        NGSpriteTileBegin(spr);
-
-        u8 row_out = 0;
-        u16 tile, attr;
-
-        /* Top rows */
-        for (u8 r = 0; r < PANEL_TOP_ROWS; r++) {
-            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NGSpriteTileWriteRaw(tile, attr);
-            row_out++;
-        }
-
-        /* Middle rows (with stretching) */
-        u8 orig_middle_start = PANEL_TOP_ROWS;
-        u8 orig_middle_end = orig_height - PANEL_BOTTOM_ROWS;
-
-        for (u8 r = orig_middle_start; r < orig_middle_end; r++) {
-            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NGSpriteTileWriteRaw(tile, attr);
-            row_out++;
-
-            if (r == PANEL_MIDDLE_ROW) {
-                /* Repeat middle row for stretching */
-                u16 repeat_tile, repeat_attr;
-                get_panel_tile_and_attr(asset, col, PANEL_MIDDLE_ROW, &repeat_tile, &repeat_attr,
-                                        palette);
-                for (u8 e = 0; e < extra_rows; e++) {
-                    NGSpriteTileWriteRaw(repeat_tile, repeat_attr);
-                    row_out++;
-                }
-            }
-        }
-
-        /* Bottom rows */
-        for (u8 r = orig_height - PANEL_BOTTOM_ROWS; r < orig_height; r++) {
-            get_panel_tile_and_attr(asset, col, r, &tile, &attr, palette);
-            NGSpriteTileWriteRaw(tile, attr);
-            row_out++;
-        }
-
-        NGSpriteTilePadTo32(row_out);
+    /* Create graphic with 9-slice mode */
+    NGGraphicConfig cfg = {.width = asset->width_pixels,
+                           .height = height_px,
+                           .tile_mode = NG_GRAPHIC_TILE_9SLICE,
+                           .layer = NG_GRAPHIC_LAYER_UI,
+                           .z_order = NG_MENU_Z_INDEX};
+    menu->panel_graphic = NGGraphicCreate(&cfg);
+    if (!menu->panel_graphic) {
+        return;
     }
 
-    /* SCB2, SCB3, SCB4: Set positions using grid setup (uniform Y) */
-    NGSpriteShrinkSet(first_sprite, num_cols, NG_SPRITE_SHRINK_NONE);
-    NGSpriteYSetUniform(first_sprite, num_cols, screen_y, actual_height);
-    NGSpriteXSetSpaced(first_sprite, num_cols, screen_x, 16);
+    /* Configure 9-slice borders */
+    NGGraphicSet9SliceBorders(menu->panel_graphic, PANEL_TOP_ROWS * 16, PANEL_BOTTOM_ROWS * 16,
+                              16, 16);
+
+    /* Set source */
+    NGGraphicSetSource(menu->panel_graphic, asset, asset->palette);
+
+    menu->panel_height_pixels = (u8)height_px;
 }
 
 static void update_panel_position(NGMenu *menu, s16 screen_y) {
-    /* Only update SCB3 (Y position) - tiles don't change during animation.
-     * This is much faster than rewriting all SCB1 tile data every frame. */
-    u16 first_sprite = menu->panel_first_sprite;
-    u8 num_cols = menu->panel_asset->width_tiles;
-    u8 actual_height = menu->panel_height_tiles;
-
-    NGSpriteYSetUniform(first_sprite, num_cols, screen_y, actual_height);
-}
-
-static void hide_panel_sprites(NGMenu *menu) {
-    if (!menu->panel_sprites_allocated)
+    if (!menu->panel_graphic)
         return;
 
-    NGSpriteHideRange(menu->panel_first_sprite, PANEL_COLS);
+    NGGraphicSetPosition(menu->panel_graphic, menu->viewport_x, screen_y);
+}
+
+static void show_panel_graphic(NGMenu *menu) {
+    if (!menu->panel_graphic)
+        return;
+
+    NGGraphicSetVisible(menu->panel_graphic, 1);
+}
+
+static void hide_panel_graphic(NGMenu *menu) {
+    if (!menu->panel_graphic)
+        return;
+
+    NGGraphicSetVisible(menu->panel_graphic, 0);
 }
 
 NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
@@ -305,9 +222,8 @@ NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
     menu->panel_asset = panel_asset;
     menu->cursor_asset = cursor_asset;
 
-    menu->panel_first_sprite = 0;
-    menu->panel_height_tiles = 0;
-    menu->panel_sprites_allocated = 0;
+    menu->panel_graphic = NULL;
+    menu->panel_height_pixels = 0;
 
     menu->cursor_actor = NGActorCreate(cursor_asset, 0, 0);
 
@@ -448,11 +364,12 @@ void NGMenuShow(NGMenuHandle menu) {
         }
     }
 
-    menu->panel_first_sprite = PANEL_SPRITE_BASE;
-    menu->panel_sprites_allocated = 1;
+    /* Create panel graphic if needed */
+    setup_panel_graphic(menu);
 
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
-    render_panel_9slice(menu, menu->viewport_x, panel_y);
+    update_panel_position(menu, panel_y);
+    show_panel_graphic(menu);
 
     s16 cursor_x = menu->viewport_x + MENU_TEXT_OFFSET_X * 8 + MENU_CURSOR_OFFSET_X;
     s16 cursor_y = panel_y + NGSpringGetInt(&menu->cursor_y_spring);
@@ -506,8 +423,7 @@ void NGMenuUpdate(NGMenuHandle menu) {
                 NGLightingPop(menu->dim_layer);
                 menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
             }
-            hide_panel_sprites(menu);
-            menu->panel_sprites_allocated = 0;
+            hide_panel_graphic(menu);
             NGActorRemoveFromScene(menu->cursor_actor);
             menu->showing = 0;
         }
@@ -582,7 +498,7 @@ void NGMenuUpdate(NGMenuHandle menu) {
     }
 
     s16 panel_y = NGSpringGetInt(&menu->panel_y_spring);
-    if (menu->panel_sprites_allocated) {
+    if (menu->panel_graphic) {
         update_panel_position(menu, panel_y);
     }
 
@@ -694,8 +610,11 @@ void NGMenuDestroy(NGMenuHandle menu) {
         clear_menu_text(menu);
     }
 
-    hide_panel_sprites(menu);
-    menu->panel_sprites_allocated = 0;
+    /* Destroy panel graphic */
+    if (menu->panel_graphic) {
+        NGGraphicDestroy(menu->panel_graphic);
+        menu->panel_graphic = NULL;
+    }
 
     if (menu->cursor_actor != NG_ACTOR_INVALID) {
         NGActorDestroy(menu->cursor_actor);
