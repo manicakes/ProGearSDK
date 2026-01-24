@@ -1,5 +1,0 @@
-var searchData=
-[
-  ['offset_5fx_0',['offset_x',['../struct_n_g_fix_layout.html#abd0bf109426e5b21ce41b36a48d19d33',1,'NGFixLayout']]],
-  ['offset_5fy_1',['offset_y',['../struct_n_g_fix_layout.html#aa6e0947154e652728d251521a8badd3e',1,'NGFixLayout']]]
-];
