@@ -35,6 +35,12 @@
 #define HW_SPRITE_FIRST   1
 #define HW_SPRITE_MAX     380
 
+/* Reserve sprites for UI layer to prevent shifts when entity layer changes.
+ * UI sprites are allocated from the back of the pool, entities from the front.
+ * This prevents UI redraws when entities are added/removed. */
+#define UI_SPRITE_POOL_SIZE 64
+#define UI_SPRITE_FIRST     (HW_SPRITE_MAX - UI_SPRITE_POOL_SIZE)
+
 /* Dirty flags */
 #define DIRTY_SOURCE 0x01
 #define DIRTY_SIZE   0x04
@@ -431,8 +437,11 @@ static void flush_tiles_standard(NGGraphic *g) {
 
 /**
  * Write tiles for 9-slice mode.
+ * Optimized to use direct VRAM writes instead of function calls.
  */
 static void flush_tiles_9slice(NGGraphic *g) {
+    NG_VRAM_DECLARE_BASE();
+
     u16 first_sprite = g->hw_sprite_first;
     u8 src_tiles_h = g->src_tiles_h;
 
@@ -448,11 +457,11 @@ static void flush_tiles_9slice(NGGraphic *g) {
 
     /* Middle row to repeat (default to center of middle section) */
     u8 stretch_row = top_rows;
+    u8 middle_end = src_tiles_h - bottom_rows;
 
     for (u8 col = 0; col < g->num_cols; col++) {
-        u16 spr = first_sprite + col;
-
-        NGSpriteTileBegin(spr);
+        /* Set VRAM address for this sprite column (SCB1 base + sprite * 64) */
+        NG_VRAM_SETUP_FAST(NG_SCB1_BASE + ((first_sprite + col) * 64), 1);
 
         u8 rows_written = 0;
 
@@ -460,22 +469,24 @@ static void flush_tiles_9slice(NGGraphic *g) {
         for (u8 r = 0; r < top_rows && r < src_tiles_h; r++) {
             u16 tile, attr;
             get_tile_row_major(g, col, r, &tile, &attr);
-            NGSpriteTileWriteRaw(tile, attr);
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
             rows_written++;
         }
 
         /* Middle rows with stretching */
-        u8 middle_end = src_tiles_h - bottom_rows;
         for (u8 r = top_rows; r < middle_end; r++) {
             u16 tile, attr;
             get_tile_row_major(g, col, r, &tile, &attr);
-            NGSpriteTileWriteRaw(tile, attr);
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
             rows_written++;
 
             /* Repeat stretch row - reuse tile/attr already fetched above */
             if (r == stretch_row) {
                 for (u8 e = 0; e < extra_rows; e++) {
-                    NGSpriteTileWriteRaw(tile, attr);
+                    NG_VRAM_WRITE_FAST(tile);
+                    NG_VRAM_WRITE_FAST(attr);
                     rows_written++;
                 }
             }
@@ -485,11 +496,15 @@ static void flush_tiles_9slice(NGGraphic *g) {
         for (u8 r = middle_end; r < src_tiles_h; r++) {
             u16 tile, attr;
             get_tile_row_major(g, col, r, &tile, &attr);
-            NGSpriteTileWriteRaw(tile, attr);
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
             rows_written++;
         }
 
-        NGSpriteTilePadTo32(rows_written);
+        /* Pad remaining tiles to 32 */
+        if (rows_written < 32) {
+            NG_VRAM_CLEAR_FAST((32 - rows_written) * 2);
+        }
     }
 }
 
@@ -1359,8 +1374,10 @@ void NGGraphicSystemDraw(void) {
         rebuild_render_order();
     }
 
-    /* Allocate sprites in render order (back to front) */
-    u16 sprite_idx = HW_SPRITE_FIRST;
+    /* Two-pool allocation: UI sprites from back, others from front.
+     * This prevents UI graphics from being redrawn when entities change. */
+    u16 entity_idx = HW_SPRITE_FIRST;
+    u16 ui_idx = UI_SPRITE_FIRST;
 
     for (u8 i = 0; i < render_count; i++) {
         NGGraphic *g = &graphics[render_order[i]];
@@ -1374,11 +1391,22 @@ void NGGraphicSystemDraw(void) {
             continue;
         }
 
-        /* Check if we have room */
         u8 needed = g->num_cols;
-        if (sprite_idx + needed > HW_SPRITE_MAX) {
-            /* Out of sprites - skip this graphic */
-            continue;
+        u16 sprite_idx;
+
+        /* UI layer uses reserved pool at end, others use main pool */
+        if (g->layer == NG_GRAPHIC_LAYER_UI) {
+            if (ui_idx + needed > HW_SPRITE_MAX) {
+                continue; /* Out of UI sprites */
+            }
+            sprite_idx = ui_idx;
+            ui_idx += needed;
+        } else {
+            if (entity_idx + needed > UI_SPRITE_FIRST) {
+                continue; /* Out of entity sprites */
+            }
+            sprite_idx = entity_idx;
+            entity_idx += needed;
         }
 
         /* Allocate sprites */
@@ -1392,19 +1420,28 @@ void NGGraphicSystemDraw(void) {
             g->dirty = DIRTY_ALL; /* Force full redraw */
         }
 
-        sprite_idx += needed;
-
         /* Flush to hardware */
         flush_graphic(g);
     }
 
-    /* Hide unused sprites */
-    if (sprite_idx < HW_SPRITE_MAX) {
-        u16 remaining = (u16)(HW_SPRITE_MAX - sprite_idx);
+    /* Hide unused entity sprites (between entity_idx and UI_SPRITE_FIRST) */
+    if (entity_idx < UI_SPRITE_FIRST) {
+        u16 remaining = (u16)(UI_SPRITE_FIRST - entity_idx);
         while (remaining > 0) {
             u8 batch = (remaining > 255) ? 255 : (u8)remaining;
-            NGSpriteHideRange(sprite_idx, batch);
-            sprite_idx += batch;
+            NGSpriteHideRange(entity_idx, batch);
+            entity_idx += batch;
+            remaining -= batch;
+        }
+    }
+
+    /* Hide unused UI sprites (between ui_idx and HW_SPRITE_MAX) */
+    if (ui_idx < HW_SPRITE_MAX) {
+        u16 remaining = (u16)(HW_SPRITE_MAX - ui_idx);
+        while (remaining > 0) {
+            u8 batch = (remaining > 255) ? 255 : (u8)remaining;
+            NGSpriteHideRange(ui_idx, batch);
+            ui_idx += batch;
             remaining -= batch;
         }
     }
