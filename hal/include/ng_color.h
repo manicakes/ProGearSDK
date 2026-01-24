@@ -25,13 +25,18 @@
 
 #include <ng_types.h>
 
+/**
+ * @defgroup color Color Utilities
+ * @ingroup hal
+ * @brief NeoGeo 16-bit color construction and manipulation.
+ * @{
+ */
+
 /** NeoGeo 16-bit color type */
 typedef u16 NGColor;
 
-/** @defgroup colorconstruct Color Construction
- *  @brief Macros to build colors from components.
- *  @{
- */
+/** @name Color Construction */
+/** @{ */
 
 /** Build color from 5-bit RGB components (0-31 each) */
 #define NG_RGB(r, g, b)                                                                      \
@@ -57,13 +62,10 @@ typedef u16 NGColor;
 
 /** Build color from 8-bit RGB with dark bit */
 #define NG_RGB8_DARK(r, g, b) (NG_RGB8(r, g, b) | 0x8000)
-
 /** @} */
 
-/** @defgroup colorconst Color Constants
- *  @brief Pre-defined colors.
- *  @{
- */
+/** @name Color Constants */
+/** @{ */
 
 #define NG_COLOR_REFERENCE 0x8000 /**< Reference/backdrop marker */
 
@@ -100,13 +102,10 @@ typedef u16 NGColor;
 #define NG_COLOR_RED_BRIGHT   NG_RGB4_DARK(0xF, 0x0, 0x0) /**< Brightest red */
 #define NG_COLOR_GREEN_BRIGHT NG_RGB4_DARK(0x0, 0xF, 0x0) /**< Brightest green */
 #define NG_COLOR_BLUE_BRIGHT  NG_RGB4_DARK(0x0, 0x0, 0xF) /**< Brightest blue */
-
 /** @} */
 
-/** @defgroup colorextract Color Extraction
- *  @brief Get individual color components.
- *  @{
- */
+/** @name Color Extraction */
+/** @{ */
 
 /** Extract 5-bit red component (0-31) */
 static inline u8 NGColorGetRed(NGColor c) {
@@ -130,13 +129,10 @@ static inline u8 NGColorGetBlue(NGColor c) {
 static inline u8 NGColorIsDark(NGColor c) {
     return (c >> 15) & 1;
 }
-
 /** @} */
 
-/** @defgroup colormanip Color Manipulation
- *  @brief Modify existing colors.
- *  @{
- */
+/** @name Color Manipulation */
+/** @{ */
 
 /** Set the dark bit on a color */
 static inline NGColor NGColorSetDark(NGColor c) {
@@ -194,13 +190,10 @@ NGColor NGColorGrayscale(NGColor c);
  * @return Adjusted color
  */
 NGColor NGColorAdjustBrightness(NGColor c, s8 amount);
-
 /** @} */
 
-/** @defgroup colorgen Color Generation
- *  @brief Create colors programmatically.
- *  @{
- */
+/** @name Color Generation */
+/** @{ */
 
 /**
  * Create color from HSV values.
@@ -219,7 +212,8 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v);
 static inline NGColor NGColorGray(u8 level) {
     return NG_RGB5(level, level, level);
 }
-
 /** @} */
+
+/** @} */ /* end of color group */
 
 #endif // _NG_COLOR_H_

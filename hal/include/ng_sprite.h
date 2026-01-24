@@ -32,10 +32,15 @@
 #include <ng_types.h>
 #include <ng_hardware.h>
 
-/** @defgroup scbregs SCB Register Addresses
- *  @brief VRAM base addresses for Sprite Control Blocks.
- *  @{
+/**
+ * @defgroup sprite Sprite Hardware
+ * @ingroup hal
+ * @brief Low-level Sprite Control Block (SCB) operations.
+ * @{
  */
+
+/** @name SCB Register Addresses */
+/** @{ */
 
 /** SCB1: Tile index (16-bit) + attributes (16-bit) per row, 64 bytes per sprite */
 #define NG_SCB1_BASE 0x0000
@@ -48,12 +53,10 @@
 
 /** SCB4: X position (bits 15-7), 1 word per sprite */
 #define NG_SCB4_BASE 0x8400
-
 /** @} */
 
-/** @defgroup spriteconst Sprite Constants
- *  @{
- */
+/** @name Constants */
+/** @{ */
 
 /** Full-size shrink value (no scaling) */
 #define NG_SPRITE_SHRINK_NONE 0x0FFF
@@ -63,15 +66,10 @@
 
 /** Maximum sprite height in tiles */
 #define NG_SPRITE_MAX_HEIGHT 32
-
 /** @} */
 
-/** @defgroup spritefunc Sprite Utility Functions
- *  @brief Inline functions for common sprite operations.
- *
- *  All functions are static inline for zero call overhead.
- *  @{
- */
+/** @name Inline Utility Functions */
+/** @{ */
 
 /**
  * Convert screen Y coordinate to NeoGeo hardware Y value.
@@ -164,21 +162,10 @@ static inline void NGSpriteHideRange(u16 first_sprite, u8 count) {
     NG_VRAM_SETUP_FAST(NG_SCB3_BASE + first_sprite, 1);
     NG_VRAM_CLEAR_FAST(count);
 }
-
 /** @} */
 
-/** @defgroup spriteapi Sprite Abstraction API
- *  @brief Functions for common VRAM/SCB write patterns.
- *
- *  These functions encapsulate sprite hardware operations used by
- *  actor, backdrop, terrain, and UI modules. They use optimized
- *  indexed VRAM addressing internally.
- *  @{
- */
-
-/* ============================================================
- * SCB1: Tile Column Writing
- * ============================================================ */
+/** @name SCB1: Tile Column Writing */
+/** @{ */
 
 /**
  * Begin writing tiles to a sprite's SCB1 column.
@@ -221,10 +208,10 @@ void NGSpriteTileWriteEmpty(void);
  * @param rows_written Number of rows already written (0-32)
  */
 void NGSpriteTilePadTo32(u8 rows_written);
+/** @} */
 
-/* ============================================================
- * SCB2: Shrink Values
- * ============================================================ */
+/** @name SCB2: Shrink Values */
+/** @{ */
 
 /**
  * Set shrink value for a range of consecutive sprites.
@@ -235,10 +222,10 @@ void NGSpriteTilePadTo32(u8 rows_written);
  * @param shrink       Shrink value (0x0FFF = full size, 0x0000 = invisible)
  */
 void NGSpriteShrinkSet(u16 first_sprite, u8 count, u16 shrink);
+/** @} */
 
-/* ============================================================
- * SCB3: Y Position and Height
- * ============================================================ */
+/** @name SCB3: Y Position and Height */
+/** @{ */
 
 /**
  * Set Y position and height for a single sprite.
@@ -273,10 +260,10 @@ void NGSpriteYSetChain(u16 first_sprite, u8 count, s16 screen_y, u8 height);
  * @param height       Sprite height in tiles
  */
 void NGSpriteYSetUniform(u16 first_sprite, u8 count, s16 screen_y, u8 height);
+/** @} */
 
-/* ============================================================
- * SCB4: X Positions
- * ============================================================ */
+/** @name SCB4: X Positions */
+/** @{ */
 
 /**
  * Set X position for a single sprite.
@@ -313,10 +300,10 @@ void NGSpriteXBegin(u16 first_sprite);
  * @param screen_x Screen X coordinate
  */
 void NGSpriteXWriteNext(s16 screen_x);
+/** @} */
 
-/* ============================================================
- * Combined High-Level Operations
- * ============================================================ */
+/** @name Combined High-Level Operations */
+/** @{ */
 
 /**
  * Setup all position registers for a multi-column sprite strip.
@@ -349,7 +336,8 @@ void NGSpriteSetupStrip(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_
  */
 void NGSpriteSetupGrid(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y, u8 height,
                        s16 tile_width, u16 shrink);
-
 /** @} */
+
+/** @} */ /* end of sprite group */
 
 #endif /* _NG_SPRITE_H_ */

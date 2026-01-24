@@ -27,17 +27,21 @@
 #include <ng_types.h>
 #include <ng_math.h>
 
-/** @defgroup physconfig Configuration
- *  @{
+/**
+ * @defgroup physics Physics Engine
+ * @ingroup sdk
+ * @brief 2D rigid body physics simulation.
+ * @{
  */
+
+/** @name Configuration */
+/** @{ */
 
 #define NG_PHYS_MAX_BODIES 32 /**< Maximum bodies per world */
-
 /** @} */
 
-/** @defgroup physshape Collision Shapes
- *  @{
- */
+/** @name Collision Shapes */
+/** @{ */
 
 /** Shape type enumeration */
 typedef enum {
@@ -58,12 +62,10 @@ typedef struct {
         } aabb;
     };
 } NGShape;
-
 /** @} */
 
-/** @defgroup physbody Physics Body
- *  @{
- */
+/** @name Physics Body */
+/** @{ */
 
 /** Physics body */
 typedef struct NGBody {
@@ -97,12 +99,10 @@ typedef struct NGBody {
 
 /** Body handle */
 typedef NGBody *NGBodyHandle;
-
 /** @} */
 
-/** @defgroup physworld Physics World
- *  @{
- */
+/** @name Physics World */
+/** @{ */
 
 /** Physics world */
 typedef struct NGPhysWorld {
@@ -120,12 +120,10 @@ typedef struct NGPhysWorld {
 
 /** World handle */
 typedef NGPhysWorld *NGPhysWorldHandle;
-
 /** @} */
 
-/** @defgroup physcoll Collision Info
- *  @{
- */
+/** @name Collision Info */
+/** @{ */
 
 /** Collision information */
 typedef struct {
@@ -142,12 +140,10 @@ typedef struct {
  * @param user_data User-provided data
  */
 typedef void (*NGCollisionCallback)(NGCollision *collision, void *user_data);
-
 /** @} */
 
-/** @defgroup physworldfn World Management
- *  @{
- */
+/** @name World Management */
+/** @{ */
 
 /**
  * Create a physics world.
@@ -202,12 +198,10 @@ void NGPhysWorldReset(NGPhysWorldHandle world);
  * @param callback_data User data for callback
  */
 void NGPhysWorldUpdate(NGPhysWorldHandle world, NGCollisionCallback callback, void *callback_data);
-
 /** @} */
 
-/** @defgroup physbodyfn Body Management
- *  @{
- */
+/** @name Body Management */
+/** @{ */
 
 /**
  * Create a circle body.
@@ -236,12 +230,10 @@ NGBodyHandle NGPhysBodyCreateAABB(NGPhysWorldHandle world, fixed x, fixed y, fix
  * @param body Body handle
  */
 void NGPhysBodyDestroy(NGBodyHandle body);
-
 /** @} */
 
-/** @defgroup physprop Body Properties
- *  @{
- */
+/** @name Body Properties */
+/** @{ */
 
 /**
  * Set body position.
@@ -337,12 +329,10 @@ void NGPhysBodySetUserData(NGBodyHandle body, void *data);
  * @return User data pointer
  */
 void *NGPhysBodyGetUserData(NGBodyHandle body);
-
 /** @} */
 
-/** @defgroup physutil Physics Utilities
- *  @{
- */
+/** @name Utilities */
+/** @{ */
 
 /**
  * Apply impulse to body.
@@ -360,7 +350,8 @@ void NGPhysBodyApplyImpulse(NGBodyHandle body, fixed ix, fixed iy);
  * @return 1 if colliding, 0 otherwise
  */
 u8 NGPhysTestCollision(NGBodyHandle a, NGBodyHandle b, NGCollision *out);
-
 /** @} */
+
+/** @} */ /* end of physics group */
 
 #endif // _PHYSICS_H_

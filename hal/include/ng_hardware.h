@@ -24,20 +24,22 @@
 #include <ng_color.h>
 #include <ng_palette.h>
 
-/** @defgroup screen Screen Dimensions
- *  @brief NeoGeo fixed screen resolution.
- *  @{
+/**
+ * @defgroup hardware Hardware Access
+ * @ingroup hal
+ * @brief NeoGeo hardware registers, VRAM, and 68000 optimizations.
+ * @{
  */
+
+/** @name Screen Dimensions */
+/** @{ */
 
 #define SCREEN_WIDTH  320 /**< Screen width in pixels */
 #define SCREEN_HEIGHT 224 /**< Screen height in pixels */
-
 /** @} */
 
-/** @defgroup hwregs Hardware Registers
- *  @brief Direct hardware register access.
- *  @{
- */
+/** @name Hardware Registers */
+/** @{ */
 
 /* Video / LSPC registers */
 #define NG_REG_LSPCMODE (*(vu16 *)0x3C0006) /**< LSPC mode register */
@@ -58,11 +60,9 @@
 
 /* Palette RAM */
 #define NG_REG_BACKDROP (*(vu16 *)0x401FFE) /**< Backdrop color */
-
 /** @} */
 
-/** @defgroup vramopt VRAM Optimization
- *  @brief Optimized VRAM access using 68000 indexed addressing.
+/** @name VRAM Optimization
  *
  *  These macros implement the optimization from the NeoGeo dev wiki:
  *  Using indexed addressing with a base register is faster than
@@ -77,8 +77,8 @@
  *  NG_VRAM_SET_ADDR_FAST(0x7000);       // Set address
  *  NG_VRAM_WRITE_FAST(tile_data);       // Write data (auto-increments)
  *  @endcode
- *  @{
  */
+/** @{ */
 
 /** Base address of VRAM registers (VRAMADDR at +0, VRAMDATA at +2, VRAMMOD at +4) */
 #define NG_VRAM_BASE 0x3C0000
@@ -185,25 +185,19 @@
                          : "memory");                                 \
     } while (0)
 #endif
-
 /** @} */
 
-/** @defgroup biosvar BIOS Variables
- *  @brief BIOS work RAM variables.
- *  @{
- */
+/** @name BIOS Variables */
+/** @{ */
 
 #define NG_BIOS_SYSTEM_MODE (*(vu8 *)0x10FD80) /**< System mode */
 #define NG_BIOS_MVS_FLAG    (*(vu8 *)0x10FD82) /**< 0=AES, 1=MVS */
 #define NG_BIOS_COUNTRY     (*(vu8 *)0x10FD83) /**< 0=Japan, 1=USA, 2=Europe */
 #define NG_BIOS_VBLANK_FLAG (*(vu8 *)0x10FD8E) /**< Set by VBlank handler */
-
 /** @} */
 
-/** @defgroup sysfunc System Functions
- *  @brief Core system operations.
- *  @{
- */
+/** @name System Functions */
+/** @{ */
 
 /**
  * Wait for vertical blank period.
@@ -218,19 +212,17 @@ void NGWaitVBlank(void);
 static inline void NGWatchdogKick(void) {
     NG_REG_WATCHDOG = 0;
 }
-
 /** @} */
 
-/** @defgroup m68kopt 68000 Optimization Helpers
- *  @brief Inline assembly helpers for 68000-specific optimizations.
+/** @name 68000 Optimization Helpers
  *
  *  These helpers implement optimizations from the NeoGeo dev wiki:
  *  - MOVEQ #0,Dn is faster than CLR.L Dn (saves 2 cycles)
  *  - SUB.L An,An is faster than MOVE.L #0,An (saves 4 cycles)
  *  - ADD.W Dn,Dn is faster than LSL.W #1,Dn (saves 4 cycles)
  *  - `LEA d(An),An` is faster than `ADDA.W #d,An` for small constants
- *  @{
  */
+/** @{ */
 
 /**
  * Clear a data register to zero using MOVEQ (faster than CLR).
@@ -321,12 +313,11 @@ static inline void NGWatchdogKick(void) {
         remainder = (u16)(_tmp >> 16);                                                   \
     } while (0)
 #endif
-
 /** @} */
 
-/** @defgroup optdoc Optimization Guidelines
- *  @brief 68000 optimization tips for NeoGeo development.
- *
+/** @name Optimization Guidelines */
+/** @{ */
+/**
  *  ## VRAM Access
  *  - Use NG_VRAM_DECLARE_BASE() and NG_VRAM_*_FAST macros for multiple
  *    consecutive VRAM operations. Indexed addressing (d(An)) is faster
@@ -358,9 +349,9 @@ static inline void NGWatchdogKick(void) {
  *  - Word/long access must be aligned to even addresses
  *  - First element access is faster than subsequent elements
  *  - Use MOVEM for saving/restoring multiple registers
- *
- *  @{
  */
 /** @} */
+
+/** @} */ /* end of hardware group */
 
 #endif // _NG_HARDWARE_H_

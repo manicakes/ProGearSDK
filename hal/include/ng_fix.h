@@ -22,9 +22,15 @@
 
 #include <ng_hardware.h>
 
-/** @defgroup fixconst Fix Layer Constants
- *  @{
+/**
+ * @defgroup fix Fix Layer
+ * @ingroup hal
+ * @brief Text rendering on the 40x32 tile overlay layer.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 #define NG_FIX_WIDTH  40     /**< Fix layer width in tiles */
 #define NG_FIX_HEIGHT 32     /**< Fix layer height in tiles */
@@ -42,13 +48,10 @@
 
 #define NG_FIX_COLOR_TEXT   1 /**< Main text color index */
 #define NG_FIX_COLOR_SHADOW 2 /**< Shadow/outline color index */
-
 /** @} */
 
-/** @defgroup fixlayout Text Layout System
- *  @brief Alignment-based text positioning.
- *  @{
- */
+/** @name Text Layout System */
+/** @{ */
 
 /** Horizontal alignment */
 typedef enum {
@@ -101,12 +104,10 @@ static inline NGFixLayout NGFixLayoutXY(u8 x, u8 y) {
                           (s8)(y - NG_FIX_SAFE_TOP)};
     return layout;
 }
-
 /** @} */
 
-/** @defgroup fixfunc Fix Layer Functions
- *  @{
- */
+/** @name Fix Layer Functions */
+/** @{ */
 
 /**
  * Put a single tile on the fix layer.
@@ -130,12 +131,10 @@ void NGFixClear(u8 x, u8 y, u8 w, u8 h);
  * Clear the entire fix layer.
  */
 void NGFixClearAll(void);
-
 /** @} */
 
-/** @defgroup textfunc Text Rendering
- *  @{
- */
+/** @name Text Rendering */
+/** @{ */
 
 /**
  * Set font base tile (optional).
@@ -161,7 +160,8 @@ void NGTextPrint(NGFixLayout layout, u8 palette, const char *str);
  * @param ... Format arguments
  */
 void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...);
-
 /** @} */
+
+/** @} */ /* end of fix group */
 
 #endif // _NG_FIX_H_

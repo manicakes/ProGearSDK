@@ -23,6 +23,13 @@
 #include <ng_types.h>
 
 /**
+ * @defgroup arena Arena Memory Allocator
+ * @ingroup hal
+ * @brief Fast bump-pointer memory allocation with bulk free.
+ * @{
+ */
+
+/**
  * Arena allocator structure.
  * Uses bump-pointer allocation for zero-fragmentation memory management.
  */
@@ -35,9 +42,8 @@ typedef struct NGArena {
 /** Mark for save/restore (temporary allocations) */
 typedef u8 *NGArenaMark;
 
-/** @defgroup arenacore Core Operations
- *  @{
- */
+/** @name Core Operations */
+/** @{ */
 
 /**
  * Initialize arena with external buffer.
@@ -60,12 +66,10 @@ void *NGArenaAlloc(NGArena *arena, u32 size);
  * @param arena Arena to reset
  */
 void NGArenaReset(NGArena *arena);
-
 /** @} */
 
-/** @defgroup arenatemp Temporary Allocations
- *  @{
- */
+/** @name Temporary Allocations */
+/** @{ */
 
 /**
  * Save current position for later restore.
@@ -81,12 +85,10 @@ NGArenaMark NGArenaSave(NGArena *arena);
  * @param mark Mark from NGArenaSave()
  */
 void NGArenaRestore(NGArena *arena, NGArenaMark mark);
-
 /** @} */
 
-/** @defgroup arenaquery Queries
- *  @{
- */
+/** @name Queries */
+/** @{ */
 
 /**
  * Get bytes currently used.
@@ -101,12 +103,10 @@ u32 NGArenaUsed(NGArena *arena);
  * @return Bytes available
  */
 u32 NGArenaRemaining(NGArena *arena);
-
 /** @} */
 
-/** @defgroup arenamacro Convenience Macros
- *  @{
- */
+/** @name Convenience Macros */
+/** @{ */
 
 /**
  * Allocate a single struct.
@@ -125,13 +125,10 @@ u32 NGArenaRemaining(NGArena *arena);
  */
 #define NG_ARENA_ALLOC_ARRAY(arena, type, count) \
     ((type *)NGArenaAlloc((arena), sizeof(type) * (count)))
-
 /** @} */
 
-/** @defgroup arenastd Standard Arenas
- *  @brief Pre-configured arenas for common use cases.
- *  @{
- */
+/** @name Standard Arenas */
+/** @{ */
 
 /** Default size for persistent arena (can be overridden before including ng_arena.h) */
 #ifndef NG_ARENA_PERSISTENT_SIZE
@@ -162,7 +159,8 @@ extern NGArena ng_arena_frame;
  * Call once at startup (automatically called by NGEngineInit).
  */
 void NGArenaSystemInit(void);
-
 /** @} */
+
+/** @} */ /* end of arena group */
 
 #endif // _NG_ARENA_H_

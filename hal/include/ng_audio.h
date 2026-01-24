@@ -28,6 +28,13 @@
 
 #include <ng_hardware.h>
 
+/**
+ * @defgroup audio Audio System
+ * @ingroup hal
+ * @brief ADPCM-A sound effects and ADPCM-B music playback.
+ * @{
+ */
+
 /* Maximum number of sound effects and music tracks */
 #define NG_AUDIO_MAX_SFX      32
 #define NG_AUDIO_MAX_MUSIC    32
@@ -217,5 +224,7 @@ u8 NGAudioGetCurrentMusic(void);
  * @return Volume level (0-15)
  */
 u8 NGAudioGetVolume(void);
+
+/** @} */ /* end of audio group */
 
 #endif /* _NG_AUDIO_H_ */

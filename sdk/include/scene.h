@@ -34,20 +34,23 @@
 /* Forward declaration */
 struct NGTerrainAsset;
 
-/** @defgroup sceneconst Scene Constants
- *  @{
+/**
+ * @defgroup scene Scene System
+ * @ingroup sdk
+ * @brief World/stage management with terrain and collision.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 #define NG_SCENE_MAX_HEIGHT 512 /**< Maximum scene height in pixels */
 #define NG_SCENE_VIEWPORT_W 320 /**< Viewport width (NeoGeo resolution) */
 #define NG_SCENE_VIEWPORT_H 224 /**< Viewport height (NeoGeo resolution) */
-
 /** @} */
 
-/** @defgroup collflags Collision Flags
- *  @brief Collision direction and tile property flags.
- *  @{
- */
+/** @name Collision Flags */
+/** @{ */
 
 /* Collision direction flags (returned by NGSceneResolveCollision) */
 #define NG_COLL_NONE   0x00 /**< No collision */
@@ -64,12 +67,10 @@ struct NGTerrainAsset;
 #define NG_TILE_HAZARD   0x10 /**< Damages player on contact */
 #define NG_TILE_TRIGGER  0x20 /**< Triggers callback on contact */
 #define NG_TILE_LADDER   0x40 /**< Climbable tile */
-
 /** @} */
 
-/** @defgroup scenefunc Scene Functions
- *  @{
- */
+/** @name Core Functions */
+/** @{ */
 
 /**
  * Initialize the scene system.
@@ -95,16 +96,10 @@ void NGSceneDraw(void);
  * Call when transitioning between levels/screens.
  */
 void NGSceneReset(void);
-
 /** @} */
 
-/** @defgroup sceneterrain Scene Terrain
- *  @brief Terrain that actors interact with.
- *
- *  The scene owns a single terrain. Use NGSceneSetTerrain() to set it,
- *  then use the collision functions to resolve actor movement against the terrain.
- *  @{
- */
+/** @name Terrain */
+/** @{ */
 
 /**
  * Set the scene's terrain from a terrain asset.
@@ -201,7 +196,8 @@ void NGSceneSetTileAt(u16 tile_x, u16 tile_y, u8 tile_index);
  * @param collision New collision flags
  */
 void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision);
-
 /** @} */
+
+/** @} */ /* end of scene group */
 
 #endif /* _SCENE_H_ */

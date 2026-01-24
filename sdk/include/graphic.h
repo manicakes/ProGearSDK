@@ -46,9 +46,15 @@
 #include <ng_types.h>
 #include <visual.h>
 
-/** @defgroup graphictypes Types and Enums
- *  @{
+/**
+ * @defgroup graphic Graphics API
+ * @ingroup sdk
+ * @brief Platform-agnostic 2D sprite rendering.
+ * @{
  */
+
+/** @name Types and Enums */
+/** @{ */
 
 /** Maximum graphics that can be active simultaneously */
 #define NG_GRAPHIC_MAX 64
@@ -112,12 +118,10 @@ typedef struct {
     NGGraphicLayer layer;        /**< Render layer */
     u8 z_order;                  /**< Sort order within layer (0=back, 255=front) */
 } NGGraphicConfig;
-
 /** @} */
 
-/** @defgroup graphiclife Lifecycle
- *  @{
- */
+/** @name Lifecycle */
+/** @{ */
 
 /**
  * Create a graphic with given configuration.
@@ -134,12 +138,10 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config);
  * @param g Graphic to destroy (NULL safe)
  */
 void NGGraphicDestroy(NGGraphic *g);
-
 /** @} */
 
-/** @defgroup graphicsource Source Configuration
- *  @{
- */
+/** @name Source Configuration */
+/** @{ */
 
 /**
  * Set source from a visual asset.
@@ -214,12 +216,10 @@ void NGGraphicSetFrame(NGGraphic *g, u16 frame);
  * Mark source as changed, forcing reload on next commit.
  */
 void NGGraphicInvalidateSource(NGGraphic *g);
-
 /** @} */
 
-/** @defgroup graphictransform Transform
- *  @{
- */
+/** @name Transform */
+/** @{ */
 
 /**
  * Set screen position (top-left corner).
@@ -272,12 +272,10 @@ void NGGraphicSetZOrder(NGGraphic *g, u8 z);
  * @param layer New layer
  */
 void NGGraphicSetLayer(NGGraphic *g, NGGraphicLayer layer);
-
 /** @} */
 
-/** @defgroup graphic9slice 9-Slice Configuration
- *  @{
- */
+/** @name 9-Slice Configuration */
+/** @{ */
 
 /**
  * Configure 9-slice border sizes in pixels.
@@ -290,12 +288,10 @@ void NGGraphicSetLayer(NGGraphic *g, NGGraphicLayer layer);
  * @param right Right border width in pixels
  */
 void NGGraphicSet9SliceBorders(NGGraphic *g, u8 top, u8 bottom, u8 left, u8 right);
-
 /** @} */
 
-/** @defgroup graphicvis Visibility
- *  @{
- */
+/** @name Visibility */
+/** @{ */
 
 /**
  * Set visibility.
@@ -312,12 +308,10 @@ void NGGraphicSetVisible(NGGraphic *g, u8 visible);
  * @return 1 if visible, 0 if hidden
  */
 u8 NGGraphicIsVisible(const NGGraphic *g);
-
 /** @} */
 
-/** @defgroup graphicrender Rendering
- *  @{
- */
+/** @name Rendering */
+/** @{ */
 
 /**
  * Commit pending changes to backend immediately.
@@ -332,12 +326,10 @@ void NGGraphicCommit(NGGraphic *g);
  * Force full redraw on next commit.
  */
 void NGGraphicInvalidate(NGGraphic *g);
-
 /** @} */
 
-/** @defgroup graphicquery Queries
- *  @{
- */
+/** @name Queries */
+/** @{ */
 
 /**
  * Get current display width.
@@ -370,13 +362,10 @@ s16 NGGraphicGetX(const NGGraphic *g);
  * @return Screen Y coordinate
  */
 s16 NGGraphicGetY(const NGGraphic *g);
-
 /** @} */
 
-/** @defgroup graphicsystem System Functions (Internal)
- *  Called by engine, not by user code.
- *  @{
- */
+/** @name System Functions (Internal) */
+/** @{ */
 
 /**
  * Initialize graphics system.
@@ -396,7 +385,8 @@ void NGGraphicSystemDraw(void);
  * Called on scene transitions.
  */
 void NGGraphicSystemReset(void);
-
 /** @} */
+
+/** @} */ /* end of graphic group */
 
 #endif /* _GRAPHIC_H_ */

@@ -19,23 +19,25 @@
 
 #include <ng_types.h>
 
-/** @defgroup fixedtypes Fixed-Point Types
- *  @brief Core fixed-point number types.
- *  @{
+/**
+ * @defgroup math Fixed-Point Math
+ * @ingroup hal
+ * @brief Fixed-point arithmetic, trigonometry, and vectors.
+ * @{
  */
+
+/** @name Fixed-Point Types */
+/** @{ */
 
 /** 16.16 fixed-point (32-bit): range +/-32767.9999 */
 typedef s32 fixed;
 
 /** 8.8 fixed-point (16-bit): range +/-127.99 */
 typedef s16 fixed16;
-
 /** @} */
 
-/** @defgroup fixed1616 16.16 Fixed-Point Math
- *  @brief Operations for 32-bit fixed-point values.
- *  @{
- */
+/** @name 16.16 Fixed-Point Math */
+/** @{ */
 
 #define FIX_SHIFT 16                     /**< Fractional bits in fixed */
 #define FIX_ONE   (1 << FIX_SHIFT)       /**< 1.0 in fixed format */
@@ -80,13 +82,10 @@ static inline fixed FIX_MUL(fixed a, fixed b) {
 
 /** Sign of fixed value: returns -FIX_ONE, 0, or FIX_ONE */
 #define FIX_SIGN(x) ((x) > 0 ? FIX_ONE : ((x) < 0 ? -FIX_ONE : 0))
-
 /** @} */
 
-/** @defgroup fixed88 8.8 Fixed-Point Math
- *  @brief Operations for 16-bit fixed-point values.
- *  @{
- */
+/** @name 8.8 Fixed-Point Math */
+/** @{ */
 
 #define FIX16_SHIFT 8                        /**< Fractional bits in fixed16 */
 #define FIX16_ONE   (1 << FIX16_SHIFT)       /**< 1.0 in fixed16 format */
@@ -112,13 +111,10 @@ static inline fixed FIX_MUL(fixed a, fixed b) {
 
 /** Convert fixed16 (8.8) to fixed (16.16) */
 #define FIX16_TO_FIX(x) ((fixed)((x) << (FIX_SHIFT - FIX16_SHIFT)))
-
 /** @} */
 
-/** @defgroup angles Angles
- *  @brief Angle representation using 256 units per circle.
- *  @{
- */
+/** @name Angles (256 units per circle) */
+/** @{ */
 
 /** Angle type: 0-255 represents 0-360 degrees */
 typedef u8 angle_t;
@@ -132,13 +128,10 @@ typedef u8 angle_t;
 #define ANGLE_270 192 /**< 270 degrees */
 #define ANGLE_315 224 /**< 315 degrees */
 #define ANGLE_360 0   /**< 360 degrees (wraps to 0) */
-
 /** @} */
 
-/** @defgroup trig Trigonometry
- *  @brief Sine, cosine, and atan2 functions using lookup tables.
- *  @{
- */
+/** @name Trigonometry */
+/** @{ */
 
 /**
  * Get sine of angle.
@@ -161,13 +154,10 @@ fixed NGCos(angle_t angle);
  * @return Angle from positive X axis (0-255)
  */
 angle_t NGAtan2(fixed y, fixed x);
-
 /** @} */
 
-/** @defgroup mathutil Math Utilities
- *  @brief General-purpose math functions.
- *  @{
- */
+/** @name Math Utilities */
+/** @{ */
 
 /**
  * Integer square root.
@@ -206,13 +196,10 @@ fixed NGClamp(fixed x, fixed min, fixed max);
 
 /** Return maximum of a and b */
 #define NG_MAX(a, b) ((a) > (b) ? (a) : (b))
-
 /** @} */
 
-/** @defgroup vec2 2D Vectors
- *  @brief Fixed-point 2D vector operations.
- *  @{
- */
+/** @name 2D Vectors */
+/** @{ */
 
 /** 2D vector with fixed-point components */
 typedef struct {
@@ -258,7 +245,8 @@ fixed NGVec2Length(NGVec2 v);
  * @return Unit vector in same direction
  */
 NGVec2 NGVec2Normalize(NGVec2 v);
-
 /** @} */
+
+/** @} */ /* end of math group */
 
 #endif // _NG_MATH_H_

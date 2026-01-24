@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-// engine.h - Application lifecycle and main loop management
-//
-// The NGEngine module provides convenience functions for managing
-// the game's main loop and initialization. It consolidates the
-// various subsystem init calls and frame timing.
+/**
+ * @file engine.h
+ * @brief Application lifecycle and main loop management.
+ *
+ * The NGEngine module provides convenience functions for managing
+ * the game's main loop and initialization. It consolidates the
+ * various subsystem init calls and frame timing.
+ */
 
 #ifndef ENGINE_H
 #define ENGINE_H
@@ -16,7 +19,15 @@
 #include <ng_types.h>
 #include <ui.h>
 
-// === Initialization ===
+/**
+ * @defgroup engine Engine
+ * @ingroup sdk
+ * @brief Application lifecycle, initialization, and main loop.
+ * @{
+ */
+
+/** @name Initialization */
+/** @{ */
 
 /**
  * Initialize all engine subsystems.
@@ -29,8 +40,10 @@
  * no-op default is used.
  */
 void NGEngineInit(void);
+/** @} */
 
-// === Main Loop ===
+/** @name Main Loop */
+/** @{ */
 
 /**
  * Call at the start of each frame (top of main loop).
@@ -43,8 +56,10 @@ void NGEngineFrameStart(void);
  * Calls: NGSceneUpdate, NGSceneDraw, and draws the active menu if set.
  */
 void NGEngineFrameEnd(void);
+/** @} */
 
-// === Active Menu ===
+/** @name Active Menu */
+/** @{ */
 
 /**
  * Set the currently active menu for automatic drawing.
@@ -58,5 +73,8 @@ void NGEngineSetActiveMenu(NGMenuHandle menu);
  * @return Current menu handle, or NULL if none set
  */
 NGMenuHandle NGEngineGetActiveMenu(void);
+/** @} */
+
+/** @} */ /* end of engine group */
 
 #endif // ENGINE_H

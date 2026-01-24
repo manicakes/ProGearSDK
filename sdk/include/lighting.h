@@ -56,22 +56,25 @@
 #include <ng_math.h>
 #include <ng_color.h>
 
-/** @defgroup lightingconst Lighting Constants
- *  @{
+/**
+ * @defgroup lighting Lighting System
+ * @ingroup sdk
+ * @brief Palette-based lighting effects and transitions.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 /** Maximum number of concurrent lighting layers */
 #define NG_LIGHTING_MAX_LAYERS 8
 
 /** Invalid layer handle (returned on error) */
 #define NG_LIGHTING_INVALID_HANDLE 0xFF
-
 /** @} */
 
-/** @defgroup lightingpriority Priority Levels
- *  @brief Suggested priority values for different effect types.
- *  @{
- */
+/** @name Priority Levels */
+/** @{ */
 
 /** Ambient effects: day/night, weather, global mood (applied first) */
 #define NG_LIGHTING_PRIORITY_AMBIENT 50
@@ -81,12 +84,10 @@
 
 /** Transient effects: flashes, pulses (applied last) */
 #define NG_LIGHTING_PRIORITY_TRANSIENT 200
-
 /** @} */
 
-/** @defgroup lightingpreset Lighting Presets
- *  @{
- */
+/** @name Presets */
+/** @{ */
 
 /** Pre-defined lighting presets */
 typedef enum {
@@ -100,12 +101,10 @@ typedef enum {
     NG_LIGHTING_PRESET_SEPIA,      /**< Sepia: warm brown, desaturated */
     NG_LIGHTING_PRESET_MENU_DIM,   /**< Menu dimming: darkened */
 } NGLightingPreset;
-
 /** @} */
 
-/** @defgroup lightingblend Blend Modes
- *  @{
- */
+/** @name Blend Modes */
+/** @{ */
 
 /** How a layer's effects are applied */
 typedef enum {
@@ -115,14 +114,12 @@ typedef enum {
     NG_LIGHTING_BLEND_ADDITIVE,
 } NGLightingBlendMode;
 
-/** @} */
-
 /** Handle to a lighting layer */
 typedef u8 NGLightingLayerHandle;
+/** @} */
 
-/** @defgroup lightinginit Initialization
- *  @{
- */
+/** @name Initialization */
+/** @{ */
 
 /**
  * Initialize the lighting system.
@@ -135,12 +132,10 @@ void NGLightingInit(void);
  * Restores all palettes to their original state.
  */
 void NGLightingReset(void);
-
 /** @} */
 
-/** @defgroup lightinglayer Layer Management
- *  @{
- */
+/** @name Layer Management */
+/** @{ */
 
 /**
  * Push a new lighting layer onto the stack.
@@ -179,12 +174,10 @@ u8 NGLightingLayerActive(NGLightingLayerHandle handle);
  * @return Count of active layers (0 to NG_LIGHTING_MAX_LAYERS)
  */
 u8 NGLightingGetLayerCount(void);
-
 /** @} */
 
-/** @defgroup lightingconfig Layer Configuration
- *  @{
- */
+/** @name Layer Configuration */
+/** @{ */
 
 /**
  * Set color tint for a layer.
@@ -233,12 +226,10 @@ void NGLightingSetDuration(NGLightingLayerHandle handle, u16 frames);
  * @param mode Blend mode (NG_LIGHTING_BLEND_NORMAL or NG_LIGHTING_BLEND_ADDITIVE)
  */
 void NGLightingSetBlendMode(NGLightingLayerHandle handle, NGLightingBlendMode mode);
-
 /** @} */
 
-/** @defgroup lightingconvenience Convenience Functions
- *  @{
- */
+/** @name Convenience Functions */
+/** @{ */
 
 /**
  * Create a flash effect.
@@ -286,12 +277,10 @@ void NGLightingFadeBrightness(NGLightingLayerHandle handle, fixed target, u16 fr
  * @param frames Animation duration in frames
  */
 void NGLightingFadeTint(NGLightingLayerHandle handle, s8 r, s8 g, s8 b, u16 frames);
-
 /** @} */
 
-/** @defgroup lightingupdate Update
- *  @{
- */
+/** @name Update */
+/** @{ */
 
 /**
  * Update the lighting system.
@@ -312,12 +301,10 @@ void NGLightingUpdate(void);
  * Normally not needed, but useful after directly modifying palettes.
  */
 void NGLightingInvalidate(void);
-
 /** @} */
 
-/** @defgroup lightingquery State Queries
- *  @{
- */
+/** @name State Queries */
+/** @{ */
 
 /**
  * Check if any lighting effects are currently active.
@@ -332,12 +319,10 @@ u8 NGLightingIsActive(void);
  * @return 1 if any layer has an active fade animation, 0 otherwise
  */
 u8 NGLightingIsAnimating(void);
-
 /** @} */
 
-/** @defgroup lightingprebakedsetup Pre-baked Preset Setup
- *  @{
- */
+/** @name Pre-baked Preset Setup */
+/** @{ */
 
 /**
  * Function pointer type for applying pre-baked palette step.
@@ -365,11 +350,9 @@ void NGLightingRegisterPrebaked(NGLightingApplyStepFn apply_fn, NGLightingGetInf
  * defined in assets.yaml provide a strong symbol that overrides this weak default.
  */
 void NGLightingInitPresets(void);
-
 /** @} */
 
-/** @defgroup lightingprebaked Pre-baked Presets
- *  @brief Zero-CPU lighting transitions using ROM-based palette data.
+/** @name Pre-baked Presets
  *
  *  Pre-baked presets are defined in assets.yaml under lighting_presets.
  *  The asset compiler generates interpolated palette variants at build time,
@@ -394,8 +377,8 @@ void NGLightingInitPresets(void);
  *  // Instant apply (no fade) - pass 0 for frames
  *  NGLightingLayerHandle dim = NGLightingPushPreset(NG_LIGHTING_PREBAKED_MENU_DIM, 0);
  *  ```
- *  @{
  */
+/** @{ */
 
 /**
  * Push a pre-baked lighting preset with optional fade-in animation.
@@ -444,7 +427,8 @@ u8 NGLightingIsPrebakedFading(void);
  * @return Preset ID, or 0xFF if no preset is active
  */
 u8 NGLightingGetActivePreset(void);
-
 /** @} */
+
+/** @} */ /* end of lighting group */
 
 #endif // LIGHTING_H

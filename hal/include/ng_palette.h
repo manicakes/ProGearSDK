@@ -21,9 +21,15 @@
 #include <ng_types.h>
 #include <ng_color.h>
 
-/** @defgroup palconst Palette Constants
- *  @{
+/**
+ * @defgroup palette Palette Management
+ * @ingroup hal
+ * @brief NeoGeo palette RAM operations.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 #define NG_PAL_COUNT    256      /**< Total number of palettes */
 #define NG_PAL_SIZE     16       /**< Colors per palette */
@@ -32,12 +38,10 @@
 #define NG_PAL_BANK_FIX 0  /**< Fix layer palette bank (0-15) */
 #define NG_PAL_BANK_SPR 16 /**< Sprite palette bank (16-255) */
 #define NG_PAL_FIX      0  /**< Default fix layer palette */
-
 /** @} */
 
-/** @defgroup palcolor Single Color Operations
- *  @{
- */
+/** @name Single Color Operations */
+/** @{ */
 
 /**
  * Set a single color in a palette.
@@ -54,12 +58,10 @@ void NGPalSetColor(u8 palette, u8 index, NGColor color);
  * @return Color value
  */
 NGColor NGPalGetColor(u8 palette, u8 index);
-
 /** @} */
 
-/** @defgroup palbulk Bulk Operations
- *  @{
- */
+/** @name Bulk Operations */
+/** @{ */
 
 /**
  * Set an entire palette (16 colors).
@@ -89,12 +91,10 @@ void NGPalFill(u8 palette, u8 start_idx, u8 count, NGColor color);
  * @param palette Palette index
  */
 void NGPalClear(u8 palette);
-
 /** @} */
 
-/** @defgroup palgrad Gradient Generation
- *  @{
- */
+/** @name Gradient Generation */
+/** @{ */
 
 /**
  * Generate a gradient between two colors.
@@ -123,13 +123,10 @@ void NGPalGradientToBlack(u8 palette, u8 start_idx, u8 end_idx, NGColor color);
  * @param color Starting color
  */
 void NGPalGradientToWhite(u8 palette, u8 start_idx, u8 end_idx, NGColor color);
-
 /** @} */
 
-/** @defgroup palfade Fade Effects
- *  @brief Modify palettes in-place for fade animations.
- *  @{
- */
+/** @name Fade Effects */
+/** @{ */
 
 /**
  * Fade palette toward black.
@@ -152,12 +149,10 @@ void NGPalFadeToWhite(u8 palette, u8 amount);
  * @param amount Fade amount (0=no change, 31=target)
  */
 void NGPalFadeToColor(u8 palette, NGColor target, u8 amount);
-
 /** @} */
 
-/** @defgroup palbackup Palette Backup/Restore
- *  @{
- */
+/** @name Backup/Restore */
+/** @{ */
 
 /**
  * Backup a palette to a buffer.
@@ -172,12 +167,10 @@ void NGPalBackup(u8 palette, NGColor buffer[NG_PAL_SIZE]);
  * @param buffer Buffer containing 16 colors
  */
 void NGPalRestore(u8 palette, const NGColor buffer[NG_PAL_SIZE]);
-
 /** @} */
 
-/** @defgroup palutil Palette Utilities
- *  @{
- */
+/** @name Utilities */
+/** @{ */
 
 /**
  * Set up a palette with base color and darker shades.
@@ -197,13 +190,10 @@ void NGPalSetupGrayscale(u8 palette);
  * Sets reference color and white for text.
  */
 void NGPalInitDefault(void);
-
 /** @} */
 
-/** @defgroup palbackdrop Backdrop Color
- *  @brief The backmost layer color (stored at 0x401FFE).
- *  @{
- */
+/** @name Backdrop Color */
+/** @{ */
 
 /**
  * Set the backdrop/background color.
@@ -216,13 +206,10 @@ void NGPalSetBackdrop(NGColor color);
  * @return Current backdrop color
  */
 NGColor NGPalGetBackdrop(void);
-
 /** @} */
 
-/** @defgroup palaccess Direct Access
- *  @brief For advanced users needing direct palette RAM access.
- *  @{
- */
+/** @name Direct Access */
+/** @{ */
 
 /**
  * Get pointer to palette RAM.
@@ -242,7 +229,8 @@ static inline volatile u16 *NGPalGetPtr(u8 palette) {
 static inline volatile u16 *NGPalGetColorPtr(u8 palette, u8 index) {
     return (volatile u16 *)(NG_PAL_RAM_BASE + (palette * NG_PAL_SIZE * 2) + (index * 2));
 }
-
 /** @} */
+
+/** @} */ /* end of palette group */
 
 #endif // _NG_PALETTE_H_

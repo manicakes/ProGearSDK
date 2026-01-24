@@ -32,30 +32,32 @@
 #include <ng_math.h>
 #include <visual.h>
 
-/** @defgroup actorconst Actor Constants
- *  @{
+/**
+ * @defgroup actor Actor System
+ * @ingroup sdk
+ * @brief Game objects with position, animation, and appearance.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 #define NG_ACTOR_MAX            64     /**< Maximum active actors */
 #define NG_ACTOR_WIDTH_INFINITE 0xFFFF /**< Infinite width value */
-
 /** @} */
 
-/** @defgroup actorhandle Actor Handle
- *  @{
- */
+/** @name Handle Type */
+/** @{ */
 
 /** Actor handle type */
 typedef s8 NGActorHandle;
 
 /** Invalid actor handle */
 #define NG_ACTOR_INVALID (-1)
-
 /** @} */
 
-/** @defgroup actorlife Lifecycle Functions
- *  @{
- */
+/** @name Lifecycle */
+/** @{ */
 
 /**
  * Create an actor from a visual asset.
@@ -86,12 +88,10 @@ void NGActorRemoveFromScene(NGActorHandle actor);
  * @param actor Actor handle
  */
 void NGActorDestroy(NGActorHandle actor);
-
 /** @} */
 
-/** @defgroup actorpos Position Functions
- *  @{
- */
+/** @name Position */
+/** @{ */
 
 /**
  * Set actor position in scene.
@@ -136,12 +136,10 @@ fixed NGActorGetY(NGActorHandle actor);
  * @return Z-index
  */
 u8 NGActorGetZ(NGActorHandle actor);
-
 /** @} */
 
-/** @defgroup actoranim Animation Functions
- *  @{
- */
+/** @name Animation */
+/** @{ */
 
 /**
  * Set animation by index.
@@ -171,12 +169,10 @@ void NGActorSetFrame(NGActorHandle actor, u16 frame);
  * @return 1 if done, 0 if still playing
  */
 u8 NGActorAnimDone(NGActorHandle actor);
-
 /** @} */
 
-/** @defgroup actorappear Appearance Functions
- *  @{
- */
+/** @name Appearance */
+/** @{ */
 
 /**
  * Set actor visibility.
@@ -214,12 +210,10 @@ void NGActorSetVFlip(NGActorHandle actor, u8 flip);
  * @param enabled 1 for screen-space, 0 for world-space (default)
  */
 void NGActorSetScreenSpace(NGActorHandle actor, u8 enabled);
-
 /** @} */
 
-/** @defgroup actoraudio Audio Functions
- *  @{
- */
+/** @name Audio */
+/** @{ */
 
 /**
  * Play a sound effect at an actor's position.
@@ -228,7 +222,8 @@ void NGActorSetScreenSpace(NGActorHandle actor, u8 enabled);
  * @param sfx_index Sound effect index (from generated NGSFX_* constants)
  */
 void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index);
-
 /** @} */
+
+/** @} */ /* end of actor group */
 
 #endif /* _ACTOR_H_ */

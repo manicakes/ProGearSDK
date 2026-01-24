@@ -43,30 +43,32 @@
 #include <ng_math.h>
 #include <visual.h>
 
-/** @defgroup backdropconst Backdrop Constants
- *  @{
+/**
+ * @defgroup backdrop Backdrop System
+ * @ingroup sdk
+ * @brief Parallax background layers.
+ * @{
  */
+
+/** @name Constants */
+/** @{ */
 
 #define NG_BACKDROP_MAX            4      /**< Maximum backdrop layers */
 #define NG_BACKDROP_WIDTH_INFINITE 0xFFFF /**< Infinite width value */
-
 /** @} */
 
-/** @defgroup backdrophandle Backdrop Handle
- *  @{
- */
+/** @name Handle Type */
+/** @{ */
 
 /** Backdrop handle type */
 typedef s8 NGBackdropHandle;
 
 /** Invalid backdrop handle */
 #define NG_BACKDROP_INVALID (-1)
-
 /** @} */
 
-/** @defgroup backdroplife Lifecycle Functions
- *  @{
- */
+/** @name Lifecycle */
+/** @{ */
 
 /**
  * Create a backdrop from a visual asset.
@@ -101,12 +103,10 @@ void NGBackdropRemoveFromScene(NGBackdropHandle backdrop);
  * @param backdrop Backdrop handle
  */
 void NGBackdropDestroy(NGBackdropHandle backdrop);
-
 /** @} */
 
-/** @defgroup backdroppos Position Functions
- *  @{
- */
+/** @name Position */
+/** @{ */
 
 /**
  * Reposition backdrop relative to current camera viewport.
@@ -124,12 +124,10 @@ void NGBackdropSetViewportPos(NGBackdropHandle backdrop, s16 viewport_x, s16 vie
  * @param z Z-index for render order
  */
 void NGBackdropSetZ(NGBackdropHandle backdrop, u8 z);
-
 /** @} */
 
-/** @defgroup backdropappear Appearance Functions
- *  @{
- */
+/** @name Appearance */
+/** @{ */
 
 /**
  * Set backdrop visibility.
@@ -144,7 +142,8 @@ void NGBackdropSetVisible(NGBackdropHandle backdrop, u8 visible);
  * @param palette Palette index (0-255)
  */
 void NGBackdropSetPalette(NGBackdropHandle backdrop, u8 palette);
-
 /** @} */
+
+/** @} */ /* end of backdrop group */
 
 #endif /* _BACKDROP_H_ */

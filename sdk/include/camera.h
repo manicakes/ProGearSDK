@@ -37,20 +37,22 @@
 #include <ng_math.h>
 #include <ng_hardware.h>
 
-/** @defgroup camviewport Viewport Dimensions
- *  @brief NeoGeo screen size at 100% zoom.
- *  @{
+/**
+ * @defgroup camera Camera System
+ * @ingroup sdk
+ * @brief Viewport, zoom, shake, and actor tracking.
+ * @{
  */
+
+/** @name Viewport Dimensions */
+/** @{ */
 
 #define NG_CAM_VIEWPORT_WIDTH  SCREEN_WIDTH  /**< Screen width in pixels */
 #define NG_CAM_VIEWPORT_HEIGHT SCREEN_HEIGHT /**< Screen height in pixels */
-
 /** @} */
 
-/** @defgroup camworld World Limits
- *  @brief Maximum world dimensions for smooth scrolling.
- *  @{
- */
+/** @name World Limits */
+/** @{ */
 
 /**
  * Maximum world height for smooth Y scrolling (512 pixels = 32 tiles).
@@ -60,25 +62,20 @@
  * X scrolling has no such limit since tiles can be dynamically cycled.
  */
 #define NG_CAM_MAX_WORLD_HEIGHT 512
-
 /** @} */
 
-/** @defgroup camzoom Zoom Levels
- *  @brief Zoom constants (same as scroll zoom levels).
- *  @{
- */
+/** @name Zoom Levels */
+/** @{ */
 
 #define NG_CAM_ZOOM_100 16 /**< 100% - Full size */
 #define NG_CAM_ZOOM_87  14 /**< 87.5% */
 #define NG_CAM_ZOOM_75  12 /**< 75% */
 #define NG_CAM_ZOOM_62  10 /**< 62.5% */
 #define NG_CAM_ZOOM_50  8  /**< 50% - Half size */
-
 /** @} */
 
-/** @defgroup camsys Camera System
- *  @{
- */
+/** @name Core Functions */
+/** @{ */
 
 /**
  * Initialize camera system.
@@ -170,12 +167,10 @@ u16 NGCameraGetShrink(void);
  * Handles smooth zoom transitions and effects.
  */
 void NGCameraUpdate(void);
-
 /** @} */
 
-/** @defgroup cameffects Camera Effects
- *  @{
- */
+/** @name Effects */
+/** @{ */
 
 /**
  * Trigger camera shake effect.
@@ -209,12 +204,10 @@ fixed NGCameraGetRenderX(void);
  * @return World Y coordinate including shake offset
  */
 fixed NGCameraGetRenderY(void);
-
 /** @} */
 
-/** @defgroup camutil Camera Utilities
- *  @{
- */
+/** @name Utilities */
+/** @{ */
 
 /**
  * Get visible world width at current zoom.
@@ -256,17 +249,10 @@ void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *scr
  * @param world_y Output world Y
  */
 void NGCameraScreenToWorld(s16 screen_x, s16 screen_y, fixed *world_x, fixed *world_y);
-
 /** @} */
 
-/** @defgroup camtrack Actor Tracking
- *  @brief Metal Slug-style camera following with deadzone.
- *
- *  The camera can track an actor with a deadzone - a region in the center
- *  of the screen where the actor can move freely without the camera following.
- *  When the actor moves outside the deadzone, the camera smoothly follows.
- *  @{
- */
+/** @name Actor Tracking */
+/** @{ */
 
 #include <actor.h>
 
@@ -316,7 +302,8 @@ void NGCameraSetBounds(u16 world_width, u16 world_height);
  * @param offset_y Vertical offset in pixels
  */
 void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y);
-
 /** @} */
+
+/** @} */ /* end of camera group */
 
 #endif // _CAMERA_H_

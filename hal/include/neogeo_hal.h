@@ -19,6 +19,26 @@
  * - Arena memory allocator
  */
 
+/**
+ * @defgroup hal HAL - Hardware Abstraction Layer
+ * @brief Low-level NeoGeo hardware access and utilities.
+ *
+ * The HAL provides direct access to NeoGeo hardware with portable abstractions.
+ * It handles types, math, graphics hardware, input, and audio at the hardware level.
+ *
+ * Modules:
+ * - @ref types - Fixed-width integer types
+ * - @ref math - Fixed-point math and trigonometry
+ * - @ref color - NeoGeo 16-bit color utilities
+ * - @ref palette - Palette RAM management
+ * - @ref hardware - Hardware registers and VRAM access
+ * - @ref sprite - Sprite Control Block (SCB) operations
+ * - @ref fix - Fix layer text rendering
+ * - @ref input - Controller input handling
+ * - @ref audio - ADPCM audio playback
+ * - @ref arena - Arena memory allocator
+ */
+
 #ifndef _NEOGEO_HAL_H_
 #define _NEOGEO_HAL_H_
 
