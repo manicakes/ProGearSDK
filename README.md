@@ -60,6 +60,7 @@ make              # Build everything (HAL + SDK + demos)
 make hal          # Build HAL only (hal/build/libneogeo.a)
 make sdk          # Build SDK only (sdk/build/libprogearsdk.a)
 make showcase     # Build and run showcase demo
+make docs         # Generate API documentation (requires Doxygen)
 ```
 
 ### Running Demos
