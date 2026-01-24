@@ -8,6 +8,7 @@
 #   sdk          - Build HAL and SDK library (libprogearsdk.a)
 #   showcase     - Build HAL, SDK, and showcase demo
 #   template     - Build HAL, SDK, and template demo
+#   hal-template - Build HAL and hal-template demo (HAL-only example)
 #   clean        - Clean all build artifacts
 #   docs         - Generate API documentation with Doxygen
 #   format       - Format all source files (HAL + SDK + demos)
@@ -15,10 +16,10 @@
 #   lint         - Run static analysis on all source files
 #   check        - Run all checks (format-check + lint)
 
-.PHONY: all hal sdk showcase template clean docs format format-check lint check help
+.PHONY: all hal sdk showcase template hal-template clean docs format format-check lint check help
 
 # Default target
-all: sdk showcase template
+all: sdk showcase template hal-template
 	@echo ""
 	@echo "All builds complete!"
 
@@ -42,6 +43,11 @@ template: sdk
 	@echo "=== Building Template Demo ==="
 	@$(MAKE) -C demos/template all
 
+# Build HAL-only template (depends only on HAL, not SDK)
+hal-template: hal
+	@echo "=== Building HAL Template Demo ==="
+	@$(MAKE) -C demos/hal-template all
+
 # Clean everything
 clean:
 	@echo "Cleaning all build artifacts..."
@@ -49,6 +55,7 @@ clean:
 	@$(MAKE) -C sdk clean
 	@$(MAKE) -C demos/showcase clean
 	@$(MAKE) -C demos/template clean
+	@$(MAKE) -C demos/hal-template clean
 	@echo "Clean complete."
 
 # === Documentation ===
@@ -96,13 +103,14 @@ help:
 	@echo "ProGearSDK Build System"
 	@echo ""
 	@echo "Build targets:"
-	@echo "  all       - Build HAL, SDK, and all demos (default)"
-	@echo "  hal       - Build only the HAL library (libneogeo.a)"
-	@echo "  sdk       - Build HAL and SDK library (libprogearsdk.a)"
-	@echo "  showcase  - Build SDK and showcase demo"
-	@echo "  template  - Build SDK and template demo"
-	@echo "  clean     - Clean all build artifacts"
-	@echo "  docs      - Generate API documentation"
+	@echo "  all          - Build HAL, SDK, and all demos (default)"
+	@echo "  hal          - Build only the HAL library (libneogeo.a)"
+	@echo "  sdk          - Build HAL and SDK library (libprogearsdk.a)"
+	@echo "  showcase     - Build SDK and showcase demo"
+	@echo "  template     - Build SDK and template demo"
+	@echo "  hal-template - Build HAL-only template (no SDK)"
+	@echo "  clean        - Clean all build artifacts"
+	@echo "  docs         - Generate API documentation"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  format       - Auto-format all source files"
@@ -113,3 +121,4 @@ help:
 	@echo "Run demos in MAME:"
 	@echo "  cd demos/showcase && make mame"
 	@echo "  cd demos/template && make mame"
+	@echo "  cd demos/hal-template && make mame"
