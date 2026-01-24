@@ -58,10 +58,10 @@ _vectors:
     .long   0x00000000          | 0x110: Reserved
 
     .org    0x000114
-    | Bytes are swapped in pairs by dd swab for MAME compatibility
-    | Write in swapped order so after swab: 0x114=0x02 (skip eyecatcher), 0x115=0x00 (sprite bank)
-    .byte   0x02                | Eye catcher animation (2=skip)
-    .byte   0x00                | Eye catcher sprite bank (unused when skipped)
+    | Eyecatcher config: dd swab swaps these bytes, then MAME unswaps on load,
+    | so BIOS sees exactly what we write here.
+    .byte   0x00                | Eye catcher animation (0=cart, 1=BIOS, 2=skip)
+    .byte   0x01                | Eye catcher sprite bank (bank 1 = tiles 256-319)
     .long   _ings_name          | 0x116: Pointer to JP soft DIPs
     .long   _ings_name          | 0x11A: Pointer to US soft DIPs
     .long   _ings_name          | 0x11E: Pointer to EU soft DIPs

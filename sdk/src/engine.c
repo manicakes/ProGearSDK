@@ -24,6 +24,7 @@ __attribute__((weak)) void NGPalInitAssets(void) {}
 void NGEngineInit(void) {
     NGArenaSystemInit();
     NGPalInitDefault();
+    NGTextSetFont(768);  // Use game font at tile 768+ (BIOS uses 0-767)
     NGFixClearAll();
     NGSceneInit();
     NGCameraInit();

@@ -248,9 +248,9 @@ slot_wait_end:
 ;;; Used by BIOS to request boot music on cartridge systems
 ;;; No acknowledgment expected
 cmd_eyecatcher:
-    ;; Play music index 0 as eyecatcher (configurable via music table)
-    xor     a
-    call    play_music
+    ;; Stop any playing music - eyecatcher should be silent unless
+    ;; a dedicated eyecatcher jingle is configured at music index 0
+    call    stop_music
     ;; No reply per SNK spec
     jp      nmi_exit
 

@@ -2001,21 +2001,21 @@ def main():
             sys.exit(1)
 
     # Process all assets
-    # Eyecatcher uses tiles 256-319 (bank 1), user tiles start at tile 320
-    TILE_START = 320
+    # Eyecatcher uses entire bank 1 (tiles 256-511), user tiles start at bank 2 (tile 512)
+    TILE_START = 512
     TILE_SIZE = 64  # bytes per tile
-    EYECATCHER_TILES = 64  # tiles reserved for eyecatcher (256-319)
+    EYECATCHER_TILES = 256  # entire bank 1 reserved for eyecatcher (256-511)
 
-    # Pre-allocate space for reserved tiles (0-319)
+    # Pre-allocate space for reserved tiles (0-511 = banks 0 and 1)
     all_c1_data = bytearray(TILE_START * TILE_SIZE)
     all_c2_data = bytearray(TILE_START * TILE_SIZE)
 
-    # Load eyecatcher tiles from SDK rom directory
+    # Load eyecatcher tiles from HAL rom directory
     # Eyecatcher tiles go in bank 1 (tiles 256-319), matching mslugx layout
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    sdk_rom_dir = os.path.join(script_dir, '..', 'sdk', 'rom')
-    eyecatcher_c1_path = os.path.join(sdk_rom_dir, 'eyecatcher-c1.bin')
-    eyecatcher_c2_path = os.path.join(sdk_rom_dir, 'eyecatcher-c2.bin')
+    hal_rom_dir = os.path.join(script_dir, '..', 'hal', 'rom')
+    eyecatcher_c1_path = os.path.join(hal_rom_dir, 'eyecatcher-c1.bin')
+    eyecatcher_c2_path = os.path.join(hal_rom_dir, 'eyecatcher-c2.bin')
 
     EYECATCHER_OFFSET = 256 * TILE_SIZE  # Bank 1 starts at tile 256
 
