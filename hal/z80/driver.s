@@ -5,8 +5,21 @@
 ;;;
 
 ;;;
-;;; NeoGeo DevKit Audio Driver
+;;; NeoGeo ProGearSDK Audio Driver
 ;;; Simple ADPCM-A (SFX) and ADPCM-B (Music) driver
+;;;
+;;; 68k/Z80 Communication Protocol:
+;;; - 68k writes commands to REG_SOUND, which triggers Z80 NMI
+;;; - Z80 reads commands from port $00, replies via port $0C
+;;; - Standard commands acknowledged by echoing with bit 7 set (cmd | 0x80)
+;;;
+;;; Mandatory BIOS Commands (must be implemented per SNK spec):
+;;; - $01: Slot switch - stop sounds, enable NMI, reply $01, wait in RAM
+;;;        Failure causes "Z80 ERROR" during BIOS self-test
+;;; - $02: Eyecatcher - play boot music (no reply)
+;;; - $03: Reset - soft reset within 100ms (no reply)
+;;;
+;;; See: https://wiki.neogeodev.org/index.php?title=68k/Z80_communication
 ;;;
 
     .module driver
@@ -95,9 +108,11 @@ nmi_handler:
     in      a, (PORT_FROM_68K)
     ld      (current_cmd), a
 
-    ;; Check for BIOS commands first
+    ;; Check for BIOS commands first (0x01, 0x02, 0x03)
     cp      #0x01
     jp      z, cmd_slot_switch
+    cp      #0x02
+    jp      z, cmd_eyecatcher
     cp      #0x03
     jp      z, cmd_reset
 
@@ -196,18 +211,52 @@ check_music_loop:
 ;;; === BIOS Commands ===
 
 ;;; Command 0x01: Prepare for slot switch
+;;; Per SNK spec: stop sounds, enable NMI, send $01 back, then wait in RAM loop
+;;; Failure to reply triggers "Z80 ERROR" during BIOS self-test
 cmd_slot_switch:
     di
     ;; Mute everything
     call    ym2610_reset
-    ;; Signal ready
+
+    ;; Copy wait loop to RAM and jump there
+    ;; This ensures the Z80 survives any ROM switching
+    ld      hl, #slot_wait_code
+    ld      de, #SLOT_WAIT_RAM
+    ld      bc, #slot_wait_end - slot_wait_code
+    ldir
+
+    ;; Enable NMI before signaling ready (per SNK spec)
+    xor     a
+    out     (PORT_ENABLE_NMI), a
+
+    ;; Signal ready to 68k
     ld      a, #0x01
     out     (PORT_TO_68K), a
-    ;; Wait in RAM
-cmd_wait_ram:
-    jr      cmd_wait_ram
+
+    ;; Jump to wait loop in RAM
+    jp      SLOT_WAIT_RAM
+
+;;; Wait loop code to be copied to RAM
+slot_wait_code:
+    jr      slot_wait_code
+slot_wait_end:
+
+;;; RAM address for slot switch wait loop
+    .equ    SLOT_WAIT_RAM,  0xFFF0
+
+;;; Command 0x02: Play eyecatcher music
+;;; Used by BIOS to request boot music on cartridge systems
+;;; No acknowledgment expected
+cmd_eyecatcher:
+    ;; Play music index 0 as eyecatcher (configurable via music table)
+    xor     a
+    call    play_music
+    ;; No reply per SNK spec
+    jp      nmi_exit
 
 ;;; Command 0x03: Reset driver
+;;; Must complete within 100ms per SNK spec
+;;; No acknowledgment expected
 cmd_reset:
     di
     jp      init_driver
