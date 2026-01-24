@@ -690,9 +690,16 @@ static void resolve_palettes(void) {
      * Pre-baked presets have correct colors computed at build time.
      * The backup contains original colors, so applying full transforms here
      * would overwrite the pre-baked colors with wrong values.
-     * But additive effects can be applied on top of the current colors. */
+     * But additive effects can be applied on top of the pre-baked colors.
+     *
+     * IMPORTANT: Re-apply the prebaked step first to restore correct colors.
+     * Without this, apply_additive_to_current_palettes() reads from VRAM which
+     * already has the previous frame's modified values, causing exponential
+     * decay to black over multiple frames. */
     if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
         if (has_additive) {
+            apply_prebaked_step(g_lighting.prebaked_preset_id,
+                                g_lighting.prebaked_current_step);
             apply_additive_to_current_palettes(add_r, add_g, add_b, add_bright);
         }
         return;
