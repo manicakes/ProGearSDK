@@ -6,9 +6,9 @@
 
 #include "ball.h"
 #include <actor.h>
-#include <audio.h>
+#include <ng_audio.h>
 #include <camera.h>
-#include <palette.h>
+#include <ng_palette.h>
 #include <physics.h>
 #include <progear_assets.h>
 

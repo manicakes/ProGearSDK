@@ -13,7 +13,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include <types.h>
+#include <ng_types.h>
 #include <ui.h>
 
 // === Initialization ===

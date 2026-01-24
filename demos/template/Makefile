@@ -80,7 +80,7 @@ $(GEN_ASSETS_H): | $(GEN_DIR)
 		echo "// progear_assets.h - No assets defined" > $(GEN_ASSETS_H); \
 		echo "#ifndef _PROGEAR_ASSETS_H_" >> $(GEN_ASSETS_H); \
 		echo "#define _PROGEAR_ASSETS_H_" >> $(GEN_ASSETS_H); \
-		echo "#include <audio.h>" >> $(GEN_ASSETS_H); \
+		echo "#include <ng_audio.h>" >> $(GEN_ASSETS_H); \
 		echo "#endif" >> $(GEN_ASSETS_H); \
 	fi
 
@@ -89,8 +89,8 @@ $(BUILD_DIR)/main.o: src/main.c $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # === Link ELF ===
-$(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIB) $(SDK_CRT0)
-	$(CC) $(SDK_CFLAGS) $(SDK_LDFLAGS) $(SDK_CRT0) $(GAME_OBJECTS) $(SDK_LIB) -lgcc -o $@
+$(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIBS) $(SDK_CRT0)
+	$(CC) $(SDK_CFLAGS) $(SDK_LDFLAGS) $(SDK_CRT0) $(GAME_OBJECTS) $(SDK_LIBS) -lgcc -o $@
 
 # === ROM Generation ===
 

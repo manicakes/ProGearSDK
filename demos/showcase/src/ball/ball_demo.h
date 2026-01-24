@@ -9,7 +9,7 @@
 #ifndef BALL_DEMO_H
 #define BALL_DEMO_H
 
-#include <types.h>
+#include <ng_types.h>
 
 // Initialize the ball demo (creates background, balls, etc.)
 void BallDemoInit(void);

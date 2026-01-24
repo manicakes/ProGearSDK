@@ -6,13 +6,13 @@
 
 #include "scroll_demo.h"
 #include "../demo_ids.h"
-#include <neogeo.h>
-#include <fix.h>
+#include <ng_hardware.h>
+#include <ng_fix.h>
 #include <scene.h>
 #include <backdrop.h>
-#include <input.h>
+#include <ng_input.h>
 #include <camera.h>
-#include <arena.h>
+#include <ng_arena.h>
 #include <ui.h>
 #include <engine.h>
 #include <progear_assets.h>

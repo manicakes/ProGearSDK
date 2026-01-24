@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <arena.h>
+#include <ng_arena.h>
 
 static u8 persistent_buffer[NG_ARENA_PERSISTENT_SIZE];
 static u8 state_buffer[NG_ARENA_STATE_SIZE];

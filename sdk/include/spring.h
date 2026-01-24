@@ -19,8 +19,8 @@
 #ifndef SPRING_H
 #define SPRING_H
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 
 // === Spring Presets ===
 // These provide good defaults for common use cases.

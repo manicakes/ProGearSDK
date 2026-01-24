@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <input.h>
-#include <neogeo.h>
+#include <ng_input.h>
+#include <ng_hardware.h>
 
 typedef struct {
     u16 current;

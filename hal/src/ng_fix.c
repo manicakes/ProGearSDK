@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <fix.h>
-#include <neogeo.h>
+#include <ng_fix.h>
+#include <ng_hardware.h>
 #include <stdarg.h>
 
 static u16 font_base = 0;

@@ -33,9 +33,9 @@
 #ifndef _CAMERA_H_
 #define _CAMERA_H_
 
-#include <types.h>
-#include <ngmath.h>
-#include <neogeo.h>
+#include <ng_types.h>
+#include <ng_math.h>
+#include <ng_hardware.h>
 
 /** @defgroup camviewport Viewport Dimensions
  *  @brief NeoGeo screen size at 100% zoom.

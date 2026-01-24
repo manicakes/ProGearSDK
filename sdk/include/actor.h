@@ -28,8 +28,8 @@
 #ifndef _ACTOR_H_
 #define _ACTOR_H_
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 #include <visual.h>
 
 /** @defgroup actorconst Actor Constants
@@ -214,6 +214,20 @@ void NGActorSetVFlip(NGActorHandle actor, u8 flip);
  * @param enabled 1 for screen-space, 0 for world-space (default)
  */
 void NGActorSetScreenSpace(NGActorHandle actor, u8 enabled);
+
+/** @} */
+
+/** @defgroup actoraudio Audio Functions
+ *  @{
+ */
+
+/**
+ * Play a sound effect at an actor's position.
+ * Automatically calculates stereo pan based on actor position.
+ * @param actor Actor handle
+ * @param sfx_index Sound effect index (from generated NGSFX_* constants)
+ */
+void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index);
 
 /** @} */
 

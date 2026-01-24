@@ -5,14 +5,12 @@
  */
 
 /**
- * @file audio.h
+ * @file ng_audio.h
  * @brief NeoGeo audio system - ADPCM-A (SFX) and ADPCM-B (Music) playback
  *
  * This module provides:
  * - Sound effect playback via ADPCM-A (6 channels, 18.5kHz, short samples)
  * - Music playback via ADPCM-B (1 channel, variable rate, long samples, looping)
- * - Actor-based spatial audio with stereo positioning
- * - Scene-based ambient sounds and background music
  *
  * Audio Command Protocol (68k -> Z80):
  * - 0x10-0x1F: Play SFX 0-15
@@ -25,10 +23,10 @@
  * - 0x80-0x8F: Set master volume (0-15)
  */
 
-#ifndef _AUDIO_H_
-#define _AUDIO_H_
+#ifndef _NG_AUDIO_H_
+#define _NG_AUDIO_H_
 
-#include "neogeo.h"
+#include <ng_hardware.h>
 
 /* Maximum number of sound effects and music tracks */
 #define NG_AUDIO_MAX_SFX      32
@@ -183,32 +181,6 @@ void NGAudioSetVolume(u8 volume);
 void NGAudioStopAll(void);
 
 /* ============================================================================
- * Actor-Based Spatial Audio
- * ========================================================================== */
-
-#include <actor.h>
-
-/**
- * Play a sound effect at an actor's position
- * Automatically calculates stereo pan based on actor position relative to camera
- * (camera acts as "microphone" - sounds left of camera play on left speaker)
- *
- * @param actor Actor handle
- * @param sfx_index Sound effect index (0-31)
- */
-void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index);
-
-/**
- * Play a sound effect asset at an actor's position
- *
- * @param actor Actor handle
- * @param sfx Pointer to sound effect asset
- */
-static inline void NGActorPlaySfxAsset(NGActorHandle actor, const NGSfxAsset *sfx) {
-    NGActorPlaySfx(actor, sfx->index);
-}
-
-/* ============================================================================
  * Low-Level Interface
  * ========================================================================== */
 
@@ -246,4 +218,4 @@ u8 NGAudioGetCurrentMusic(void);
  */
 u8 NGAudioGetVolume(void);
 
-#endif /* _AUDIO_H_ */
+#endif /* _NG_AUDIO_H_ */

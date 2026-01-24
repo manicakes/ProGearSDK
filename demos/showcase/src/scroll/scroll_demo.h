@@ -9,7 +9,7 @@
 #ifndef SCROLL_DEMO_H
 #define SCROLL_DEMO_H
 
-#include <types.h>
+#include <ng_types.h>
 
 // Initialize the scroll demo (creates parallax layers)
 void ScrollDemoInit(void);

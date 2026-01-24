@@ -9,8 +9,8 @@
  * - Minimized loop overhead for 16-color palettes
  */
 
-#include <neogeo.h>
-#include <palette.h>
+#include <ng_hardware.h>
+#include <ng_palette.h>
 
 void NGPalSetColor(u8 palette, u8 index, NGColor color) {
     volatile u16 *pal = NGPalGetColorPtr(palette, index);

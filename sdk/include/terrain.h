@@ -35,8 +35,8 @@
 #ifndef _TERRAIN_H_
 #define _TERRAIN_H_
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 
 /** @defgroup terrainconst Constants
  *  @{

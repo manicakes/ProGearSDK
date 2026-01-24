@@ -5,7 +5,7 @@
  */
 
 /**
- * @file input.h
+ * @file ng_input.h
  * @brief NeoGeo input handling.
  *
  * Provides button state polling with edge detection for responsive controls.
@@ -22,10 +22,10 @@
  * - NGInputHeld(): True every frame button is down
  */
 
-#ifndef _INPUT_H_
-#define _INPUT_H_
+#ifndef _NG_INPUT_H_
+#define _NG_INPUT_H_
 
-#include <types.h>
+#include <ng_types.h>
 
 /** @defgroup btnmask Button Masks
  *  @brief Bitmasks for player buttons.
@@ -204,4 +204,4 @@ u16 NGSystemGetRaw(void);
 
 /** @} */
 
-#endif // _INPUT_H_
+#endif // _NG_INPUT_H_

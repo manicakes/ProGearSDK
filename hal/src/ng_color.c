@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <color.h>
+#include <ng_color.h>
 
 NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
     if (ratio == 0)

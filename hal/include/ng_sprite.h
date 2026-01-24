@@ -5,7 +5,7 @@
  */
 
 /**
- * @file sprite.h
+ * @file ng_sprite.h
  * @brief Low-level NeoGeo hardware sprite utilities.
  *
  * This module provides shared constants and inline functions for
@@ -26,11 +26,11 @@
  * - Values wrap at 512 (9-bit field)
  */
 
-#ifndef _SPRITE_H_
-#define _SPRITE_H_
+#ifndef _NG_SPRITE_H_
+#define _NG_SPRITE_H_
 
-#include <types.h>
-#include <neogeo.h>
+#include <ng_types.h>
+#include <ng_hardware.h>
 
 /** @defgroup scbregs SCB Register Addresses
  *  @brief VRAM base addresses for Sprite Control Blocks.
@@ -352,4 +352,4 @@ void NGSpriteSetupGrid(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y
 
 /** @} */
 
-#endif /* _SPRITE_H_ */
+#endif /* _NG_SPRITE_H_ */

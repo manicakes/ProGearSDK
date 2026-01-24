@@ -21,9 +21,9 @@
 
 #include <graphic.h>
 #include <visual.h>
-#include <sprite.h>
-#include <palette.h>
-#include <neogeo.h>
+#include <ng_sprite.h>
+#include <ng_palette.h>
+#include <ng_hardware.h>
 
 /* ============================================================
  * Constants

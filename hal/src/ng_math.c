@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <ngmath.h>
+#include <ng_math.h>
 
 // sin(i * 2 * PI / 256) * 32767, 256 entries covering 0-360 degrees
 static const fixed sin_table[256] = {
