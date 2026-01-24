@@ -3,7 +3,6 @@ build/
 
 # Generated documentation
 docs/api/
-sdk/docs/
 
 # MAME save data
 nvram/
