@@ -1,9 +1,9 @@
 # NeoGeo HAL (Hardware Abstraction Layer) Makefile
 #
-# Builds the HAL as a static library.
+# Builds the HAL as a static library plus NeoGeo runtime components.
 #
 # Targets:
-#   all          - Build libneogeo.a
+#   all          - Build libneogeo.a and crt0.o
 #   clean        - Remove build artifacts
 #   format       - Auto-format all HAL source files
 #   format-check - Check formatting (fails if changes needed)
@@ -21,9 +21,13 @@ AR = $(PREFIX)ar
 BUILD_DIR = build
 SRC_DIR = src
 INC_DIR = include
+STARTUP_DIR = startup
+Z80_DIR = z80
+ROM_DIR = rom
 
 # === Output ===
 LIBRARY = $(BUILD_DIR)/libneogeo.a
+CRT0 = $(BUILD_DIR)/crt0.o
 
 # === Compiler Flags ===
 CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
@@ -52,8 +56,8 @@ OBJECTS = $(C_OBJECTS)
 # === Build Rules ===
 .PHONY: all clean format format-check lint check
 
-all: $(LIBRARY)
-	@echo "HAL build complete: $(LIBRARY)"
+all: $(LIBRARY) $(CRT0)
+	@echo "HAL build complete: $(LIBRARY) $(CRT0)"
 
 # Create build directory
 $(BUILD_DIR):
@@ -69,6 +73,10 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 
 # Header dependencies (simplified - rebuild all if any header changes)
 $(C_OBJECTS): $(H_SOURCES)
+
+# Build startup code (not included in library - linked directly by apps)
+$(CRT0): $(STARTUP_DIR)/crt0.s | $(BUILD_DIR)
+	$(AS) $(ASFLAGS) $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)

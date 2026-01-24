@@ -27,14 +27,20 @@ Z80ASM = sdasz80
 HAL_PATH = $(SDK_PATH)/../hal
 HAL_INCLUDE = $(HAL_PATH)/include
 HAL_LIB = $(HAL_PATH)/build/libneogeo.a
+HAL_CRT0 = $(HAL_PATH)/build/crt0.o
+HAL_LINKER_SCRIPT = $(HAL_PATH)/rom/link.ld
+HAL_SFIX = $(HAL_PATH)/rom/sfix.bin
+HAL_Z80_DRIVER = $(HAL_PATH)/z80/driver.s
 
 # === SDK Paths ===
 SDK_INCLUDE = $(SDK_PATH)/include
 SDK_LIB = $(SDK_PATH)/build/libprogearsdk.a
-SDK_LINKER_SCRIPT = $(SDK_PATH)/rom/link.ld
-SDK_SFIX = $(SDK_PATH)/rom/sfix.bin
-SDK_Z80_DRIVER = $(SDK_PATH)/z80/driver.s
-SDK_CRT0 = $(SDK_PATH)/build/crt0.o
+
+# === Aliases for backward compatibility ===
+SDK_CRT0 = $(HAL_CRT0)
+SDK_LINKER_SCRIPT = $(HAL_LINKER_SCRIPT)
+SDK_SFIX = $(HAL_SFIX)
+SDK_Z80_DRIVER = $(HAL_Z80_DRIVER)
 
 # === Common Compiler Flags ===
 SDK_CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding

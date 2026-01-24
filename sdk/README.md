@@ -4,6 +4,8 @@ High-level game engine for NeoGeo development.
 
 The SDK provides abstractions for building games using **Scenes**, **Actors**, and **Cameras**. It handles sprite management, animation, physics, and rendering so you can focus on gameplay.
 
+The SDK builds on top of the HAL. Runtime components (startup code, linker script, Z80 driver, ROM data) are provided by the HAL - see [HAL documentation](../hal/).
+
 ## Building
 
 ```bash

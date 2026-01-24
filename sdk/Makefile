@@ -16,7 +16,6 @@
 # Can be overridden via environment or config.mk
 PREFIX ?= m68k-elf-
 CC = $(PREFIX)gcc
-AS = $(PREFIX)as
 AR = $(PREFIX)ar
 
 # === Paths ===
@@ -34,8 +33,6 @@ CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
 CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
 CFLAGS += -I$(INC_DIR) -I$(HAL_INC_DIR)
 
-ASFLAGS = -m68000
-
 # === Source Files ===
 # SDK-level sources only (HAL is in separate library)
 C_SOURCES = $(SRC_DIR)/lighting.c \
@@ -50,14 +47,11 @@ C_SOURCES = $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/engine.c \
             $(SRC_DIR)/terrain.c
 
-ASM_SOURCES = $(SRC_DIR)/crt0.s
-
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 
 # Object files
 C_OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SOURCES))
-ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
-OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
+OBJECTS = $(C_OBJECTS)
 
 # === Build Rules ===
 .PHONY: all clean docs format format-check lint check
@@ -76,10 +70,6 @@ $(LIBRARY): $(OBJECTS)
 # Compile C files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-# Assemble assembly files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
-	$(AS) $(ASFLAGS) $< -o $@
 
 # Header dependencies (simplified - rebuild all if any header changes)
 $(C_OBJECTS): $(H_SOURCES)

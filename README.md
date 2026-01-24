@@ -27,8 +27,8 @@ ProGearSDK uses a two-layer architecture:
 └─────────────────────────────────────────────────────┘
 ```
 
-- **[HAL](hal/)** - Hardware Abstraction Layer providing direct access to NeoGeo hardware
-- **[SDK](sdk/)** - High-level game engine with scenes, actors, cameras, and more
+- **[HAL](hal/)** - Hardware Abstraction Layer providing direct access to NeoGeo hardware. Includes all runtime components (startup code, linker script, Z80 driver) needed to build complete applications.
+- **[SDK](sdk/)** - High-level game engine with scenes, actors, cameras, and more. Builds on top of HAL.
 
 ## Quick Start
 
@@ -75,7 +75,10 @@ make mame         # Build and run in MAME emulator
 ProGearSDK/
 ├── hal/              # Hardware Abstraction Layer
 │   ├── include/      # HAL headers (ng_*.h)
-│   └── src/          # HAL implementation
+│   ├── src/          # HAL implementation
+│   ├── startup/      # 68000 startup code (crt0.s)
+│   ├── z80/          # Z80 audio driver
+│   └── rom/          # ROM support files (linker script, sfix)
 ├── sdk/              # Game Engine SDK
 │   ├── include/      # SDK headers
 │   └── src/          # SDK implementation

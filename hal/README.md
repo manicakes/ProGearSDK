@@ -4,16 +4,35 @@ Low-level hardware access library for NeoGeo development.
 
 The HAL provides direct access to NeoGeo hardware through a clean C API. It handles the details of VRAM layout, sprite control blocks, palette RAM, and hardware registers so you can focus on your game logic.
 
+The HAL includes everything needed to build a complete NeoGeo application without the SDK game engine.
+
 ## Building
 
 ```bash
-make              # Build libneogeo.a
+make              # Build libneogeo.a and crt0.o
 make clean        # Remove build artifacts
 make format       # Auto-format source files
 make lint         # Run static analysis
 ```
 
-Output: `build/libneogeo.a`
+Output:
+- `build/libneogeo.a` - HAL library
+- `build/crt0.o` - Startup code (link with your application)
+
+## Structure
+
+```
+hal/
+├── include/      # Public headers (ng_*.h)
+├── src/          # HAL implementation
+├── startup/      # 68000 startup code (crt0.s)
+├── z80/          # Z80 audio driver
+├── rom/          # ROM support files
+│   ├── link.ld   # Linker script
+│   ├── sfix.bin  # System fix layer font
+│   └── eyecatcher-*.bin  # Boot logo
+└── hal.mk        # Makefile include for apps
+```
 
 ## Usage
 
@@ -29,6 +48,31 @@ Or include individual modules as needed:
 #include <ng_sprite.h>
 #include <ng_palette.h>
 ```
+
+## Building HAL-Only Applications
+
+For applications that don't need the SDK game engine, include `hal.mk` in your Makefile:
+
+```makefile
+HAL_PATH = path/to/hal
+include $(HAL_PATH)/hal.mk
+
+# Your application
+CFLAGS = $(HAL_CFLAGS) -Isrc
+LDFLAGS = $(HAL_LDFLAGS)
+
+my_app.elf: main.o $(HAL_LIB) $(HAL_CRT0)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(HAL_CRT0) main.o $(HAL_LIB) -lgcc -o $@
+```
+
+The `hal.mk` provides:
+- `HAL_LIB` - Path to libneogeo.a
+- `HAL_CRT0` - Path to crt0.o (startup code)
+- `HAL_LINKER_SCRIPT` - Path to link.ld
+- `HAL_SFIX` - Path to sfix.bin (S-ROM data)
+- `HAL_Z80_DRIVER` - Path to Z80 audio driver source
+- `HAL_CFLAGS` - Compiler flags for 68000
+- `HAL_LDFLAGS` - Linker flags
 
 ## Modules
 
