@@ -89,12 +89,10 @@ clean:
 
 # === Documentation ===
 
-# Generate API documentation with Doxygen
+# Generate API documentation (use root-level Makefile)
 docs:
-	@command -v doxygen >/dev/null 2>&1 || { echo "Error: doxygen not found. Install with: brew install doxygen"; exit 1; }
-	@echo "Generating API documentation..."
-	@doxygen Doxyfile
-	@echo "Documentation generated in docs/"
+	@echo "Run 'make docs' from the project root to generate documentation."
+	@echo "Documentation covers both HAL and SDK."
 
 # === Code Quality Targets ===
 

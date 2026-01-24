@@ -1,12 +1,14 @@
 # ProGearSDK Documentation
-# Doxygen configuration - minimal, clean output
+# Doxygen configuration - unified HAL + SDK documentation
 
 PROJECT_NAME           = "ProGearSDK"
 PROJECT_BRIEF          = "NeoGeo homebrew development SDK"
 PROJECT_NUMBER         = "1.0"
 
-# Input
-INPUT                  = mainpage.md include
+# Input - both HAL and SDK headers
+INPUT                  = mainpage.md \
+                         hal/include \
+                         sdk/include
 FILE_PATTERNS          = *.h *.md
 RECURSIVE              = NO
 USE_MDFILE_AS_MAINPAGE = mainpage.md
@@ -15,7 +17,7 @@ USE_MDFILE_AS_MAINPAGE = mainpage.md
 OUTPUT_DIRECTORY       = docs
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
-HTML_OUTPUT            = .
+HTML_OUTPUT            = api
 
 # Documentation style
 JAVADOC_AUTOBRIEF      = YES

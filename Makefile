@@ -9,12 +9,13 @@
 #   showcase     - Build HAL, SDK, and showcase demo
 #   template     - Build HAL, SDK, and template demo
 #   clean        - Clean all build artifacts
+#   docs         - Generate API documentation with Doxygen
 #   format       - Format all source files (HAL + SDK + demos)
 #   format-check - Check formatting for all source files
 #   lint         - Run static analysis on all source files
 #   check        - Run all checks (format-check + lint)
 
-.PHONY: all hal sdk showcase template clean format format-check lint check help
+.PHONY: all hal sdk showcase template clean docs format format-check lint check help
 
 # Default target
 all: sdk showcase template
@@ -49,6 +50,15 @@ clean:
 	@$(MAKE) -C demos/showcase clean
 	@$(MAKE) -C demos/template clean
 	@echo "Clean complete."
+
+# === Documentation ===
+
+# Generate API documentation with Doxygen
+docs:
+	@command -v doxygen >/dev/null 2>&1 || { echo "Error: doxygen not found. Install with: brew install doxygen"; exit 1; }
+	@echo "Generating API documentation..."
+	@doxygen Doxyfile
+	@echo "Documentation generated in docs/api/"
 
 # === Code Quality Targets ===
 
@@ -92,6 +102,7 @@ help:
 	@echo "  showcase  - Build SDK and showcase demo"
 	@echo "  template  - Build SDK and template demo"
 	@echo "  clean     - Clean all build artifacts"
+	@echo "  docs      - Generate API documentation"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  format       - Auto-format all source files"
