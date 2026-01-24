@@ -39,8 +39,8 @@
 #ifndef _BACKDROP_H_
 #define _BACKDROP_H_
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 #include <visual.h>
 
 /** @defgroup backdropconst Backdrop Constants

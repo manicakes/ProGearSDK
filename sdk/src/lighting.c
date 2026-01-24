@@ -5,8 +5,8 @@
  */
 
 #include <lighting.h>
-#include <palette.h>
-#include <color.h>
+#include <ng_palette.h>
+#include <ng_color.h>
 
 /** Maximum palettes to back up for lighting effects.
  *  This is a sparse list - only palettes actually in use are stored.

@@ -19,8 +19,8 @@
 #ifndef UI_H
 #define UI_H
 
-#include <types.h>
-#include <arena.h>
+#include <ng_types.h>
+#include <ng_arena.h>
 #include <spring.h>
 #include <visual.h>
 

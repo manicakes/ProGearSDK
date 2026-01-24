@@ -5,16 +5,14 @@
  */
 
 /**
- * @file audio.c
+ * @file ng_audio.c
  * @brief NeoGeo audio system implementation
  *
  * Handles communication with Z80 audio driver for ADPCM playback.
+ * Note: Spatial audio functions (NGActorPlaySfx) are in SDK, not HAL.
  */
 
-#include "audio.h"
-#include "camera.h"
-#include "neogeo.h"
-#include "ngmath.h"
+#include <ng_audio.h>
 
 /* Audio command codes (must match Z80 driver) */
 #define CMD_NOP            0x00
@@ -31,9 +29,6 @@
 #define CMD_SFX_STOP_CH    0x60 /* 0x60-0x65: Stop SFX channel 0-5 */
 #define CMD_STOP_ALL       0x70
 #define CMD_VOLUME_BASE    0x80 /* 0x80-0x8F: Volume 0-15 */
-
-/* Screen dimensions for pan calculation */
-#define SCREEN_HALF_WIDTH (SCREEN_WIDTH / 2)
 
 static u8 current_music_index = 0xFF;
 static u8 music_paused = 0;
@@ -145,26 +140,6 @@ void NGAudioSetVolume(u8 volume) {
 void NGAudioStopAll(void) {
     NGAudioSendCommand(CMD_STOP_ALL);
     current_music_index = 0xFF;
-}
-
-static NGPan calculate_pan(fixed actor_x, fixed camera_x) {
-    s32 screen_x = (actor_x - camera_x) >> 16;
-    s32 center_offset = screen_x - SCREEN_HALF_WIDTH;
-
-    if (center_offset < -80) {
-        return NG_PAN_LEFT;
-    } else if (center_offset > 80) {
-        return NG_PAN_RIGHT;
-    } else {
-        return NG_PAN_CENTER;
-    }
-}
-
-void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index) {
-    fixed actor_x = NGActorGetX(actor);
-    fixed camera_x = NGCameraGetX();
-    NGPan pan = calculate_pan(actor_x, camera_x);
-    NGSfxPlayPan(sfx_index, pan);
 }
 
 u8 NGAudioGetCurrentMusic(void) {

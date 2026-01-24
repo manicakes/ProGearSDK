@@ -5,7 +5,7 @@
  */
 
 /**
- * @file palette.h
+ * @file ng_palette.h
  * @brief NeoGeo palette management.
  *
  * The NeoGeo has 256 palettes of 16 colors each (8KB total).
@@ -15,11 +15,11 @@
  * @note Update palettes during VBlank to avoid visual artifacts.
  */
 
-#ifndef _PALETTE_H_
-#define _PALETTE_H_
+#ifndef _NG_PALETTE_H_
+#define _NG_PALETTE_H_
 
-#include <types.h>
-#include <color.h>
+#include <ng_types.h>
+#include <ng_color.h>
 
 /** @defgroup palconst Palette Constants
  *  @{
@@ -245,4 +245,4 @@ static inline volatile u16 *NGPalGetColorPtr(u8 palette, u8 index) {
 
 /** @} */
 
-#endif // _PALETTE_H_
+#endif // _NG_PALETTE_H_

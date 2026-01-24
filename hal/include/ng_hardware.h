@@ -5,11 +5,11 @@
  */
 
 /**
- * @file neogeo.h
- * @brief Main ProGearSDK header.
+ * @file ng_hardware.h
+ * @brief NeoGeo hardware register definitions and low-level access.
  *
- * Include this header to access core SDK functionality including
- * hardware registers, system functions, and memory map definitions.
+ * Include this header to access hardware registers, VRAM macros,
+ * BIOS variables, and 68000 optimization helpers.
  *
  * @section memmap Memory Map
  * - P-ROM: 0x000000 - 0x0FFFFF (1MB, banked beyond)
@@ -17,12 +17,12 @@
  * - BIOS RAM: 0x10F000 - 0x10FFFF (reserved)
  */
 
-#ifndef _NEOGEO_H_
-#define _NEOGEO_H_
+#ifndef _NG_HARDWARE_H_
+#define _NG_HARDWARE_H_
 
-#include <types.h>
-#include <color.h>
-#include <palette.h>
+#include <ng_types.h>
+#include <ng_color.h>
+#include <ng_palette.h>
 
 /** @defgroup screen Screen Dimensions
  *  @brief NeoGeo fixed screen resolution.
@@ -363,4 +363,4 @@ static inline void NGWatchdogKick(void) {
  */
 /** @} */
 
-#endif // _NEOGEO_H_
+#endif // _NG_HARDWARE_H_

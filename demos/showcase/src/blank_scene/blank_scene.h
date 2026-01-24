@@ -9,7 +9,7 @@
 #ifndef BLANK_SCENE_H
 #define BLANK_SCENE_H
 
-#include <types.h>
+#include <ng_types.h>
 
 // Initialize the blank scene demo
 void BlankSceneInit(void);

@@ -6,12 +6,12 @@
 
 #include <ui.h>
 #include <actor.h>
-#include <input.h>
-#include <fix.h>
+#include <ng_input.h>
+#include <ng_fix.h>
 #include <scene.h>
-#include <palette.h>
+#include <ng_palette.h>
 #include <lighting.h>
-#include <audio.h>
+#include <ng_audio.h>
 #include <graphic.h>
 #include <visual.h>
 

@@ -9,10 +9,13 @@ ProGearSDK is a game engine SDK for the NeoGeo AES/MVS console (Motorola 68000 @
 ## Build Commands
 
 ```bash
-# Build everything (SDK library + all demos)
+# Build everything (HAL + SDK library + all demos)
 make
 
-# Build only the SDK library (outputs sdk/build/libprogearsdk.a)
+# Build only the HAL library (outputs hal/build/libneogeo.a)
+make hal
+
+# Build HAL and SDK library (outputs sdk/build/libprogearsdk.a)
 make sdk
 
 # Build and run a demo in MAME
@@ -27,22 +30,55 @@ make check        # Run all checks
 
 ## Architecture
 
+### Two-Layer Design
+
+The codebase is split into two libraries:
+
+1. **HAL (Hardware Abstraction Layer)** - `hal/` directory
+   - Low-level NeoGeo hardware access
+   - Output: `hal/build/libneogeo.a`
+   - Headers use `ng_` prefix (e.g., `ng_sprite.h`, `ng_palette.h`)
+
+2. **SDK (Game Engine)** - `sdk/` directory
+   - High-level game abstractions (scenes, actors, cameras)
+   - Depends on HAL
+   - Output: `sdk/build/libprogearsdk.a`
+
+### HAL Modules (`hal/include/`)
+
+- `ng_types.h` - Base types (u8, u16, u32, s8, s16, s32)
+- `ng_hardware.h` - Hardware registers, VRAM access, BIOS
+- `ng_math.h` - Fixed-point math, trig tables, vectors
+- `ng_color.h` - 16-bit color format manipulation
+- `ng_palette.h` - Palette RAM management
+- `ng_sprite.h` - Sprite Control Block operations
+- `ng_fix.h` - Fix layer (text) rendering
+- `ng_input.h` - Controller input with edge detection
+- `ng_audio.h` - ADPCM-A/B audio playback
+- `ng_arena.h` - Bump-pointer arena allocator
+- `neogeo_hal.h` - Master header (includes all HAL modules)
+
+### SDK Modules (`sdk/include/`)
+
+- `actor.h` - Scene actors (sprites with animation)
+- `scene.h` - World management and rendering
+- `camera.h` - Viewport into the scene
+- `backdrop.h` - Parallax background layers
+- `terrain.h` - Tile-based levels with collision
+- `physics.h` - Rigid body physics
+- `lighting.h` - Palette effects (day/night, flash)
+- `graphic.h` - Low-level sprite rendering
+- `visual.h` - Visual asset structures
+- `spring.h` - Animation easing
+- `ui.h` - Menu system
+- `engine.h` - Game loop lifecycle
+- `progearsdk.h` - Master header (includes HAL + all SDK modules)
+
 ### Core Abstractions
 
 - **Scene**: Infinite canvas with X (right+), Y (down+, max 512px), Z (render order) coordinates
 - **Actor**: Visual objects created from assets, positioned with fixed-point coordinates
 - **Camera**: 320x224 viewport into the scene
-
-### SDK Structure
-
-```
-sdk/
-├── include/      # Public headers (progearsdk.h includes all)
-├── src/          # Implementation
-└── build/        # Output: libprogearsdk.a
-```
-
-Key modules: `actor.h` (sprites), `scene.h` (world management), `camera.h` (viewport), `terrain.h` (tile-based levels with collision), `input.h` (controller), `physics.h` (rigid body), `ngmath.h` (fixed-point math), `lighting.h` (palette effects), `audio.h` (ADPCM sound/music)
 
 ### Fixed-Point Math
 
@@ -61,6 +97,24 @@ Assets are defined in `assets.yaml` and processed by `tools/progear_assets.py`:
 - Lighting presets pre-bake palette variants
 
 Generated header is included as `<progear_assets.h>` and contains `NGVisualAsset_*` structs.
+
+### Directory Structure
+
+```
+ProGearSDK/
+├── hal/                  # Hardware Abstraction Layer
+│   ├── include/          # HAL public headers (ng_*.h)
+│   ├── src/              # HAL implementation
+│   └── build/            # Output: libneogeo.a
+├── sdk/                  # Game Engine SDK
+│   ├── include/          # SDK public headers
+│   ├── src/              # SDK implementation
+│   └── build/            # Output: libprogearsdk.a
+├── demos/
+│   ├── showcase/         # Feature demo
+│   └── template/         # Starter template
+└── tools/                # Asset pipeline tools
+```
 
 ### Demo Structure
 

@@ -5,15 +5,15 @@
  */
 
 /**
- * @file sprite.c
+ * @file ng_sprite.c
  * @brief Low-level NeoGeo sprite hardware abstraction.
  *
  * Implements VRAM/SCB write patterns used by actor, backdrop, terrain,
  * and UI modules. Uses optimized indexed addressing for performance.
  */
 
-#include <sprite.h>
-#include <neogeo.h>
+#include <ng_sprite.h>
+#include <ng_hardware.h>
 
 /* ============================================================
  * SCB1: Tile Column Writing

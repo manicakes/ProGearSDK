@@ -14,24 +14,9 @@
 #ifndef _PROGEARSDK_H_
 #define _PROGEARSDK_H_
 
-/* Foundational types and hardware definitions */
-#include <types.h>
-#include <neogeo.h>
-#include <ngmath.h>
-
-/* Color and palette management */
-#include <color.h>
-#include <palette.h>
-#include <lighting.h>
-
-/* Memory allocation */
-#include <arena.h>
-
-/* Input handling */
-#include <input.h>
-
-/* Fix layer (text/HUD) */
-#include <fix.h>
+/* Hardware Abstraction Layer (provides types, hardware, math, color,
+ * palette, sprite, fix, input, audio, arena) */
+#include <neogeo_hal.h>
 
 /* Visual assets and graphics */
 #include <visual.h>
@@ -49,12 +34,12 @@
 /* Physics */
 #include <physics.h>
 
+/* Lighting effects */
+#include <lighting.h>
+
 /* UI and animation */
 #include <spring.h>
 #include <ui.h>
-
-/* Audio */
-#include <audio.h>
 
 /* Engine lifecycle */
 #include <engine.h>

@@ -5,14 +5,14 @@
  */
 
 #include <engine.h>
-#include <neogeo.h>
-#include <arena.h>
-#include <palette.h>
-#include <fix.h>
+#include <ng_hardware.h>
+#include <ng_arena.h>
+#include <ng_palette.h>
+#include <ng_fix.h>
 #include <scene.h>
 #include <camera.h>
-#include <input.h>
-#include <audio.h>
+#include <ng_input.h>
+#include <ng_audio.h>
 #include <ui.h>
 #include <lighting.h>
 

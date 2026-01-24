@@ -7,7 +7,7 @@
 #ifndef TILEMAP_DEMO_H
 #define TILEMAP_DEMO_H
 
-#include <types.h>
+#include <ng_types.h>
 
 void TilemapDemoInit(void);
 u8 TilemapDemoUpdate(void);

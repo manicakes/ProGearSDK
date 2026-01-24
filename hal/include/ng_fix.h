@@ -5,7 +5,7 @@
  */
 
 /**
- * @file fix.h
+ * @file ng_fix.h
  * @brief Fix layer (text) rendering.
  *
  * The fix layer is a 40x32 tile layer used primarily for text and HUD.
@@ -17,10 +17,10 @@
  * - Safe area: 38x25 tiles (accounts for CRT overscan)
  */
 
-#ifndef FIX_H
-#define FIX_H
+#ifndef _NG_FIX_H_
+#define _NG_FIX_H_
 
-#include <neogeo.h>
+#include <ng_hardware.h>
 
 /** @defgroup fixconst Fix Layer Constants
  *  @{
@@ -164,4 +164,4 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...);
 
 /** @} */
 
-#endif // FIX_H
+#endif // _NG_FIX_H_

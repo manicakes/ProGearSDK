@@ -52,9 +52,9 @@
 #ifndef LIGHTING_H
 #define LIGHTING_H
 
-#include <types.h>
-#include <ngmath.h>
-#include <color.h>
+#include <ng_types.h>
+#include <ng_math.h>
+#include <ng_color.h>
 
 /** @defgroup lightingconst Lighting Constants
  *  @{

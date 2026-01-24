@@ -6,12 +6,12 @@
 
 #include "blank_scene.h"
 #include "../demo_ids.h"
-#include <neogeo.h>
-#include <fix.h>
-#include <input.h>
-#include <arena.h>
+#include <ng_hardware.h>
+#include <ng_fix.h>
+#include <ng_input.h>
+#include <ng_arena.h>
 #include <ui.h>
-#include <palette.h>
+#include <ng_palette.h>
 #include <engine.h>
 #include <progear_assets.h>
 

@@ -43,7 +43,7 @@
 #ifndef _GRAPHIC_H_
 #define _GRAPHIC_H_
 
-#include <types.h>
+#include <ng_types.h>
 #include <visual.h>
 
 /** @defgroup graphictypes Types and Enums

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file color.h
+ * @file ng_color.h
  * @brief NeoGeo color definitions and utilities.
  *
  * NeoGeo uses a 16-bit color format:
@@ -20,10 +20,10 @@
  * Each channel has 5 bits + 1 shared dark bit = 32 shades per channel.
  */
 
-#ifndef _COLOR_H_
-#define _COLOR_H_
+#ifndef _NG_COLOR_H_
+#define _NG_COLOR_H_
 
-#include <types.h>
+#include <ng_types.h>
 
 /** NeoGeo 16-bit color type */
 typedef u16 NGColor;
@@ -222,4 +222,4 @@ static inline NGColor NGColorGray(u8 level) {
 
 /** @} */
 
-#endif // _COLOR_H_
+#endif // _NG_COLOR_H_

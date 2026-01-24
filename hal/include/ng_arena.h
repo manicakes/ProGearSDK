@@ -4,20 +4,23 @@
  * SPDX-License-Identifier: MIT
  */
 
-// arena.h - Arena memory allocator
-//
-// Arenas provide fast, zero-fragmentation memory allocation with bulk free.
-// Allocations bump a pointer forward; freeing resets the pointer.
-//
-// Three standard arenas are provided:
-//   ng_arena_persistent - Lives entire game (player data, global state)
-//   ng_arena_state      - Cleared on level/screen changes
-//   ng_arena_frame      - Cleared every frame (temp strings, scratch)
+/**
+ * @file ng_arena.h
+ * @brief Arena memory allocator
+ *
+ * Arenas provide fast, zero-fragmentation memory allocation with bulk free.
+ * Allocations bump a pointer forward; freeing resets the pointer.
+ *
+ * Three standard arenas are provided:
+ *   ng_arena_persistent - Lives entire game (player data, global state)
+ *   ng_arena_state      - Cleared on level/screen changes
+ *   ng_arena_frame      - Cleared every frame (temp strings, scratch)
+ */
 
-#ifndef ARENA_H
-#define ARENA_H
+#ifndef _NG_ARENA_H_
+#define _NG_ARENA_H_
 
-#include <types.h>
+#include <ng_types.h>
 
 /**
  * Arena allocator structure.
@@ -130,17 +133,17 @@ u32 NGArenaRemaining(NGArena *arena);
  *  @{
  */
 
-/** Default size for persistent arena (can be overridden before including arena.h) */
+/** Default size for persistent arena (can be overridden before including ng_arena.h) */
 #ifndef NG_ARENA_PERSISTENT_SIZE
 #define NG_ARENA_PERSISTENT_SIZE 8192 /**< 8 KB */
 #endif
 
-/** Default size for state arena (can be overridden before including arena.h) */
+/** Default size for state arena (can be overridden before including ng_arena.h) */
 #ifndef NG_ARENA_STATE_SIZE
 #define NG_ARENA_STATE_SIZE 24576 /**< 24 KB */
 #endif
 
-/** Default size for frame arena (can be overridden before including arena.h) */
+/** Default size for frame arena (can be overridden before including ng_arena.h) */
 #ifndef NG_ARENA_FRAME_SIZE
 #define NG_ARENA_FRAME_SIZE 4096 /**< 4 KB */
 #endif
@@ -162,4 +165,4 @@ void NGArenaSystemInit(void);
 
 /** @} */
 
-#endif // ARENA_H
+#endif // _NG_ARENA_H_

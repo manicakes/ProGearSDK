@@ -1420,8 +1420,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         "#define _PROGEAR_ASSETS_H_",
         "",
         "#include <visual.h>",
-        "#include <palette.h>",
-        "#include <audio.h>",
+        "#include <ng_palette.h>",
+        "#include <ng_audio.h>",
         "#include <terrain.h>",
     ]
 

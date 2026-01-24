@@ -28,8 +28,8 @@
 #ifndef _SCENE_H_
 #define _SCENE_H_
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 
 /* Forward declaration */
 struct NGTerrainAsset;

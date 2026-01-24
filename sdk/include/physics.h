@@ -24,8 +24,8 @@
 #ifndef _PHYSICS_H_
 #define _PHYSICS_H_
 
-#include <types.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_math.h>
 
 /** @defgroup physconfig Configuration
  *  @{

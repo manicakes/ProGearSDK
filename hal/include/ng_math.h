@@ -5,7 +5,7 @@
  */
 
 /**
- * @file ngmath.h
+ * @file ng_math.h
  * @brief Fixed-point math types and functions.
  *
  * Provides fixed-point arithmetic for systems without FPU.
@@ -14,10 +14,10 @@
  * - `fixed16` (8.8): 16-bit, range ~127, precision 0.004
  */
 
-#ifndef _NGMATH_H_
-#define _NGMATH_H_
+#ifndef _NG_MATH_H_
+#define _NG_MATH_H_
 
-#include <types.h>
+#include <ng_types.h>
 
 /** @defgroup fixedtypes Fixed-Point Types
  *  @brief Core fixed-point number types.
@@ -261,4 +261,4 @@ NGVec2 NGVec2Normalize(NGVec2 v);
 
 /** @} */
 
-#endif // _NGMATH_H_
+#endif // _NG_MATH_H_

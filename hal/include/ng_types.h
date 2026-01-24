@@ -5,14 +5,14 @@
  */
 
 /**
- * @file types.h
- * @brief Basic type definitions for ProGearSDK.
+ * @file ng_types.h
+ * @brief Basic type definitions for NeoGeo HAL.
  *
  * Provides fixed-width integer types and volatile variants for hardware access.
  */
 
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _NG_TYPES_H_
+#define _NG_TYPES_H_
 
 #include <stdint.h>
 
@@ -45,4 +45,4 @@ typedef volatile u32 vu32; /**< Volatile unsigned 32-bit */
 #define NULL ((void *)0)
 #endif
 
-#endif // _TYPES_H_
+#endif // _NG_TYPES_H_

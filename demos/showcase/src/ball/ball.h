@@ -9,9 +9,9 @@
 #ifndef BALL_H
 #define BALL_H
 
-#include <types.h>
-#include <arena.h>
-#include <ngmath.h>
+#include <ng_types.h>
+#include <ng_arena.h>
+#include <ng_math.h>
 
 // Opaque handle to ball system
 typedef struct BallSystem *BallSystemHandle;

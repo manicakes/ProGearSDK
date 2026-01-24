@@ -6,15 +6,15 @@
 
 #include "tilemap_demo.h"
 #include "../demo_ids.h"
-#include <neogeo.h>
-#include <fix.h>
-#include <input.h>
+#include <ng_hardware.h>
+#include <ng_fix.h>
+#include <ng_input.h>
 #include <scene.h>
 #include <camera.h>
-#include <palette.h>
-#include <color.h>
+#include <ng_palette.h>
+#include <ng_color.h>
 #include <ui.h>
-#include <arena.h>
+#include <ng_arena.h>
 #include <actor.h>
 #include <engine.h>
 #include <progear_assets.h>

@@ -7,6 +7,7 @@
 #include <actor.h>
 #include <camera.h>
 #include <graphic.h>
+#include <ng_audio.h>
 
 typedef struct {
     const NGVisualAsset *asset;
@@ -467,4 +468,33 @@ void _NGActorCollectPalettes(u8 *palette_mask) {
             palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
         }
     }
+}
+
+void NGActorPlaySfx(NGActorHandle handle, u8 sfx_index) {
+    if (handle < 0 || handle >= NG_ACTOR_MAX)
+        return;
+    Actor *actor = &actors[handle];
+    if (!actor->active)
+        return;
+
+    // Calculate screen position for panning
+    s16 screen_x, screen_y;
+    if (actor->screen_space) {
+        screen_x = FIX_INT(actor->x);
+    } else {
+        NGCameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
+    }
+
+    // Map screen position to pan: left/center/right
+    // Screen is 320 pixels wide, divide into thirds
+    NGPan pan;
+    if (screen_x < 107) {
+        pan = NG_PAN_LEFT;
+    } else if (screen_x > 213) {
+        pan = NG_PAN_RIGHT;
+    } else {
+        pan = NG_PAN_CENTER;
+    }
+
+    NGSfxPlayPan(sfx_index, pan);
 }
