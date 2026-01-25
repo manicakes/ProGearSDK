@@ -58,8 +58,8 @@
 /** @name Constants */
 /** @{ */
 
-/** Full-size shrink value (no scaling) */
-#define NG_SPRITE_SHRINK_NONE 0x0FFF
+/** Full-size shrink value (no scaling): h_shrink=255, v_shrink=255 */
+#define NG_SPRITE_SHRINK_NONE 0xFFFF
 
 /** Sticky bit for SCB3 (sprite inherits Y/height from previous sprite) */
 #define NG_SPRITE_STICKY_BIT 0x40
@@ -214,12 +214,22 @@ void NGSpriteTilePadTo32(u8 rows_written);
 /** @{ */
 
 /**
- * Set shrink value for a range of consecutive sprites.
- * Efficiently batches writes using VRAMMOD auto-increment.
+ * Set shrink values for a range of consecutive sprites with smooth scaling.
+ *
+ * Distributes horizontal shrink across sprites using error accumulation
+ * to achieve finer scaling granularity than hardware's native 4-bit limit.
+ * This prevents visible stepping when scaling multi-column sprites.
  *
  * @param first_sprite First hardware sprite index
  * @param count        Number of sprites to set
- * @param shrink       Shrink value (0x0FFF = full size, 0x0000 = invisible)
+ * @param shrink       Packed shrink value: (h_shrink_8bit << 8) | v_shrink_8bit
+ *                     - Upper byte: 8-bit horizontal shrink (distributed across columns)
+ *                     - Lower byte: 8-bit vertical shrink (applied uniformly)
+ *                     - 0xFFFF = full size, 0x0000 = invisible
+ *
+ * @note For smooth scaling, pass full 8-bit precision in upper byte.
+ *       The function distributes this across columns for sub-sprite-width
+ *       scaling steps. See: wiki.neogeodev.org/index.php?title=Scaling_sprite_groups
  */
 void NGSpriteShrinkSet(u16 first_sprite, u8 count, u16 shrink);
 /** @} */
@@ -316,7 +326,7 @@ void NGSpriteXWriteNext(s16 screen_x);
  * @param screen_y     Screen Y position
  * @param height       Sprite height in tiles
  * @param tile_width   Pixel width per column (for X spacing)
- * @param shrink       Shrink value (0x0FFF = full size)
+ * @param shrink       Packed shrink: (h_shrink_8bit << 8) | v_shrink_8bit
  */
 void NGSpriteSetupStrip(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y, u8 height,
                         s16 tile_width, u16 shrink);
@@ -332,7 +342,7 @@ void NGSpriteSetupStrip(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_
  * @param screen_y     Screen Y position
  * @param height       Sprite height in tiles
  * @param tile_width   Pixel width per column
- * @param shrink       Shrink value
+ * @param shrink       Packed shrink: (h_shrink_8bit << 8) | v_shrink_8bit
  */
 void NGSpriteSetupGrid(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y, u8 height,
                        s16 tile_width, u16 shrink);

@@ -170,11 +170,13 @@ static u8 scale_to_shrink(u16 scale) {
 
 /**
  * Calculate combined SCB2 shrink value from scale.
- * Returns (h_shrink << 8) | v_shrink for NGSpriteShrinkSet.
+ * Returns (h_shrink_8bit << 8) | v_shrink_8bit for NGSpriteShrinkSet.
+ * NGSpriteShrinkSet distributes the 8-bit h_shrink across sprite columns
+ * for smooth scaling (see Scaling_sprite_groups on NeoGeo dev wiki).
  */
 static u16 scale_to_shrink_val(u16 scale) {
     u8 shrink = scale_to_shrink(scale);
-    return (u16)(((shrink >> 4) << 8) | shrink);
+    return (u16)(((u16)shrink << 8) | shrink);
 }
 
 /**
