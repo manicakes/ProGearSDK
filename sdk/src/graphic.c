@@ -81,9 +81,9 @@ struct NGGraphic {
     s16 src_offset_y;
 
     /* Precomputed values for fast tile lookup (avoids division in inner loop) */
-    u8 src_tiles_w;        /* Source width in tiles */
-    u8 src_tiles_h;        /* Source height in tiles */
-    u16 effective_base;    /* base_tile + (anim_frame * tiles_per_frame) */
+    u8 src_tiles_w;     /* Source width in tiles */
+    u8 src_tiles_h;     /* Source height in tiles */
+    u16 effective_base; /* base_tile + (anim_frame * tiles_per_frame) */
 
     /* Tile mode and 9-slice */
     NGGraphicTileMode tile_mode;
@@ -101,9 +101,11 @@ struct NGGraphic {
 
     /* Infinite scroll state (circular buffer) */
     u8 scroll_leftmost;   /* Index of leftmost column (0 to num_cols-1) */
+    u8 scroll_topmost;    /* Index of topmost row (0 to num_rows-1) for Y cycling */
     u8 tiles_loaded;      /* Tiles written flag */
     s16 scroll_offset;    /* Sub-tile offset (4 fractional bits) */
-    s16 scroll_last_px;   /* Last scroll position for delta calc */
+    s16 scroll_last_px;   /* Last scroll position for delta calc (X tile column) */
+    s16 scroll_last_row;  /* Last Y tile row for delta calc */
     u16 scroll_last_scb3; /* Cached SCB3 value for Y optimization */
 
     /* Computed values (derived from display size and scale) */
@@ -128,6 +130,7 @@ struct NGGraphic {
         u16 last_display_height;
         u16 last_scale;
         u16 last_hw_sprite;
+        u8 last_visible_cols; /* For infinite scroll: columns rendered at current scale */
     } cache;
 };
 
@@ -240,8 +243,10 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
     /* Handle tiling/repeat with proper modulo for negative values */
     s16 temp_col = (s16)(((s16)col + offset_col) % (s16)src_tiles_w);
     s16 temp_row = (s16)(((s16)row + offset_row) % (s16)src_tiles_h);
-    if (temp_col < 0) temp_col += src_tiles_w;
-    if (temp_row < 0) temp_row += src_tiles_h;
+    if (temp_col < 0)
+        temp_col += src_tiles_w;
+    if (temp_row < 0)
+        temp_row += src_tiles_h;
     u8 src_col = (u8)temp_col;
     u8 src_row = (u8)temp_row;
 
@@ -301,8 +306,10 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
         /* Repeat mode with proper modulo for negative values */
         temp_col = temp_col % (s16)src_tiles_w;
         temp_row = temp_row % (s16)src_tiles_h;
-        if (temp_col < 0) temp_col += src_tiles_w;
-        if (temp_row < 0) temp_row += src_tiles_h;
+        if (temp_col < 0)
+            temp_col += src_tiles_w;
+        if (temp_row < 0)
+            temp_row += src_tiles_h;
     }
 
     /* Row-major: index = row * width + col */
@@ -380,8 +387,10 @@ static void flush_tiles_tilemap_fast(NGGraphic *g) {
 
             /* Build attr from tilemap flip flags */
             u16 attr = base_attr;
-            if (entry & 0x8000) attr |= 0x01; /* h_flip */
-            if (entry & 0x4000) attr |= 0x02; /* v_flip */
+            if (entry & 0x8000)
+                attr |= 0x01; /* h_flip */
+            if (entry & 0x4000)
+                attr |= 0x02; /* v_flip */
 
             /* Write tile and attr (auto-increment handles addressing) */
             NG_VRAM_WRITE_FAST(tile);
@@ -401,9 +410,8 @@ static void flush_tiles_tilemap_fast(NGGraphic *g) {
  */
 static void flush_tiles_standard(NGGraphic *g) {
     /* Fast path: simple animated sprites with 16-bit tilemaps */
-    if (g->tilemap && !g->tilemap8 && !g->tile_to_palette &&
-        g->src_offset_x == 0 && g->src_offset_y == 0 &&
-        g->flip == NG_GRAPHIC_FLIP_NONE) {
+    if (g->tilemap && !g->tilemap8 && !g->tile_to_palette && g->src_offset_x == 0 &&
+        g->src_offset_y == 0 && g->flip == NG_GRAPHIC_FLIP_NONE) {
         flush_tiles_tilemap_fast(g);
         return;
     }
@@ -520,9 +528,15 @@ static void flush_tiles_9slice(NGGraphic *g) {
 
 /**
  * Update X positions for infinite scroll using circular buffer.
- * Only writes SCB4 - no tile rewrites needed.
+ * Only writes SCB4 for visible_cols sprites - saves bandwidth at higher zoom.
+ *
+ * @param g            The graphic
+ * @param pixel_diff   Pixels scrolled since last update
+ * @param tile_width   Current tile width based on scale
+ * @param visible_cols Number of columns to actually render (may be less than num_cols)
  */
-static void update_scroll_positions(NGGraphic *g, s16 pixel_diff, s16 tile_width) {
+static void update_scroll_positions_limited(NGGraphic *g, s16 pixel_diff, s16 tile_width,
+                                            u8 visible_cols) {
     s16 tile_width_fixed = SCROLL_FIX(tile_width);
 
     /* Update scroll offset by pixel delta */
@@ -531,7 +545,7 @@ static void update_scroll_positions(NGGraphic *g, s16 pixel_diff, s16 tile_width
     /* Wrap leftmost pointer when crossing tile boundaries */
     while (g->scroll_offset <= 0) {
         g->scroll_leftmost++;
-        if (g->scroll_leftmost >= g->num_cols) {
+        if (g->scroll_leftmost >= visible_cols) {
             g->scroll_leftmost = 0;
         }
         g->scroll_offset = (s16)(g->scroll_offset + tile_width_fixed);
@@ -539,7 +553,7 @@ static void update_scroll_positions(NGGraphic *g, s16 pixel_diff, s16 tile_width
 
     while (g->scroll_offset > tile_width_fixed * 2) {
         if (g->scroll_leftmost == 0) {
-            g->scroll_leftmost = g->num_cols;
+            g->scroll_leftmost = visible_cols;
         }
         g->scroll_leftmost--;
         g->scroll_offset = (s16)(g->scroll_offset - tile_width_fixed);
@@ -549,16 +563,31 @@ static void update_scroll_positions(NGGraphic *g, s16 pixel_diff, s16 tile_width
     s16 base_left_x = (s16)(SCROLL_INT(g->scroll_offset) - 2 * tile_width);
 
     NGSpriteXBegin(g->hw_sprite_first);
-    for (u8 i = 0; i < g->num_cols; i++) {
-        u8 screen_col = (u8)((i - g->scroll_leftmost + g->num_cols) % g->num_cols);
+    for (u8 i = 0; i < visible_cols; i++) {
+        u8 screen_col = (u8)((i - g->scroll_leftmost + visible_cols) % visible_cols);
         s16 x = (s16)(base_left_x + screen_col * tile_width);
         NGSpriteXWriteNext(x);
     }
 }
 
 /**
+ * Calculate number of visible columns needed at current scale.
+ * Always renders complete copies of the asset (no partial repetitions).
+ * This ensures seamless tiling without cut-off text/graphics.
+ */
+static u8 calc_visible_cols(u8 max_cols, u8 src_tiles_w, s16 tile_width) {
+    /* Columns needed to fill screen = ceil(screen_width / tile_width) + 2 buffer */
+    u8 screen_cols = (u8)(((SCREEN_WIDTH + tile_width - 1) / tile_width) + 2);
+    /* Round up to multiple of asset width for complete repetitions */
+    u8 repetitions = (u8)((screen_cols + src_tiles_w - 1) / src_tiles_w);
+    u8 needed = repetitions * src_tiles_w;
+    return (needed > max_cols) ? max_cols : needed;
+}
+
+/**
  * Flush infinite scroll graphic - optimized for scrolling backdrops.
  * Tiles are written once, scrolling only updates X positions.
+ * Only renders columns needed at current zoom level to save sprites.
  */
 static void flush_infinite_scroll(NGGraphic *g) {
     u8 first_draw = (g->hw_sprite_first != g->cache.last_hw_sprite);
@@ -572,23 +601,35 @@ static void flush_infinite_scroll(NGGraphic *g) {
     if (tile_width < 1)
         tile_width = 1;
 
+    /* Calculate how many columns are actually visible at current scale */
+    u8 visible_cols = calc_visible_cols(g->num_cols, g->src_tiles_w, tile_width);
+
     /* First draw or tiles invalidated - write tiles once */
     if (!g->tiles_loaded) {
-        /* SCB1: Write tile data for all columns */
+        /* SCB1: Write tile data for all columns (needed for zoom out) */
         flush_tiles_standard(g);
 
-        /* SCB2: Shrink values */
-        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, scale_to_shrink_val(g->scale));
+        /* SCB2: Shrink values for visible columns only */
+        NGSpriteShrinkSet(g->hw_sprite_first, visible_cols, scale_to_shrink_val(g->scale));
+
+        /* SCB3: Set Y/height for visible columns, hide extras */
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, shrink);
+        NGSpriteYSetUniform(g->hw_sprite_first, visible_cols, g->screen_y, hw_height);
+        if (visible_cols < g->num_cols) {
+            NGSpriteHideRange(g->hw_sprite_first + visible_cols, g->num_cols - visible_cols);
+        }
 
         /* SCB4: Initial X positions - start one tile left for buffer */
-        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, -tile_width, tile_width);
+        NGSpriteXSetSpaced(g->hw_sprite_first, visible_cols, -tile_width, tile_width);
 
         /* Initialize scroll state */
         g->scroll_leftmost = 0;
-        g->scroll_offset = SCROLL_FIX(tile_width);  /* Start mid-range */
+        g->scroll_offset = SCROLL_FIX(tile_width); /* Start mid-range */
         g->scroll_last_px = g->src_offset_x;
         g->scroll_last_scb3 = 0xFFFF;
         g->tiles_loaded = 1;
+        g->cache.last_visible_cols = visible_cols;
 
         g->cache.last_scale = g->scale;
         g->cache.last_hw_sprite = g->hw_sprite_first;
@@ -596,17 +637,29 @@ static void flush_infinite_scroll(NGGraphic *g) {
 
     /* Handle scale changes */
     if (g->scale != g->cache.last_scale) {
-        NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, scale_to_shrink_val(g->scale));
-
-        /* Reset scroll state for new scale */
         tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
         if (tile_width < 1)
             tile_width = 1;
-        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, -tile_width, tile_width);
+        visible_cols = calc_visible_cols(g->num_cols, g->src_tiles_w, tile_width);
+
+        /* SCB2: Update shrink for visible columns */
+        NGSpriteShrinkSet(g->hw_sprite_first, visible_cols, scale_to_shrink_val(g->scale));
+
+        /* SCB3: Update Y/height for visible columns, hide/show as needed */
+        u8 shrink = scale_to_shrink(g->scale);
+        u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, shrink);
+        NGSpriteYSetUniform(g->hw_sprite_first, visible_cols, g->screen_y, hw_height);
+        if (visible_cols < g->num_cols) {
+            NGSpriteHideRange(g->hw_sprite_first + visible_cols, g->num_cols - visible_cols);
+        }
+
+        /* SCB4: Reset X positions for new tile width */
+        NGSpriteXSetSpaced(g->hw_sprite_first, visible_cols, -tile_width, tile_width);
         g->scroll_leftmost = 0;
         g->scroll_offset = SCROLL_FIX(tile_width);
         g->scroll_last_px = g->src_offset_x;
-        g->scroll_last_scb3 = 0xFFFF;  /* Force SCB3 update for new height */
+        g->scroll_last_scb3 = NGSpriteSCB3(g->screen_y, hw_height);
+        g->cache.last_visible_cols = visible_cols;
 
         g->cache.last_scale = g->scale;
     }
@@ -617,7 +670,7 @@ static void flush_infinite_scroll(NGGraphic *g) {
     u16 scb3_val = NGSpriteSCB3(g->screen_y, hw_height);
 
     if (scb3_val != g->scroll_last_scb3) {
-        NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, g->screen_y, hw_height);
+        NGSpriteYSetUniform(g->hw_sprite_first, visible_cols, g->screen_y, hw_height);
         g->scroll_last_scb3 = scb3_val;
     }
 
@@ -626,7 +679,7 @@ static void flush_infinite_scroll(NGGraphic *g) {
     s16 pixel_diff = (s16)(scroll_px - g->scroll_last_px);
 
     if (pixel_diff != 0) {
-        update_scroll_positions(g, pixel_diff, tile_width);
+        update_scroll_positions_limited(g, pixel_diff, tile_width, visible_cols);
         g->scroll_last_px = scroll_px;
     }
 
@@ -639,6 +692,7 @@ static void flush_infinite_scroll(NGGraphic *g) {
 
 /**
  * Load tile data for a single sprite column from tilemap8.
+ * Writes tiles in Y cycling order to support efficient vertical scrolling.
  * Used by cycling buffer to update only changed columns.
  */
 static void load_tilemap8_column(NGGraphic *g, u16 sprite_idx, s16 src_col) {
@@ -649,15 +703,21 @@ static void load_tilemap8_column(NGGraphic *g, u16 sprite_idx, s16 src_col) {
     const u8 *tile_to_palette = g->tile_to_palette;
     u8 default_pal = g->palette;
     s16 src_row_offset = g->src_offset_y >> TILE_SHIFT;
+    u8 topmost = g->scroll_topmost;
+    u8 num_rows = g->num_rows;
 
     NGSpriteTileBegin(sprite_idx);
 
-    for (u8 row = 0; row < g->num_rows; row++) {
-        s16 src_row = (s16)row + src_row_offset;
+    /* Write tiles in Y cycling order.
+     * Slot scroll_topmost contains display_row 0 (top of visible area).
+     * Formula: display_row = (slot - topmost + num_rows) % num_rows */
+    for (u8 slot = 0; slot < num_rows; slot++) {
+        /* Map slot to display row via cycling buffer */
+        u8 display_row = (u8)((slot + num_rows - topmost) % num_rows);
+        s16 src_row = (s16)display_row + src_row_offset;
 
         /* Clip mode: check bounds */
-        if (src_col < 0 || src_col >= src_tiles_w ||
-            src_row < 0 || src_row >= src_tiles_h) {
+        if (src_col < 0 || src_col >= src_tiles_w || src_row < 0 || src_row >= src_tiles_h) {
             NGSpriteTileWriteEmpty();
             continue;
         }
@@ -671,12 +731,66 @@ static void load_tilemap8_column(NGGraphic *g, u16 sprite_idx, s16 src_col) {
         NGSpriteTileWrite(tile, pal, 1, 0);
     }
 
-    NGSpriteTilePadTo32(g->num_rows);
+    NGSpriteTilePadTo32(num_rows);
+}
+
+/**
+ * Update a single row of tiles across all columns.
+ * Used for efficient Y-scroll updates instead of reloading entire columns.
+ * Only writes one tile per column - O(columns) instead of O(columns × rows).
+ *
+ * @param g          The graphic
+ * @param src_row    Source row in tilemap to read from
+ * @param slot       Tile slot within sprite columns to write to (0 to num_rows-1)
+ */
+static void update_tilemap8_row(NGGraphic *g, s16 src_row, u8 slot) {
+    NG_VRAM_DECLARE_BASE();
+
+    u8 src_tiles_w = g->src_tiles_w;
+    u8 src_tiles_h = g->src_tiles_h;
+    u16 effective_base = g->effective_base;
+    const u8 *tilemap8 = g->tilemap8;
+    const u8 *tile_to_palette = g->tile_to_palette;
+    u8 default_pal = g->palette;
+
+    s16 cur_tile_col = g->src_offset_x >> TILE_SHIFT;
+
+    /* For each screen column, update the tile at the specified slot */
+    for (u8 col = 0; col < g->num_cols; col++) {
+        /* Map screen column to sprite index (account for X cycling) */
+        u8 sprite_offset = (u8)((g->scroll_leftmost + col) % g->num_cols);
+        u16 sprite_idx = g->hw_sprite_first + sprite_offset;
+
+        /* Calculate source column */
+        s16 src_col = cur_tile_col + col;
+
+        /* Set VRAM address for this specific tile slot */
+        /* SCB1: sprite * 64 words + slot * 2 words */
+        NG_VRAM_SETUP_FAST(NG_SCB1_BASE + (sprite_idx * 64) + (slot * 2), 1);
+
+        /* Clip mode: check bounds */
+        if (src_col < 0 || src_col >= src_tiles_w || src_row < 0 || src_row >= src_tiles_h) {
+            /* Write empty tile */
+            NG_VRAM_WRITE_FAST(0);
+            NG_VRAM_WRITE_FAST(0);
+        } else {
+            u16 idx = (u16)((u16)src_row * src_tiles_w + (u16)src_col);
+            u8 tile_idx = tilemap8[idx];
+            u16 tile = effective_base + tile_idx;
+            u8 pal = tile_to_palette ? tile_to_palette[tile_idx] : default_pal;
+            u16 attr = (u16)(((u16)pal << 8) | 0x01); /* Default h_flip */
+
+            NG_VRAM_WRITE_FAST(tile);
+            NG_VRAM_WRITE_FAST(attr);
+        }
+    }
 }
 
 /**
  * Flush tilemap with cycling buffer - optimized for scrolling terrain.
- * Only updates the tile columns that actually change when crossing boundaries.
+ * Uses cycling buffers for both X and Y to minimize tile updates:
+ * - X scroll: only updates the column(s) that enter view
+ * - Y scroll: only updates the row(s) that enter view
  */
 static void flush_tilemap_scroll(NGGraphic *g) {
     u8 first_draw = (g->hw_sprite_first != g->cache.last_hw_sprite);
@@ -690,11 +804,16 @@ static void flush_tilemap_scroll(NGGraphic *g) {
     if (tile_width < 1)
         tile_width = 1;
 
-    /* Current tile offset (which source column is at display column 0) */
+    /* Current tile offsets */
     s16 cur_tile_col = g->src_offset_x >> TILE_SHIFT;
+    s16 cur_tile_row = g->src_offset_y >> TILE_SHIFT;
 
     /* First draw or tiles invalidated - write all tiles and initialize state */
     if (!g->tiles_loaded) {
+        /* Initialize Y cycling state before loading columns */
+        g->scroll_topmost = 0;
+        g->scroll_leftmost = 0;
+
         /* Load tiles for all columns */
         for (u8 col = 0; col < g->num_cols; col++) {
             s16 src_col = cur_tile_col + col;
@@ -705,8 +824,8 @@ static void flush_tilemap_scroll(NGGraphic *g) {
         NGSpriteShrinkSet(g->hw_sprite_first, g->num_cols, scale_to_shrink_val(g->scale));
 
         /* Initialize cycling state */
-        g->scroll_leftmost = 0;
-        g->scroll_last_px = cur_tile_col;  /* Track tile column, not pixels */
+        g->scroll_last_px = cur_tile_col;
+        g->scroll_last_row = cur_tile_row;
         g->scroll_last_scb3 = 0xFFFF;
         g->tiles_loaded = 1;
 
@@ -725,31 +844,64 @@ static void flush_tilemap_scroll(NGGraphic *g) {
         if (tile_width < 1)
             tile_width = 1;
 
-        /* Reload all tiles */
+        /* Reset cycling state and reload all tiles */
+        g->scroll_topmost = 0;
+        g->scroll_leftmost = 0;
         for (u8 col = 0; col < g->num_cols; col++) {
             s16 src_col = cur_tile_col + col;
             load_tilemap8_column(g, g->hw_sprite_first + col, src_col);
         }
 
-        g->scroll_leftmost = 0;
         g->scroll_last_px = cur_tile_col;
+        g->scroll_last_row = cur_tile_row;
         g->scroll_last_scb3 = 0xFFFF;
         g->cache.last_scale = g->scale;
     }
 
-    /* Check for Y offset changes - need to reload all tiles */
-    s16 cur_tile_row = g->src_offset_y >> TILE_SHIFT;
-    s16 last_tile_row = g->cache.last_src_offset_y >> TILE_SHIFT;
-    if (cur_tile_row != last_tile_row) {
-        for (u8 col = 0; col < g->num_cols; col++) {
-            u8 sprite_offset = (u8)((g->scroll_leftmost + col) % g->num_cols);
-            s16 src_col = cur_tile_col + col;
-            load_tilemap8_column(g, g->hw_sprite_first + sprite_offset, src_col);
+    /* Handle vertical scrolling with Y cycling buffer */
+    /* Only update the specific row(s) that enter view - O(columns) per row */
+    s16 last_tile_row = g->scroll_last_row;
+    s16 row_delta = cur_tile_row - last_tile_row;
+
+    if (row_delta != 0) {
+        u8 num_rows = g->num_rows;
+
+        if (row_delta > 0) {
+            /* Scrolling down: new rows appear at the bottom */
+            for (s16 i = 0; i < row_delta && i < (s16)num_rows; i++) {
+                /* Source row that just came into view at the bottom */
+                s16 src_row = (s16)(last_tile_row + (s16)num_rows + i);
+
+                /* The topmost slot will become the new bottom slot */
+                u8 slot = g->scroll_topmost;
+
+                /* Update just this row across all columns */
+                update_tilemap8_row(g, src_row, slot);
+
+                /* Advance topmost (row that was at top scrolled out) */
+                g->scroll_topmost = (u8)((g->scroll_topmost + 1) % num_rows);
+            }
+        } else {
+            /* Scrolling up: new rows appear at the top */
+            for (s16 i = 0; i > row_delta && i > -(s16)num_rows; i--) {
+                /* Move topmost back to make room for new row */
+                if (g->scroll_topmost == 0) {
+                    g->scroll_topmost = num_rows;
+                }
+                g->scroll_topmost--;
+
+                /* Source row that just came into view at the top */
+                s16 src_row = cur_tile_row - i;
+
+                /* Update just this row across all columns */
+                update_tilemap8_row(g, src_row, g->scroll_topmost);
+            }
         }
+        g->scroll_last_row = cur_tile_row;
         g->cache.last_src_offset_y = g->src_offset_y;
     }
 
-    /* Handle horizontal scrolling with cycling buffer */
+    /* Handle horizontal scrolling with X cycling buffer */
     s16 last_tile_col = g->scroll_last_px;
     s16 col_delta = cur_tile_col - last_tile_col;
 
@@ -785,13 +937,20 @@ static void flush_tilemap_scroll(NGGraphic *g) {
         g->scroll_last_px = cur_tile_col;
     }
 
-    /* SCB3: Y position - only write if changed */
+    /* SCB3: Y position adjusted for Y cycling buffer and sub-tile scrolling.
+     * The cycling buffer rotates tile slots, so we adjust Y position to compensate:
+     * - scroll_topmost slots are "above" the visible area
+     * - Sub-tile offset provides smooth pixel-level scrolling */
+    s16 tile_height = tile_width; /* Tiles are square */
+    s16 sub_tile_y = (s16)(((g->src_offset_y & (TILE_SIZE - 1)) * g->scale) >> 8);
+    s16 adjusted_screen_y = (s16)(g->screen_y - (s16)g->scroll_topmost * tile_height - sub_tile_y);
+
     u8 shrink = scale_to_shrink(g->scale);
     u8 hw_height = NGSpriteAdjustedHeight(g->num_rows, shrink);
-    u16 scb3_val = NGSpriteSCB3(g->screen_y, hw_height);
+    u16 scb3_val = NGSpriteSCB3(adjusted_screen_y, hw_height);
 
     if (scb3_val != g->scroll_last_scb3) {
-        NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, g->screen_y, hw_height);
+        NGSpriteYSetUniform(g->hw_sprite_first, g->num_cols, adjusted_screen_y, hw_height);
         g->scroll_last_scb3 = scb3_val;
     }
 
@@ -1029,9 +1188,11 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
 
     /* Infinite scroll state */
     g->scroll_leftmost = 0;
+    g->scroll_topmost = 0;
     g->tiles_loaded = 0;
     g->scroll_offset = 0;
     g->scroll_last_px = 0;
+    g->scroll_last_row = 0;
     g->scroll_last_scb3 = 0xFFFF;
 
     /* Calculate sprite requirements */

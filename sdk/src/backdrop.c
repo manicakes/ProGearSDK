@@ -9,7 +9,7 @@
 #include <graphic.h>
 
 #define TILE_SIZE                16
-#define MAX_COLUMNS_PER_BACKDROP 42
+#define MAX_COLUMNS_PER_BACKDROP 48
 
 typedef struct {
     const NGVisualAsset *asset;
@@ -61,7 +61,7 @@ static void sync_backdrop_graphic(Backdrop *bd) {
     if (infinite_width) {
         /* For infinite scroll, pass raw pixel offset - graphic handles circular buffer */
         s16 pixel_offset_x = FIX_INT(parallax_offset_x);
-        screen_x = 0;  /* X positioning handled internally by graphic */
+        screen_x = 0; /* X positioning handled internally by graphic */
         screen_y = bd->viewport_y - FIX_INT(parallax_offset_y);
         NGGraphicSetSourceOffset(bd->graphic, pixel_offset_x, 0);
     } else {
@@ -76,7 +76,7 @@ static void sync_backdrop_graphic(Backdrop *bd) {
     /* Apply camera zoom to backdrop scale */
     /* Camera zoom: 16 = 100%, 8 = 50%. Graphic scale: 256 = 100%, 128 = 50% */
     u8 zoom = NGCameraGetZoom();
-    u16 scale = (u16)(zoom * 16);  /* Convert: zoom * 256 / 16 = zoom * 16 */
+    u16 scale = (u16)(zoom * 16); /* Convert: zoom * 256 / 16 = zoom * 16 */
     NGGraphicSetScale(bd->graphic, scale);
 }
 
@@ -103,8 +103,16 @@ NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 hei
     u8 infinite_width = (width == NG_BACKDROP_WIDTH_INFINITE);
 
     if (infinite_width) {
-        /* For infinite scroll, use screen width + buffer */
-        disp_w = SCREEN_WIDTH + TILE_SIZE * 2;
+        /* For infinite scroll, need enough columns to show complete asset repetitions
+         * at max zoom out (50%). Calculate columns needed to fill screen, then round
+         * up to multiple of asset width for seamless tiling. */
+        u16 screen_cols_at_50pct = (u16)((SCREEN_WIDTH * 2 + TILE_SIZE - 1) / TILE_SIZE + 2);
+        u16 asset_cols = (u16)((asset->width_pixels + TILE_SIZE - 1) / TILE_SIZE);
+        u16 repetitions = (u16)((screen_cols_at_50pct + asset_cols - 1) / asset_cols);
+        u16 total_cols = repetitions * asset_cols;
+        if (total_cols > MAX_COLUMNS_PER_BACKDROP)
+            total_cols = MAX_COLUMNS_PER_BACKDROP;
+        disp_w = total_cols * TILE_SIZE;
     } else if (disp_w == 0) {
         disp_w = asset->width_pixels;
     }
@@ -114,7 +122,8 @@ NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 hei
     }
 
     /* Create graphic - use INFINITE mode for scrolling backdrops */
-    NGGraphicTileMode tile_mode = infinite_width ? NG_GRAPHIC_TILE_INFINITE : NG_GRAPHIC_TILE_REPEAT;
+    NGGraphicTileMode tile_mode =
+        infinite_width ? NG_GRAPHIC_TILE_INFINITE : NG_GRAPHIC_TILE_REPEAT;
     NGGraphicConfig cfg = {.width = disp_w,
                            .height = disp_h,
                            .tile_mode = tile_mode,

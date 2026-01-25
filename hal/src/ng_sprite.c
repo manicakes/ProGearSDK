@@ -66,8 +66,8 @@ void NGSpriteShrinkSet(u16 first_sprite, u8 count, u16 shrink) {
     NG_VRAM_DECLARE_BASE();
     NG_VRAM_SETUP_FAST(NG_SCB2_BASE + first_sprite, 1);
 
-    u8 h_shrink_8 = (u8)(shrink >> 8);  /* Full 8-bit horizontal */
-    u8 v_shrink = (u8)(shrink & 0xFF);  /* 8-bit vertical */
+    u8 h_shrink_8 = (u8)(shrink >> 8); /* Full 8-bit horizontal */
+    u8 v_shrink = (u8)(shrink & 0xFF); /* 8-bit vertical */
 
     /* Single sprite: no distribution needed */
     if (count == 1) {
@@ -81,9 +81,9 @@ void NGSpriteShrinkSet(u16 first_sprite, u8 count, u16 shrink) {
      * values to approximate the full 8-bit precision, even though
      * hardware only supports 4-bit h_shrink per sprite.
      * See: https://wiki.neogeodev.org/index.php?title=Scaling_sprite_groups */
-    u8 base_h = h_shrink_8 >> 4;   /* Integer part (0-15) */
-    u8 frac = h_shrink_8 & 0x0F;   /* Fractional part (0-15) */
-    u8 error = count >> 1;         /* Start centered for even distribution */
+    u8 base_h = h_shrink_8 >> 4; /* Integer part (0-15) */
+    u8 frac = h_shrink_8 & 0x0F; /* Fractional part (0-15) */
+    u8 error = count >> 1;       /* Start centered for even distribution */
 
     for (u8 i = 0; i < count; i++) {
         u8 h = base_h;

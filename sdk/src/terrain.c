@@ -80,8 +80,8 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     Terrain *tm = &terrains[handle];
 
     /* Calculate display dimensions to cover viewport with buffer */
-    u16 disp_w = (u16)((NG_TERRAIN_MAX_COLS) * NG_TILE_SIZE);
-    u16 disp_h = (u16)((NG_TERRAIN_MAX_ROWS) * NG_TILE_SIZE);
+    u16 disp_w = (u16)((NG_TERRAIN_MAX_COLS)*NG_TILE_SIZE);
+    u16 disp_h = (u16)((NG_TERRAIN_MAX_ROWS)*NG_TILE_SIZE);
 
     /* Create graphic with clip mode (don't tile outside terrain bounds) */
     NGGraphicConfig cfg = {.width = disp_w,
@@ -95,9 +95,8 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
     }
 
     /* Configure graphic source from terrain asset */
-    NGGraphicSetSourceTilemap8(tm->graphic, asset->base_tile, asset->tile_data,
-                               asset->width_tiles, asset->height_tiles, asset->tile_to_palette,
-                               asset->default_palette);
+    NGGraphicSetSourceTilemap8(tm->graphic, asset->base_tile, asset->tile_data, asset->width_tiles,
+                               asset->height_tiles, asset->tile_to_palette, asset->default_palette);
 
     /* Initially hidden */
     NGGraphicSetVisible(tm->graphic, 0);

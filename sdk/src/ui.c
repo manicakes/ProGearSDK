@@ -180,8 +180,8 @@ static void setup_panel_graphic(NGMenu *menu) {
     }
 
     /* Configure 9-slice borders */
-    NGGraphicSet9SliceBorders(menu->panel_graphic, PANEL_TOP_ROWS * 16, PANEL_BOTTOM_ROWS * 16,
-                              16, 16);
+    NGGraphicSet9SliceBorders(menu->panel_graphic, PANEL_TOP_ROWS * 16, PANEL_BOTTOM_ROWS * 16, 16,
+                              16);
 
     /* Set source */
     NGGraphicSetSource(menu->panel_graphic, asset, asset->palette);

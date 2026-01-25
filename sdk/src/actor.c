@@ -208,8 +208,8 @@ void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
     // Update graphic z-order and make visible
     if (actor->graphic) {
         NGGraphicSetZOrder(actor->graphic, z);
-        NGGraphicSetLayer(actor->graphic, actor->screen_space ? NG_GRAPHIC_LAYER_UI
-                                                              : NG_GRAPHIC_LAYER_ENTITY);
+        NGGraphicSetLayer(actor->graphic,
+                          actor->screen_space ? NG_GRAPHIC_LAYER_UI : NG_GRAPHIC_LAYER_ENTITY);
         NGGraphicSetVisible(actor->graphic, actor->visible);
         sync_actor_graphic(actor);
     }

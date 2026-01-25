@@ -698,8 +698,7 @@ static void resolve_palettes(void) {
      * decay to black over multiple frames. */
     if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
         if (has_additive) {
-            apply_prebaked_step(g_lighting.prebaked_preset_id,
-                                g_lighting.prebaked_current_step);
+            apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
             apply_additive_to_current_palettes(add_r, add_g, add_b, add_bright);
         }
         return;
