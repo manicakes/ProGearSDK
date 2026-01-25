@@ -11,7 +11,7 @@
 #include "sdk_internal.h"
 
 #define TILE_SIZE                16
-#define MAX_COLUMNS_PER_BACKDROP 48
+#define MAX_COLUMNS_PER_BACKDROP 36
 
 typedef struct {
     const NGVisualAsset *asset;
@@ -105,15 +105,21 @@ NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 hei
     u8 infinite_width = (width == NG_BACKDROP_WIDTH_INFINITE);
 
     if (infinite_width) {
-        /* For infinite scroll, need enough columns to show complete asset repetitions
-         * at max zoom out (50%). Calculate columns needed to fill screen, then round
-         * up to multiple of asset width for seamless tiling. */
-        u16 screen_cols_at_50pct = (u16)((SCREEN_WIDTH * 2 + TILE_SIZE - 1) / TILE_SIZE + 2);
+        /* For infinite scroll, allocate columns to fill screen with some buffer.
+         * Limited by MAX_COLUMNS_PER_BACKDROP to stay within NeoGeo's 96 sprites
+         * per scanline when multiple backdrops + UI elements overlap. */
         u16 asset_cols = (u16)((asset->width_pixels + TILE_SIZE - 1) / TILE_SIZE);
-        u16 repetitions = (u16)((screen_cols_at_50pct + asset_cols - 1) / asset_cols);
-        u16 total_cols = repetitions * asset_cols;
-        if (total_cols > MAX_COLUMNS_PER_BACKDROP)
+        u16 total_cols;
+        if (asset_cols >= MAX_COLUMNS_PER_BACKDROP) {
+            /* Large asset: use max allowed columns */
             total_cols = MAX_COLUMNS_PER_BACKDROP;
+        } else {
+            /* Prefer complete repetitions for seamless tiling */
+            total_cols = asset_cols;
+            while (total_cols + asset_cols <= MAX_COLUMNS_PER_BACKDROP) {
+                total_cols += asset_cols;
+            }
+        }
         disp_w = total_cols * TILE_SIZE;
     } else if (disp_w == 0) {
         disp_w = asset->width_pixels;

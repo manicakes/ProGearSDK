@@ -103,7 +103,7 @@ u8 ScrollDemoUpdate(void) {
                 case MENU_TOGGLE_ZOOM: {
                     u8 target = NGCameraGetTargetZoom();
                     if (target == NG_CAM_ZOOM_100) {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_50);
+                        NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
                     } else {
                         NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
                     }

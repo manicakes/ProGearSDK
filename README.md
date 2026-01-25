@@ -32,12 +32,12 @@ ProGearSDK uses a three-layer architecture:
 
 - **[Core](core/)** - Foundation library with types, fixed-point math, and memory utilities. No hardware dependencies.
 - **[HAL](hal/)** - Hardware Abstraction Layer providing direct access to NeoGeo hardware. Includes all runtime components (startup code, linker script, Z80 driver) needed to build complete applications.
-- **[SDK](sdk/)** - High-level game engine with scenes, actors, cameras, and more. Builds on top of Core and HAL.
+- **[ProGear](progear/)** - High-level game engine with scenes, actors, cameras, and more. Builds on top of Core and HAL.
 
 ## Quick Start
 
 ```c
-#include <progearsdk.h>
+#include <progear.h>
 #include <progear_assets.h>
 
 int main(void) {
@@ -63,7 +63,7 @@ int main(void) {
 make              # Build everything (Core + HAL + SDK + demos)
 make core         # Build Core only (core/build/libneogeo_core.a)
 make hal          # Build Core + HAL (hal/build/libneogeo.a)
-make sdk          # Build Core + HAL + SDK (sdk/build/libprogearsdk.a)
+make progear      # Build Core + HAL + ProGear (progear/build/libprogearsdk.a)
 make showcase     # Build and run showcase demo
 make docs         # Generate API documentation (requires Doxygen)
 ```
@@ -88,7 +88,7 @@ ProGearSDK/
 │   ├── startup/      # 68000 startup code (crt0.s)
 │   ├── z80/          # Z80 audio driver
 │   └── rom/          # ROM support files (linker script, sfix)
-├── sdk/              # Game Engine SDK
+├── progear/          # Game Engine SDK
 │   ├── include/      # SDK headers
 │   └── src/          # SDK implementation
 ├── demos/

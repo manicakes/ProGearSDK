@@ -102,8 +102,8 @@ fixed NGCameraGetY(void) {
 void NGCameraSetZoom(u8 zoom) {
     if (zoom > NG_CAM_ZOOM_100)
         zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50)
-        zoom = NG_CAM_ZOOM_50;
+    if (zoom < NG_CAM_ZOOM_75)
+        zoom = NG_CAM_ZOOM_75;
     u8 idx = zoom_to_index(zoom);
     camera.zoom.index = idx;
     camera.zoom.target = idx;
@@ -112,8 +112,8 @@ void NGCameraSetZoom(u8 zoom) {
 void NGCameraSetTargetZoom(u8 zoom) {
     if (zoom > NG_CAM_ZOOM_100)
         zoom = NG_CAM_ZOOM_100;
-    if (zoom < NG_CAM_ZOOM_50)
-        zoom = NG_CAM_ZOOM_50;
+    if (zoom < NG_CAM_ZOOM_75)
+        zoom = NG_CAM_ZOOM_75;
     camera.zoom.target = zoom_to_index(zoom);
 }
 

@@ -1,10 +1,10 @@
 /**
- * @file progearsdk.h
+ * @file progear.h
  * @brief Convenience header that includes the entire ProGearSDK.
  *
  * Include this single header to access all SDK functionality:
  * @code
- * #include <progearsdk.h>
+ * #include <progear.h>
  * @endcode
  *
  * Note: This does not include progear_assets.h, which is

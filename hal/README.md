@@ -230,5 +230,5 @@ NG_PAN_LEFT, NG_PAN_CENTER, NG_PAN_RIGHT
 ## See Also
 
 - [Core Documentation](../core/) - Foundation types, math, and memory
-- [SDK Documentation](../sdk/) - High-level game engine
+- [ProGear Documentation](../progear/) - High-level game engine
 - [NeoGeo Dev Wiki](https://wiki.neogeodev.org) - Hardware details

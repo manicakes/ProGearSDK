@@ -1,15 +1,15 @@
 # ProGearSDK Shared Makefile Include
 #
 # Include this file in your game's Makefile to use the SDK.
-# Before including, define SDK_PATH to point to the sdk directory.
+# Before including, define SDK_PATH to point to the progear directory.
 #
 # Example:
-#   SDK_PATH = ../../sdk
-#   include $(SDK_PATH)/sdk.mk
+#   SDK_PATH = ../../progear
+#   include $(SDK_PATH)/progear.mk
 
 # Verify SDK_PATH is set
 ifndef SDK_PATH
-$(error SDK_PATH must be defined before including sdk.mk)
+$(error SDK_PATH must be defined before including progear.mk)
 endif
 
 # === Toolchain ===
@@ -70,8 +70,8 @@ core:
 hal: core
 	@$(MAKE) -C $(HAL_PATH) all
 
-# === SDK Build Rule ===
-# Call this target to ensure Core, HAL, and SDK libraries are built
-.PHONY: sdk
-sdk: hal
+# === ProGear Build Rule ===
+# Call this target to ensure Core, HAL, and ProGear libraries are built
+.PHONY: progear
+progear: hal
 	@$(MAKE) -C $(SDK_PATH) all

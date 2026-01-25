@@ -3,7 +3,7 @@
  * A minimal starting point for NeoGeo game development.
  */
 
-#include <progearsdk.h>
+#include <progear.h>
 #include <progear_assets.h>
 
 int main(void) {

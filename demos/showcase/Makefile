@@ -8,9 +8,9 @@ MAME_DRIVER = puzzledp
 NEOGEO_BIOS_PATH = ../../bios
 
 # === SDK Setup ===
-SDK_PATH = ../../sdk
+SDK_PATH = ../../progear
 TOOLS_PATH = ../../tools
-include $(SDK_PATH)/sdk.mk
+include $(SDK_PATH)/progear.mk
 
 # === Paths ===
 BUILD_DIR = build
@@ -65,9 +65,9 @@ GEN_V1 = $(GEN_DIR)/audio-v1.bin
 GEN_M1_TABLES = $(GEN_DIR)/audio-tables.bin
 
 # === Build Rules ===
-.PHONY: all clean mame neo romzip assets sdk
+.PHONY: all clean mame neo romzip assets progear
 
-all: sdk $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
+all: progear $(P_ROM) $(M_ROM) $(S_ROM) $(C1_ROM) $(C2_ROM) $(V1_ROM)
 	@echo ""
 	@echo "Build complete!"
 	@echo "ROM files:"

@@ -106,4 +106,4 @@ NGArenaRemaining(&ng_arena_state)
 ## See Also
 
 - [HAL Documentation](../hal/) - Hardware abstraction layer
-- [SDK Documentation](../sdk/) - High-level game engine
+- [ProGear Documentation](../progear/) - High-level game engine

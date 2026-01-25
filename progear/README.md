@@ -23,7 +23,7 @@ Output: `build/libprogearsdk.a`
 Include the master header to access all SDK (and HAL) functionality:
 
 ```c
-#include <progearsdk.h>
+#include <progear.h>
 ```
 
 ## Core Concepts
@@ -88,7 +88,7 @@ visual_assets:
 ### Write Your Game (src/main.c)
 
 ```c
-#include <progearsdk.h>
+#include <progear.h>
 #include <progear_assets.h>
 
 int main(void) {

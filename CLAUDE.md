@@ -18,8 +18,8 @@ make core
 # Build Core and HAL library (outputs hal/build/libneogeo.a)
 make hal
 
-# Build Core, HAL, and SDK library (outputs sdk/build/libprogearsdk.a)
-make sdk
+# Build Core, HAL, and ProGear library (outputs progear/build/libprogearsdk.a)
+make progear
 
 # Build and run a demo in MAME
 cd demos/showcase && make mame
@@ -49,10 +49,10 @@ The codebase is split into three libraries:
    - Output: `hal/build/libneogeo.a`
    - Headers use `ng_` prefix (e.g., `ng_sprite.h`, `ng_palette.h`)
 
-3. **SDK (Game Engine)** - `sdk/` directory
+3. **ProGear (Game Engine)** - `progear/` directory
    - High-level game abstractions (scenes, actors, cameras)
    - Depends on Core and HAL
-   - Output: `sdk/build/libprogearsdk.a`
+   - Output: `progear/build/libprogearsdk.a`
 
 ### Core Modules (`core/include/`)
 
@@ -72,7 +72,7 @@ The codebase is split into three libraries:
 - `ng_audio.h` - ADPCM-A/B audio playback
 - `neogeo_hal.h` - Master header (includes Core + all HAL modules)
 
-### SDK Modules (`sdk/include/`)
+### ProGear Modules (`progear/include/`)
 
 - `actor.h` - Scene actors (sprites with animation)
 - `scene.h` - World management and rendering
@@ -86,7 +86,7 @@ The codebase is split into three libraries:
 - `spring.h` - Animation easing
 - `ui.h` - Menu system
 - `engine.h` - Game loop lifecycle
-- `progearsdk.h` - Master header (includes HAL + all SDK modules)
+- `progear.h` - Master header (includes HAL + all ProGear modules)
 
 ### Core Abstractions
 
@@ -124,9 +124,9 @@ ProGearSDK/
 │   ├── include/          # HAL public headers (ng_*.h)
 │   ├── src/              # HAL implementation
 │   └── build/            # Output: libneogeo.a
-├── sdk/                  # Game Engine SDK
-│   ├── include/          # SDK public headers
-│   ├── src/              # SDK implementation
+├── progear/              # Game Engine
+│   ├── include/          # ProGear public headers
+│   ├── src/              # ProGear implementation
 │   └── build/            # Output: libprogearsdk.a
 ├── demos/
 │   ├── showcase/         # Feature demo
