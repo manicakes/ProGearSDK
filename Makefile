@@ -1,34 +1,40 @@
 # ProGearSDK Top-Level Makefile
 #
-# Orchestrates building the HAL, SDK, and demo projects.
+# Orchestrates building the Core, HAL, SDK, and demo projects.
 #
 # Targets:
-#   all          - Build HAL, SDK, and all demos
-#   hal          - Build only the HAL library (libneogeo.a)
-#   sdk          - Build HAL and SDK library (libprogearsdk.a)
-#   showcase     - Build HAL, SDK, and showcase demo
-#   template     - Build HAL, SDK, and template demo
+#   all          - Build Core, HAL, SDK, and all demos
+#   core         - Build only the Core library (libneogeo_core.a)
+#   hal          - Build Core and HAL library (libneogeo.a)
+#   sdk          - Build Core, HAL, and SDK library (libprogearsdk.a)
+#   showcase     - Build SDK and showcase demo
+#   template     - Build SDK and template demo
 #   hal-template - Build HAL and hal-template demo (HAL-only example)
 #   clean        - Clean all build artifacts
 #   docs         - Generate API documentation with Doxygen
-#   format       - Format all source files (HAL + SDK + demos)
+#   format       - Format all source files (Core + HAL + SDK + demos)
 #   format-check - Check formatting for all source files
 #   lint         - Run static analysis on all source files
 #   check        - Run all checks (format-check + lint)
 
-.PHONY: all hal sdk showcase template hal-template clean docs format format-check lint check help
+.PHONY: all core hal sdk showcase template hal-template clean docs format format-check lint check help
 
 # Default target
 all: sdk showcase template hal-template
 	@echo ""
 	@echo "All builds complete!"
 
-# Build HAL library
-hal:
+# Build Core library
+core:
+	@echo "=== Building Core ==="
+	@$(MAKE) -C core all
+
+# Build HAL library (depends on Core)
+hal: core
 	@echo "=== Building HAL ==="
 	@$(MAKE) -C hal all
 
-# Build SDK library (depends on HAL)
+# Build SDK library (depends on HAL which depends on Core)
 sdk: hal
 	@echo "=== Building SDK ==="
 	@$(MAKE) -C sdk all
@@ -51,6 +57,7 @@ hal-template: hal
 # Clean everything
 clean:
 	@echo "Cleaning all build artifacts..."
+	@$(MAKE) -C core clean
 	@$(MAKE) -C hal clean
 	@$(MAKE) -C sdk clean
 	@$(MAKE) -C demos/showcase clean
@@ -72,6 +79,7 @@ docs:
 # Format all source files
 format:
 	@echo "=== Formatting All Source Files ==="
+	@$(MAKE) -C core format
 	@$(MAKE) -C hal format
 	@$(MAKE) -C sdk format
 	@$(MAKE) -C demos/showcase format
@@ -80,6 +88,7 @@ format:
 # Check formatting (fails if changes needed)
 format-check:
 	@echo "=== Checking Code Formatting ==="
+	@$(MAKE) -C core format-check
 	@$(MAKE) -C hal format-check
 	@$(MAKE) -C sdk format-check
 	@$(MAKE) -C demos/showcase format-check
@@ -88,6 +97,7 @@ format-check:
 # Static analysis
 lint:
 	@echo "=== Running Static Analysis ==="
+	@$(MAKE) -C core lint
 	@$(MAKE) -C hal lint
 	@$(MAKE) -C sdk lint
 	@$(MAKE) -C demos/showcase lint
@@ -103,9 +113,10 @@ help:
 	@echo "ProGearSDK Build System"
 	@echo ""
 	@echo "Build targets:"
-	@echo "  all          - Build HAL, SDK, and all demos (default)"
-	@echo "  hal          - Build only the HAL library (libneogeo.a)"
-	@echo "  sdk          - Build HAL and SDK library (libprogearsdk.a)"
+	@echo "  all          - Build Core, HAL, SDK, and all demos (default)"
+	@echo "  core         - Build only the Core library (libneogeo_core.a)"
+	@echo "  hal          - Build Core and HAL library (libneogeo.a)"
+	@echo "  sdk          - Build Core, HAL, and SDK library (libprogearsdk.a)"
 	@echo "  showcase     - Build SDK and showcase demo"
 	@echo "  template     - Build SDK and template demo"
 	@echo "  hal-template - Build HAL-only template (no SDK)"

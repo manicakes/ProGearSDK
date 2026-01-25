@@ -51,8 +51,8 @@ $(BUILD_DIR)/main.o: src/main.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # === Link ELF ===
-$(ELF_FILE): $(OBJECTS) $(HAL_LIB) $(HAL_CRT0)
-	$(CC) $(CFLAGS) $(HAL_LDFLAGS) $(HAL_CRT0) $(OBJECTS) $(HAL_LIB) -lgcc -o $@
+$(ELF_FILE): $(OBJECTS) $(HAL_LIB) $(CORE_LIB) $(HAL_CRT0)
+	$(CC) $(CFLAGS) $(HAL_LDFLAGS) $(HAL_CRT0) $(OBJECTS) $(HAL_LIB) $(CORE_LIB) -lgcc -o $@
 
 # === ROM Generation ===
 

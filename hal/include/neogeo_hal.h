@@ -24,11 +24,12 @@
  * @brief Low-level NeoGeo hardware access and utilities.
  *
  * The HAL provides direct access to NeoGeo hardware with portable abstractions.
- * It handles types, math, graphics hardware, input, and audio at the hardware level.
+ * It handles graphics hardware, input, and audio at the hardware level.
+ *
+ * This header includes the Core foundation library (types, math, arena) plus
+ * all hardware-specific modules.
  *
  * Modules:
- * - @ref types - Fixed-width integer types
- * - @ref math - Fixed-point math and trigonometry
  * - @ref color - NeoGeo 16-bit color utilities
  * - @ref palette - Palette RAM management
  * - @ref hardware - Hardware registers and VRAM access
@@ -36,20 +37,16 @@
  * - @ref fix - Fix layer text rendering
  * - @ref input - Controller input handling
  * - @ref audio - ADPCM audio playback
- * - @ref arena - Arena memory allocator
  */
 
 #ifndef _NEOGEO_HAL_H_
 #define _NEOGEO_HAL_H_
 
-/* Foundation types */
-#include <ng_types.h>
+/* Core foundation (types, math, arena) */
+#include <neogeo_core.h>
 
 /* Hardware access */
 #include <ng_hardware.h>
-
-/* Fixed-point math */
-#include <ng_math.h>
 
 /* Color and palette */
 #include <ng_color.h>
@@ -66,8 +63,5 @@
 
 /* Audio system */
 #include <ng_audio.h>
-
-/* Memory management */
-#include <ng_arena.h>
 
 #endif /* _NEOGEO_HAL_H_ */

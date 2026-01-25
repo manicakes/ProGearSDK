@@ -23,6 +23,11 @@ OBJCOPY = $(PREFIX)objcopy
 # Z80 assembler (sdasz80 from SDCC)
 Z80ASM = sdasz80
 
+# === Core Paths ===
+CORE_PATH = $(SDK_PATH)/../core
+CORE_INCLUDE = $(CORE_PATH)/include
+CORE_LIB = $(CORE_PATH)/build/libneogeo_core.a
+
 # === HAL Paths ===
 HAL_PATH = $(SDK_PATH)/../hal
 HAL_INCLUDE = $(HAL_PATH)/include
@@ -46,22 +51,27 @@ SDK_Z80_DRIVER = $(HAL_Z80_DRIVER)
 SDK_CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
 SDK_CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
 SDK_CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
-SDK_CFLAGS += -I$(SDK_INCLUDE) -I$(HAL_INCLUDE)
+SDK_CFLAGS += -I$(SDK_INCLUDE) -I$(CORE_INCLUDE) -I$(HAL_INCLUDE)
 
 SDK_ASFLAGS = -m68000
 
 SDK_LDFLAGS = -T$(SDK_LINKER_SCRIPT) -nostdlib
 
-# === Libraries for linking (order matters: SDK first, then HAL) ===
-SDK_LIBS = $(SDK_LIB) $(HAL_LIB)
+# === Libraries for linking (order matters: SDK first, then HAL, then Core) ===
+SDK_LIBS = $(SDK_LIB) $(HAL_LIB) $(CORE_LIB)
+
+# === Core Build Rule ===
+.PHONY: core
+core:
+	@$(MAKE) -C $(CORE_PATH) all
 
 # === HAL Build Rule ===
 .PHONY: hal
-hal:
+hal: core
 	@$(MAKE) -C $(HAL_PATH) all
 
 # === SDK Build Rule ===
-# Call this target to ensure both HAL and SDK libraries are built
+# Call this target to ensure Core, HAL, and SDK libraries are built
 .PHONY: sdk
 sdk: hal
 	@$(MAKE) -C $(SDK_PATH) all

@@ -10,25 +10,29 @@ A modern game engine SDK for the NeoGeo AES/MVS.
 
 ## Architecture
 
-ProGearSDK uses a two-layer architecture:
+ProGearSDK uses a three-layer architecture:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Your Game                         │
-├─────────────────────────────────────────────────────┤
-│              SDK (libprogearsdk.a)                   │
-│   Scenes, Actors, Cameras, Physics, UI, Lighting    │
-├─────────────────────────────────────────────────────┤
-│              HAL (libneogeo.a)                       │
-│   Sprites, Palettes, Input, Audio, Fix Layer, Math  │
-├─────────────────────────────────────────────────────┤
-│              NeoGeo Hardware                         │
-│   68000 CPU, VRAM, Palette RAM, Z80 Sound CPU       │
-└─────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                      Your Game                        │
+├───────────────────────────────────────────────────────┤
+│               SDK (libprogearsdk.a)                   │
+│   Scenes, Actors, Cameras, Physics, UI, Lighting      │
+├───────────────────────────────────────────────────────┤
+│                 HAL (libneogeo.a)                     │
+│   Sprites, Palettes, Input, Audio, Fix Layer, Color   │
+├───────────────────────────────────────────────────────┤
+│              Core (libneogeo_core.a)                  │
+│   Types, Fixed-Point Math, Vectors, Arena Allocator   │
+├───────────────────────────────────────────────────────┤
+│                   NeoGeo Hardware                     │
+│   68000 CPU, VRAM, Palette RAM, Z80 Sound CPU         │
+└───────────────────────────────────────────────────────┘
 ```
 
+- **[Core](core/)** - Foundation library with types, fixed-point math, and memory utilities. No hardware dependencies.
 - **[HAL](hal/)** - Hardware Abstraction Layer providing direct access to NeoGeo hardware. Includes all runtime components (startup code, linker script, Z80 driver) needed to build complete applications.
-- **[SDK](sdk/)** - High-level game engine with scenes, actors, cameras, and more. Builds on top of HAL.
+- **[SDK](sdk/)** - High-level game engine with scenes, actors, cameras, and more. Builds on top of Core and HAL.
 
 ## Quick Start
 
@@ -56,9 +60,10 @@ int main(void) {
 ## Building
 
 ```bash
-make              # Build everything (HAL + SDK + demos)
-make hal          # Build HAL only (hal/build/libneogeo.a)
-make sdk          # Build SDK only (sdk/build/libprogearsdk.a)
+make              # Build everything (Core + HAL + SDK + demos)
+make core         # Build Core only (core/build/libneogeo_core.a)
+make hal          # Build Core + HAL (hal/build/libneogeo.a)
+make sdk          # Build Core + HAL + SDK (sdk/build/libprogearsdk.a)
 make showcase     # Build and run showcase demo
 make docs         # Generate API documentation (requires Doxygen)
 ```
@@ -74,6 +79,9 @@ make mame         # Build and run in MAME emulator
 
 ```
 ProGearSDK/
+├── core/             # Foundation Library
+│   ├── include/      # Core headers (ng_types.h, ng_math.h, ng_arena.h)
+│   └── src/          # Core implementation
 ├── hal/              # Hardware Abstraction Layer
 │   ├── include/      # HAL headers (ng_*.h)
 │   ├── src/          # HAL implementation

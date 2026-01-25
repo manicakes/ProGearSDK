@@ -9,13 +9,16 @@ ProGearSDK is a game engine SDK for the NeoGeo AES/MVS console (Motorola 68000 @
 ## Build Commands
 
 ```bash
-# Build everything (HAL + SDK library + all demos)
+# Build everything (Core + HAL + SDK library + all demos)
 make
 
-# Build only the HAL library (outputs hal/build/libneogeo.a)
+# Build only the Core library (outputs core/build/libneogeo_core.a)
+make core
+
+# Build Core and HAL library (outputs hal/build/libneogeo.a)
 make hal
 
-# Build HAL and SDK library (outputs sdk/build/libprogearsdk.a)
+# Build Core, HAL, and SDK library (outputs sdk/build/libprogearsdk.a)
 make sdk
 
 # Build and run a demo in MAME
@@ -30,33 +33,44 @@ make check        # Run all checks
 
 ## Architecture
 
-### Two-Layer Design
+### Three-Layer Design
 
-The codebase is split into two libraries:
+The codebase is split into three libraries:
 
-1. **HAL (Hardware Abstraction Layer)** - `hal/` directory
+1. **Core (Foundation Library)** - `core/` directory
+   - Foundational types, math, and memory utilities
+   - No hardware dependencies
+   - Output: `core/build/libneogeo_core.a`
+   - Headers use `ng_` prefix (e.g., `ng_types.h`, `ng_math.h`)
+
+2. **HAL (Hardware Abstraction Layer)** - `hal/` directory
    - Low-level NeoGeo hardware access
+   - Depends on Core
    - Output: `hal/build/libneogeo.a`
    - Headers use `ng_` prefix (e.g., `ng_sprite.h`, `ng_palette.h`)
 
-2. **SDK (Game Engine)** - `sdk/` directory
+3. **SDK (Game Engine)** - `sdk/` directory
    - High-level game abstractions (scenes, actors, cameras)
-   - Depends on HAL
+   - Depends on Core and HAL
    - Output: `sdk/build/libprogearsdk.a`
+
+### Core Modules (`core/include/`)
+
+- `ng_types.h` - Base types (u8, u16, u32, s8, s16, s32)
+- `ng_math.h` - Fixed-point math, trig tables, vectors
+- `ng_arena.h` - Bump-pointer arena allocator
+- `neogeo_core.h` - Master header (includes all Core modules)
 
 ### HAL Modules (`hal/include/`)
 
-- `ng_types.h` - Base types (u8, u16, u32, s8, s16, s32)
 - `ng_hardware.h` - Hardware registers, VRAM access, BIOS
-- `ng_math.h` - Fixed-point math, trig tables, vectors
 - `ng_color.h` - 16-bit color format manipulation
 - `ng_palette.h` - Palette RAM management
 - `ng_sprite.h` - Sprite Control Block operations
 - `ng_fix.h` - Fix layer (text) rendering
 - `ng_input.h` - Controller input with edge detection
 - `ng_audio.h` - ADPCM-A/B audio playback
-- `ng_arena.h` - Bump-pointer arena allocator
-- `neogeo_hal.h` - Master header (includes all HAL modules)
+- `neogeo_hal.h` - Master header (includes Core + all HAL modules)
 
 ### SDK Modules (`sdk/include/`)
 
@@ -102,6 +116,10 @@ Generated header is included as `<progear_assets.h>` and contains `NGVisualAsset
 
 ```
 ProGearSDK/
+├── core/                 # Foundation Library (types, math, memory)
+│   ├── include/          # Core public headers (ng_types.h, ng_math.h, ng_arena.h)
+│   ├── src/              # Core implementation
+│   └── build/            # Output: libneogeo_core.a
 ├── hal/                  # Hardware Abstraction Layer
 │   ├── include/          # HAL public headers (ng_*.h)
 │   ├── src/              # HAL implementation

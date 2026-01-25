@@ -4,10 +4,11 @@ A C SDK for NeoGeo homebrew development targeting the m68000 CPU.
 
 ## Architecture
 
-ProGearSDK uses a two-layer architecture:
+ProGearSDK uses a three-layer architecture:
 
 | Layer | Library | Description |
 |-------|---------|-------------|
+| **Core** | `libneogeo_core.a` | Foundation - types, fixed-point math, memory allocation |
 | **HAL** | `libneogeo.a` | Hardware Abstraction Layer - direct access to NeoGeo hardware |
 | **SDK** | `libprogearsdk.a` | Game Engine - high-level abstractions for game development |
 
@@ -36,24 +37,33 @@ int main(void) {
 }
 ```
 
+## Core Modules (Foundation)
+
+Platform-independent utilities with no hardware dependencies. Headers use the `ng_` prefix.
+
+| Module | Description |
+|--------|-------------|
+| @ref ng_types.h | Base types (`u8`, `u16`, `u32`, `s8`, `s16`, `s32`, `fixed`) |
+| @ref ng_math.h | Fixed-point math, trigonometry, vectors |
+| @ref ng_arena.h | Bump-pointer arena memory allocator |
+
+Include `<neogeo_core.h>` for all Core modules.
+
 ## HAL Modules (Hardware Abstraction Layer)
 
 Low-level access to NeoGeo hardware. Headers use the `ng_` prefix.
 
 | Module | Description |
 |--------|-------------|
-| @ref ng_types.h | Base types (`u8`, `u16`, `u32`, `s8`, `s16`, `s32`, `fixed`) |
 | @ref ng_hardware.h | Hardware registers, VRAM access, BIOS functions |
-| @ref ng_math.h | Fixed-point math, trigonometry, vectors |
 | @ref ng_color.h | 16-bit color manipulation |
 | @ref ng_palette.h | Palette RAM management (256 palettes × 16 colors) |
 | @ref ng_sprite.h | Sprite Control Block operations |
 | @ref ng_fix.h | Fix layer (40×32 text overlay) |
 | @ref ng_input.h | Controller input with edge detection |
 | @ref ng_audio.h | ADPCM-A sound effects and ADPCM-B music |
-| @ref ng_arena.h | Bump-pointer arena memory allocator |
 
-Include `<neogeo_hal.h>` for all HAL modules, or include individual headers as needed.
+Include `<neogeo_hal.h>` for all HAL modules (includes Core automatically).
 
 ## SDK Modules (Game Engine)
 
@@ -181,9 +191,10 @@ Run `progear_assets.py` to generate `progear_assets.h` and ROM data.
 ## Building
 
 ```bash
-make              # Build HAL + SDK + demos
-make hal          # Build HAL only
-make sdk          # Build SDK only
+make              # Build Core + HAL + SDK + demos
+make core         # Build Core only
+make hal          # Build Core + HAL
+make sdk          # Build Core + HAL + SDK
 make docs         # Generate this documentation
 ```
 

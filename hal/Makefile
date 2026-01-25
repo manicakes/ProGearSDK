@@ -1,6 +1,7 @@
 # NeoGeo HAL (Hardware Abstraction Layer) Makefile
 #
 # Builds the HAL as a static library plus NeoGeo runtime components.
+# Depends on the Core library for types, math, and arena allocator.
 #
 # Targets:
 #   all          - Build libneogeo.a and crt0.o
@@ -24,6 +25,7 @@ INC_DIR = include
 STARTUP_DIR = startup
 Z80_DIR = z80
 ROM_DIR = rom
+CORE_INC_DIR = ../core/include
 
 # === Output ===
 LIBRARY = $(BUILD_DIR)/libneogeo.a
@@ -33,19 +35,17 @@ CRT0 = $(BUILD_DIR)/crt0.o
 CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
 CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
 CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
-CFLAGS += -I$(INC_DIR)
+CFLAGS += -I$(INC_DIR) -I$(CORE_INC_DIR)
 
 ASFLAGS = -m68000
 
 # === Source Files ===
-C_SOURCES = $(SRC_DIR)/ng_math.c \
-            $(SRC_DIR)/ng_color.c \
+C_SOURCES = $(SRC_DIR)/ng_color.c \
             $(SRC_DIR)/ng_palette.c \
             $(SRC_DIR)/ng_sprite.c \
             $(SRC_DIR)/ng_fix.c \
             $(SRC_DIR)/ng_input.c \
-            $(SRC_DIR)/ng_audio.c \
-            $(SRC_DIR)/ng_arena.c
+            $(SRC_DIR)/ng_audio.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 
@@ -106,7 +106,7 @@ lint:
 		--error-exitcode=1 \
 		--inline-suppr \
 		-D__CPPCHECK__ \
-		-I$(INC_DIR) \
+		-I$(INC_DIR) -I$(CORE_INC_DIR) \
 		$(C_SOURCES)
 	@echo "Static analysis OK."
 

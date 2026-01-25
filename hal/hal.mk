@@ -26,6 +26,11 @@ OBJCOPY = $(PREFIX)objcopy
 # Z80 assembler (sdasz80 from SDCC)
 Z80ASM = sdasz80
 
+# === Core Paths ===
+CORE_PATH = $(HAL_PATH)/../core
+CORE_INCLUDE = $(CORE_PATH)/include
+CORE_LIB = $(CORE_PATH)/build/libneogeo_core.a
+
 # === HAL Paths ===
 HAL_INCLUDE = $(HAL_PATH)/include
 HAL_LIB = $(HAL_PATH)/build/libneogeo.a
@@ -38,13 +43,18 @@ HAL_Z80_DRIVER = $(HAL_PATH)/z80/driver.s
 HAL_CFLAGS = -m68000 -Os -fomit-frame-pointer -ffreestanding
 HAL_CFLAGS += -Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2 -Wundef
 HAL_CFLAGS += -fno-common -Wconversion -Wno-sign-conversion
-HAL_CFLAGS += -I$(HAL_INCLUDE)
+HAL_CFLAGS += -I$(CORE_INCLUDE) -I$(HAL_INCLUDE)
 
 HAL_ASFLAGS = -m68000
 
 HAL_LDFLAGS = -T$(HAL_LINKER_SCRIPT) -nostdlib
 
+# === Core Build Rule ===
+.PHONY: core
+core:
+	@$(MAKE) -C $(CORE_PATH) all
+
 # === HAL Build Rule ===
 .PHONY: hal
-hal:
+hal: core
 	@$(MAKE) -C $(HAL_PATH) all
