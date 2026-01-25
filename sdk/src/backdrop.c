@@ -8,6 +8,8 @@
 #include <camera.h>
 #include <graphic.h>
 
+#include "sdk_internal.h"
+
 #define TILE_SIZE                16
 #define MAX_COLUMNS_PER_BACKDROP 48
 

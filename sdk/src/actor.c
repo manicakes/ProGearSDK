@@ -9,6 +9,8 @@
 #include <graphic.h>
 #include <ng_audio.h>
 
+#include "sdk_internal.h"
+
 typedef struct {
     const NGVisualAsset *asset;
     fixed x, y;        // Scene position
@@ -37,8 +39,6 @@ static u8 str_equal(const char *a, const char *b) {
     }
     return *a == *b;
 }
-
-extern void _NGSceneMarkRenderQueueDirty(void);
 
 void _NGActorSystemInit(void) {
     for (u8 i = 0; i < NG_ACTOR_MAX; i++) {

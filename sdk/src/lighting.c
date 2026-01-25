@@ -8,16 +8,13 @@
 #include <ng_palette.h>
 #include <ng_color.h>
 
+#include "sdk_internal.h"
+
 /** Maximum palettes to back up for lighting effects.
  *  This is a sparse list - only palettes actually in use are stored.
  *  Cost: ~33 bytes per entry (1 byte index + 32 bytes for 16 colors).
  */
 #define LIGHTING_MAX_BACKUP_PALETTES 32
-
-/* External functions to collect palettes from scene objects */
-extern void _NGActorCollectPalettes(u8 *palette_mask);
-extern void _NGBackdropCollectPalettes(u8 *palette_mask);
-extern void _NGTerrainCollectPalettes(u8 *palette_mask);
 
 /** Backup entry for a single palette */
 typedef struct {

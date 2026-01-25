@@ -8,6 +8,8 @@
 #include <camera.h>
 #include <graphic.h>
 
+#include "sdk_internal.h"
+
 typedef struct {
     const NGTerrainAsset *asset;
     fixed world_x, world_y;
@@ -20,8 +22,6 @@ typedef struct {
 } Terrain;
 
 static Terrain terrains[NG_TERRAIN_MAX];
-
-extern void _NGSceneMarkRenderQueueDirty(void);
 
 void _NGTerrainSystemInit(void) {
     for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {

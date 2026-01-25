@@ -11,25 +11,14 @@
 #include <camera.h>
 #include <graphic.h>
 
+#include "sdk_internal.h"
+
 static u8 scene_initialized;
 
 // Scene terrain state
 static NGTerrainHandle scene_terrain = NG_TERRAIN_INVALID;
 static u8 terrain_z;
 static u8 terrain_in_scene;
-
-extern void _NGActorSystemInit(void);
-extern void _NGActorSystemUpdate(void);
-extern void _NGActorSyncGraphics(void);
-
-extern void _NGBackdropSystemInit(void);
-extern void _NGBackdropSystemUpdate(void);
-extern void _NGBackdropSyncGraphics(void);
-extern void NGBackdropDestroy(NGBackdropHandle handle);
-
-extern void _NGTerrainSystemInit(void);
-extern void _NGTerrainSyncGraphics(void);
-extern void NGActorDestroy(NGActorHandle handle);
 
 /* Kept for backwards compatibility - no longer used internally */
 void _NGSceneMarkRenderQueueDirty(void) {
