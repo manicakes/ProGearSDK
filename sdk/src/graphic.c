@@ -859,11 +859,18 @@ static void flush_graphic(NGGraphic *g) {
         }
         g->cache.last_screen_y = g->screen_y;
 
-        /* SCB4: X Position */
-        s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
-        if (tile_width < 1)
-            tile_width = 1;
-        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, g->screen_x, tile_width);
+        /* SCB4: X Position
+         * For chained sprites, hardware auto-positions columns to the right
+         * of the driving sprite using their horizontal shrink values.
+         * Only need to write X for the first (driving) sprite. */
+        if (use_chain) {
+            NGSpriteXSet(g->hw_sprite_first, g->screen_x);
+        } else {
+            s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+            if (tile_width < 1)
+                tile_width = 1;
+            NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, g->screen_x, tile_width);
+        }
         g->cache.last_screen_x = g->screen_x;
 
         g->cache.last_display_width = g->display_width;
@@ -933,14 +940,20 @@ static void flush_graphic(NGGraphic *g) {
         g->cache.last_screen_y = g->screen_y;
     }
 
-    /* SCB4: X Position - only write if X changed */
+    /* SCB4: X Position - only write if X changed
+     * For chained sprites (entity layer), hardware auto-positions columns
+     * to the right of the driving sprite. Only need to write first sprite's X. */
     if (x_changed || scale_changed || size_changed) {
-        /* Calculate tile width based on scale */
-        s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
-        if (tile_width < 1)
-            tile_width = 1;
+        u8 use_chain = (g->layer == NG_GRAPHIC_LAYER_ENTITY);
 
-        NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, g->screen_x, tile_width);
+        if (use_chain) {
+            NGSpriteXSet(g->hw_sprite_first, g->screen_x);
+        } else {
+            s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+            if (tile_width < 1)
+                tile_width = 1;
+            NGSpriteXSetSpaced(g->hw_sprite_first, g->num_cols, g->screen_x, tile_width);
+        }
 
         g->cache.last_screen_x = g->screen_x;
     }
