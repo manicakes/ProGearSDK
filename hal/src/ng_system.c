@@ -132,47 +132,6 @@ void NGCoinLockoutP2(u8 locked) {
  * Real-Time Clock (MVS only, uPD4990A)
  * ========================================================================== */
 
-/* Send a 4-bit command to the RTC */
-static void rtc_send_cmd(u8 cmd) {
-    u8 i;
-    volatile u8 *ctrl = (volatile u8 *)0x380021;
-
-    for (i = 0; i < 4; i++) {
-        u8 bit = (cmd >> i) & 1;
-        /* Set data bit */
-        *ctrl = bit ? RTC_DATA : 0;
-        /* Clock pulse */
-        *ctrl |= RTC_CLK;
-        *ctrl &= ~RTC_CLK;
-    }
-    /* Strobe to latch command */
-    *ctrl = RTC_STB;
-    *ctrl = 0;
-}
-
-/* Read a single bit from RTC */
-static u8 rtc_read_bit(void) {
-    volatile u8 *data = (volatile u8 *)0x320001;
-    return (*data >> 4) & 1;
-}
-
-/* Read 4 bits (one BCD digit) from RTC */
-static u8 rtc_read_nibble(void) {
-    volatile u8 *ctrl = (volatile u8 *)0x380021;
-    u8 value = 0;
-    u8 i;
-
-    for (i = 0; i < 4; i++) {
-        if (rtc_read_bit()) {
-            value |= (1 << i);
-        }
-        /* Clock to shift next bit */
-        *ctrl = RTC_CLK;
-        *ctrl = 0;
-    }
-    return value;
-}
-
 u8 NGRtcIsAvailable(void) {
     /* RTC disabled - hardware access causes issues in some emulators */
     return 0;
@@ -184,6 +143,47 @@ u8 NGRtcRead(NGRtcTime *time) {
     return 0;
 
 #if 0 /* Disabled RTC code */
+    /* Send a 4-bit command to the RTC */
+    static void rtc_send_cmd(u8 cmd) {
+        u8 i;
+        volatile u8 *ctrl = (volatile u8 *)0x380021;
+
+        for (i = 0; i < 4; i++) {
+            u8 bit = (cmd >> i) & 1;
+            /* Set data bit */
+            *ctrl = bit ? RTC_DATA : 0;
+            /* Clock pulse */
+            *ctrl |= RTC_CLK;
+            *ctrl &= ~RTC_CLK;
+        }
+        /* Strobe to latch command */
+        *ctrl = RTC_STB;
+        *ctrl = 0;
+    }
+
+    /* Read a single bit from RTC */
+    static u8 rtc_read_bit(void) {
+        volatile u8 *data = (volatile u8 *)0x320001;
+        return (*data >> 4) & 1;
+    }
+
+    /* Read 4 bits (one BCD digit) from RTC */
+    static u8 rtc_read_nibble(void) {
+        volatile u8 *ctrl = (volatile u8 *)0x380021;
+        u8 value = 0;
+        u8 i;
+
+        for (i = 0; i < 4; i++) {
+            if (rtc_read_bit()) {
+                value |= (1 << i);
+            }
+            /* Clock to shift next bit */
+            *ctrl = RTC_CLK;
+            *ctrl = 0;
+        }
+        return value;
+    }
+
     u8 lo, hi;
 
     if (!time)

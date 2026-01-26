@@ -5,11 +5,11 @@ PROJECT_NAME           = "ProGearSDK"
 PROJECT_BRIEF          = "NeoGeo homebrew development SDK"
 PROJECT_NUMBER         = "1.0"
 
-# Input - Core, HAL, and SDK headers
+# Input - Core, HAL, and ProGear headers
 INPUT                  = mainpage.md \
                          core/include \
                          hal/include \
-                         sdk/include
+                         progear/include
 FILE_PATTERNS          = *.h *.md
 RECURSIVE              = NO
 USE_MDFILE_AS_MAINPAGE = mainpage.md
