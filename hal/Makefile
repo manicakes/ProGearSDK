@@ -45,7 +45,12 @@ C_SOURCES = $(SRC_DIR)/ng_color.c \
             $(SRC_DIR)/ng_sprite.c \
             $(SRC_DIR)/ng_fix.c \
             $(SRC_DIR)/ng_input.c \
-            $(SRC_DIR)/ng_audio.c
+            $(SRC_DIR)/ng_audio.c \
+            $(SRC_DIR)/ng_interrupt.c \
+            $(SRC_DIR)/ng_system.c \
+            $(SRC_DIR)/ng_sram.c \
+            $(SRC_DIR)/ng_memcard.c \
+            $(SRC_DIR)/ng_bios.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 

@@ -64,4 +64,19 @@
 /* Audio system */
 #include <ng_audio.h>
 
+/* Interrupt handling */
+#include <ng_interrupt.h>
+
+/* System features (DIP switches, coins, RTC) */
+#include <ng_system.h>
+
+/* Backup SRAM */
+#include <ng_sram.h>
+
+/* Memory card */
+#include <ng_memcard.h>
+
+/* BIOS calls */
+#include <ng_bios.h>
+
 #endif /* _NEOGEO_HAL_H_ */

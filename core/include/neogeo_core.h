@@ -42,4 +42,7 @@
 /* Memory management */
 #include <ng_arena.h>
 
+/* String/memory functions (for compiler-generated calls) */
+#include <ng_string.h>
+
 #endif /* _NEOGEO_CORE_H_ */

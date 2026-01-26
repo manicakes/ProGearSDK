@@ -13,5 +13,7 @@
 #define DEMO_ID_SCROLL      2
 #define DEMO_ID_BLANK_SCENE 3
 #define DEMO_ID_TILEMAP     4
+#define DEMO_ID_MVS         5
+#define DEMO_ID_RASTER      6
 
 #endif // DEMO_IDS_H

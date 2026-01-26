@@ -9,6 +9,19 @@
     .global _start
     .global NGWaitVBlank
 
+| External interrupt handler pointers (defined in ng_interrupt.c)
+    .extern ng_vblank_handler
+    .extern ng_timer_handler
+
+| Data section bounds (defined in link.ld)
+    .extern __data_start
+    .extern __data_end
+    .extern __data_load
+
+| BSS section bounds (defined in link.ld)
+    .extern __bss_start
+    .extern __bss_end
+
 | ============================================================================
 | 68000 Exception Vector Table (0x000000 - 0x0000FF)
 | ============================================================================
@@ -96,6 +109,26 @@ _scode:
 | ============================================================================
 _user_init:
     move.b  %d0, 0x300001       | Kick watchdog
+
+    | Copy initialized data from ROM to RAM
+    lea     __data_load, %a0    | Source (ROM)
+    lea     __data_start, %a1   | Destination (RAM)
+    lea     __data_end, %a2     | End marker
+    cmp.l   %a1, %a2
+    beq.s   1f                  | Skip if .data is empty
+0:  move.l  (%a0)+, (%a1)+
+    cmp.l   %a1, %a2
+    bhi.s   0b
+1:
+    | Clear BSS section (zero-initialized data)
+    lea     __bss_start, %a0
+    lea     __bss_end, %a1
+    cmp.l   %a0, %a1
+    beq.s   3f                  | Skip if BSS is empty
+2:  clr.l   (%a0)+
+    cmp.l   %a0, %a1
+    bhi.s   2b
+3:
     bset    #7, 0x10FD80        | Set bit 7 of BIOS_SYSTEM_MODE (game has control)
     move.w  #0x2000, %sr        | Enable interrupts
     jmp     main                | Jump to main (never returns)
@@ -114,14 +147,30 @@ _vblank:
     move.w  #4, 0x3C000C        | Acknowledge VBlank interrupt
     move.b  %d0, 0x300001       | Kick watchdog
     move.b  #1, 0x10FD8E        | Set vblank flag for NG_waitVBlank
+    | Check for custom VBlank handler
+    move.l  ng_vblank_handler, %a0
+    cmp.l   #0, %a0
+    beq.s   2f                  | No custom handler
+    jsr     (%a0)               | Call custom handler
+2:
     movem.l (%sp)+, %d0-%d1/%a0-%a1  | Restore registers
     rte
 
 | ============================================================================
 | Timer Interrupt Handler
+| Used for raster effects (mid-frame register changes)
 | ============================================================================
 _timer:
+    movem.l %d0-%d1/%a0-%a1, -(%sp)  | Save registers
     move.w  #2, 0x3C000C        | Acknowledge timer interrupt
+    move.b  %d0, 0x300001       | Kick watchdog (prevent reset)
+    | Check for custom Timer handler
+    move.l  ng_timer_handler, %a0
+    cmp.l   #0, %a0
+    beq.s   1f                  | No custom handler
+    jsr     (%a0)               | Call custom handler
+1:
+    movem.l (%sp)+, %d0-%d1/%a0-%a1  | Restore registers
     rte
 
 | ============================================================================

@@ -13,8 +13,10 @@
 #include "scroll/scroll_demo.h"
 #include "blank_scene/blank_scene.h"
 #include "tilemap_demo/tilemap_demo.h"
+#include "mvs_demo/mvs_demo.h"
+#include "raster_demo/raster_demo.h"
 
-typedef enum { DEMO_BALL, DEMO_SCROLL, DEMO_BLANK_SCENE, DEMO_TILEMAP } DemoMode;
+typedef enum { DEMO_BALL, DEMO_SCROLL, DEMO_BLANK_SCENE, DEMO_TILEMAP, DEMO_MVS, DEMO_RASTER } DemoMode;
 
 int main(void) {
     NGEngineInit();
@@ -39,6 +41,12 @@ int main(void) {
             case DEMO_TILEMAP:
                 switch_to = TilemapDemoUpdate();
                 break;
+            case DEMO_MVS:
+                switch_to = MVSDemoUpdate();
+                break;
+            case DEMO_RASTER:
+                switch_to = RasterDemoUpdate();
+                break;
         }
 
         if (switch_to) {
@@ -54,6 +62,12 @@ int main(void) {
                     break;
                 case DEMO_TILEMAP:
                     TilemapDemoCleanup();
+                    break;
+                case DEMO_MVS:
+                    MVSDemoCleanup();
+                    break;
+                case DEMO_RASTER:
+                    RasterDemoCleanup();
                     break;
             }
 
@@ -75,6 +89,14 @@ int main(void) {
                 case DEMO_ID_TILEMAP:
                     current_demo = DEMO_TILEMAP;
                     TilemapDemoInit();
+                    break;
+                case DEMO_ID_MVS:
+                    current_demo = DEMO_MVS;
+                    MVSDemoInit();
+                    break;
+                case DEMO_ID_RASTER:
+                    current_demo = DEMO_RASTER;
+                    RasterDemoInit();
                     break;
             }
         }

@@ -37,7 +37,9 @@ GAME_SOURCES = src/main.c \
                src/ball/ball_demo.c \
                src/scroll/scroll_demo.c \
                src/blank_scene/blank_scene.c \
-               src/tilemap_demo/tilemap_demo.c
+               src/tilemap_demo/tilemap_demo.c \
+               src/mvs_demo/mvs_demo.c \
+               src/raster_demo/raster_demo.c
 
 # Object files
 GAME_OBJECTS = $(BUILD_DIR)/main.o \
@@ -45,7 +47,9 @@ GAME_OBJECTS = $(BUILD_DIR)/main.o \
                $(BUILD_DIR)/ball_demo.o \
                $(BUILD_DIR)/scroll_demo.o \
                $(BUILD_DIR)/blank_scene.o \
-               $(BUILD_DIR)/tilemap_demo.o
+               $(BUILD_DIR)/tilemap_demo.o \
+               $(BUILD_DIR)/mvs_demo.o \
+               $(BUILD_DIR)/raster_demo.o
 
 # === ROM Output Files ===
 P_ROM = $(BUILD_DIR)/$(GAME_NAME)-p1.bin
@@ -115,6 +119,12 @@ $(BUILD_DIR)/blank_scene.o: src/blank_scene/blank_scene.c $(GEN_ASSETS_H) | $(BU
 $(BUILD_DIR)/tilemap_demo.o: src/tilemap_demo/tilemap_demo.c $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Isrc/tilemap_demo -c $< -o $@
 
+$(BUILD_DIR)/mvs_demo.o: src/mvs_demo/mvs_demo.c $(GEN_ASSETS_H) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Isrc/mvs_demo -c $< -o $@
+
+$(BUILD_DIR)/raster_demo.o: src/raster_demo/raster_demo.c $(GEN_ASSETS_H) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Isrc/raster_demo -c $< -o $@
+
 # === Link ELF ===
 $(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIBS) $(SDK_CRT0)
 	$(CC) $(SDK_CFLAGS) $(SDK_LDFLAGS) $(SDK_CRT0) $(GAME_OBJECTS) $(SDK_LIBS) -lgcc -o $@
@@ -125,7 +135,7 @@ $(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIBS) $(SDK_CRT0)
 $(P_ROM): $(ELF_FILE)
 	$(OBJCOPY) -O binary -S $< $@
 	dd if=$@ of=$@ conv=notrunc,swab status=none
-	truncate -s 128K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=131072 count=0
+	truncate -s 256K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=262144 count=0
 
 # M-ROM (Z80) with audio sample tables
 $(M_ROM): $(SDK_Z80_DRIVER) $(GEN_ASSETS_H) | $(BUILD_DIR)

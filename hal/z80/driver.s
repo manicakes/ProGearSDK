@@ -152,6 +152,7 @@ init_driver:
     ld      (current_music), a
     ld      (next_channel), a
     ld      (music_paused), a
+    ld      (pending_pan), a
     ld      a, #0x3F
     ld      (master_volume), a
 
@@ -340,36 +341,64 @@ _check_stop_all:
 _check_volume:
     ;; 0x80-0x8F: Set master volume
     cp      #0x80
-    jr      c, _check_pan_sfx
+    jr      c, _check_sfx_left
     cp      #0x90
-    jr      nc, _check_pan_sfx
+    jr      nc, _check_sfx_left
     and     #0x0F
     sla     a
     sla     a                   ; Volume 0-60 (in steps of 4)
     ld      (master_volume), a
     jp      set_master_volume
 
-_check_pan_sfx:
-    ;; 0xA0-0xAF: Play SFX with pan (SFX in low nibble)
-    ;; Next command byte contains: pppp_vvvv (pan + volume)
-    cp      #0xA0
-    jr      c, _check_pan_music
-    cp      #0xB0
-    jr      nc, _check_pan_music
-    and     #0x0F
-    ld      (pending_sfx), a
-    ;; Wait for next byte (pan/vol) - handled in extended mode
-    ret
-
-_check_pan_music:
-    ;; 0xB0-0xBF: Play music with volume
-    cp      #0xB0
-    jr      c, _cmd_done
+_check_sfx_left:
+    ;; 0xC0-0xCF: Play SFX 0-15 panned LEFT
     cp      #0xC0
-    jr      nc, _cmd_done
+    jr      c, _check_sfx_right
+    cp      #0xD0
+    jr      nc, _check_sfx_right
+    push    af
+    ld      a, #0x80            ; Left pan
+    ld      (pending_pan), a
+    pop     af
     and     #0x0F
-    ld      (pending_music), a
-    ret
+    jp      play_sfx
+
+_check_sfx_right:
+    ;; 0xD0-0xDF: Play SFX 0-15 panned RIGHT
+    cp      #0xD0
+    jr      c, _check_sfx_ext_left
+    cp      #0xE0
+    jr      nc, _check_sfx_ext_left
+    push    af
+    ld      a, #0x40            ; Right pan
+    ld      (pending_pan), a
+    pop     af
+    and     #0x0F
+    jp      play_sfx
+
+_check_sfx_ext_left:
+    ;; 0xE0-0xEF: Play SFX 16-31 panned LEFT
+    cp      #0xE0
+    jr      c, _check_sfx_ext_right
+    cp      #0xF0
+    jr      nc, _check_sfx_ext_right
+    push    af
+    ld      a, #0x80            ; Left pan
+    ld      (pending_pan), a
+    pop     af
+    sub     #0xD0               ; A = 16-31
+    jp      play_sfx
+
+_check_sfx_ext_right:
+    ;; 0xF0-0xFF: Play SFX 16-31 panned RIGHT
+    cp      #0xF0
+    jr      c, _cmd_done
+    push    af
+    ld      a, #0x40            ; Right pan
+    ld      (pending_pan), a
+    pop     af
+    sub     #0xE0               ; A = 16-31
+    jp      play_sfx
 
 _cmd_done:
     ret
@@ -447,12 +476,21 @@ _got_channel_bit:
     ld      a, (hl)
     call    ym_write_b
 
-    ;; Set pan + volume (centered, max volume)
+    ;; Set pan + volume from pending_pan (or default center)
     ld      a, #REG_ADPCM_A1_PAN_VOL
     add     a, c
     ld      b, a
-    ld      a, #0xDF            ; L+R, volume 31
+    ld      a, (pending_pan)
+    or      a
+    jr      nz, _use_pending_pan
+    ld      a, #0xDF            ; L+R, volume 31 (default center)
+    jr      _set_pan_vol
+_use_pending_pan:
+    or      #0x1F               ; Add max volume (0-31) to pan bits
+_set_pan_vol:
     call    ym_write_b
+    xor     a
+    ld      (pending_pan), a    ; Clear pending pan
 
     ;; Start channel
     ld      a, c                ; Channel number
@@ -834,3 +872,6 @@ next_channel:
 
 music_paused:
     .ds     1                   ; 1 if music is paused
+
+pending_pan:
+    .ds     1                   ; Pan value for next SFX (0x80=L, 0xC0=C, 0x40=R)

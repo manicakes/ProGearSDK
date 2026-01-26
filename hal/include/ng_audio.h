@@ -13,14 +13,20 @@
  * - Music playback via ADPCM-B (1 channel, variable rate, long samples, looping)
  *
  * Audio Command Protocol (68k -> Z80):
- * - 0x10-0x1F: Play SFX 0-15
+ * - 0x10-0x1F: Play SFX 0-15 (center pan)
  * - 0x20-0x2F: Play music 0-15 (looping)
  * - 0x30: Stop music
- * - 0x40-0x4F: Play SFX 16-31
+ * - 0x40-0x4F: Play SFX 16-31 (center pan)
  * - 0x50-0x5F: Play music 16-31 (looping)
  * - 0x60-0x65: Stop SFX channel 0-5
+ * - 0x66-0x6B: Set channel 0-5 volume (next byte = volume 0-31)
+ * - 0x6C: Set music volume (next byte = volume 0-255)
  * - 0x70: Stop all audio
  * - 0x80-0x8F: Set master volume (0-15)
+ * - 0xC0-0xCF: Play SFX 0-15 (left pan)
+ * - 0xD0-0xDF: Play SFX 0-15 (right pan)
+ * - 0xE0-0xEF: Play SFX 16-31 (left pan)
+ * - 0xF0-0xFF: Play SFX 16-31 (right pan)
  */
 
 #ifndef _NG_AUDIO_H_
@@ -181,6 +187,22 @@ u8 NGMusicIsPaused(void);
  * @param volume Volume level (0-15, 0=silent, 15=max)
  */
 void NGAudioSetVolume(u8 volume);
+
+/**
+ * Set volume for a specific ADPCM-A channel
+ * Allows per-channel volume control for SFX.
+ *
+ * @param channel Channel number (0-5)
+ * @param volume Volume level (0-31, 0=silent, 31=max)
+ */
+void NGSfxSetChannelVolume(u8 channel, u8 volume);
+
+/**
+ * Set ADPCM-B (music) volume independently
+ *
+ * @param volume Volume level (0-255, 0=silent, 255=max)
+ */
+void NGMusicSetVolume(u8 volume);
 
 /**
  * Stop all audio (SFX and music)

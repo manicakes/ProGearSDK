@@ -64,6 +64,8 @@ static BallDemoState *state;
 #define MENU_SCROLL_DEMO  6
 #define MENU_BLANK_SCENE  7
 #define MENU_TILEMAP_DEMO 8
+#define MENU_MVS_DEMO     9
+#define MENU_RASTER_DEMO  10
 
 /* Simple pseudo-random number generator */
 static u16 ball_demo_rand(void) {
@@ -167,7 +169,7 @@ void BallDemoInit(void) {
     BallSpawn(state->balls);
     BallSpawn(state->balls);
 
-    state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
+    state->menu = NGMenuCreateDefault(&ng_arena_state, 12);
     NGMenuSetTitle(state->menu, "BALL DEMO");
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Add Ball");
@@ -178,6 +180,8 @@ void BallDemoInit(void) {
     NGMenuAddItem(state->menu, "Scroll Demo");
     NGMenuAddItem(state->menu, "Blank Scene");
     NGMenuAddItem(state->menu, "Tilemap Demo");
+    NGMenuAddItem(state->menu, "MVS Features");
+    NGMenuAddItem(state->menu, "Raster Effects");
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -243,6 +247,16 @@ u8 BallDemoUpdate(void) {
                     NGMenuHide(state->menu);
                     state->menu_open = 0;
                     state->switch_target = DEMO_ID_TILEMAP;
+                    break;
+                case MENU_MVS_DEMO:
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    state->switch_target = DEMO_ID_MVS;
+                    break;
+                case MENU_RASTER_DEMO:
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    state->switch_target = DEMO_ID_RASTER;
                     break;
             }
         }

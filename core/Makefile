@@ -33,7 +33,8 @@ CFLAGS += -I$(INC_DIR)
 
 # === Source Files ===
 C_SOURCES = $(SRC_DIR)/ng_math.c \
-            $(SRC_DIR)/ng_arena.c
+            $(SRC_DIR)/ng_arena.c \
+            $(SRC_DIR)/ng_string.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 
