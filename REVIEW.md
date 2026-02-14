@@ -131,25 +131,7 @@ Consider providing a "batch" API that takes the base pointer as a parameter, or 
 
 ## 3. High-Level API Issues
 
-### 3.1 Actor Animation Has No Completion Callback
-
-```c
-void NGActorSetAnim(NGActorHandle actor, u8 anim_index, u8 loop);
-```
-
-There's no way to know when a non-looping animation finishes. Game code must poll `NGActorGetFrame()` and compare against the animation's frame count, which requires knowing the frame count. Games need death animations, attack animations, and transitions that trigger logic on completion. A callback or a "finished" query would reduce boilerplate significantly.
-
-Suggestion: Add `u8 NGActorAnimFinished(NGActorHandle actor)` at minimum.
-
-### 3.2 Physics System Lacks Collision Callbacks
-
-The physics system (`physics.h/c`) detects collisions and resolves penetration, but there's no mechanism to notify game code *which* bodies collided or *what type* of collision occurred. The `NGPhysicsUpdate()` function resolves all collisions internally. Game code would need to either:
-- Poll every pair of bodies for overlap (O(n^2) from user code, on top of the O(n^2) already done internally).
-- Use the terrain collision API separately.
-
-This makes it impractical to implement game logic like "bullet hits enemy" or "player touches coin." A collision callback system (even a simple one -- a function pointer per body, called with the other body's handle) would be essential for any game beyond the demos.
-
-### 3.3 Limited Sprite Count Management
+### 3.1 Limited Sprite Count Management
 
 The NeoGeo has 381 sprites. The graphic system allocates them from a pool, but there's no visibility into how many are available, no priority system for when sprites run out, and no mechanism to reclaim sprites from off-screen objects.
 
@@ -176,19 +158,13 @@ void NGTerrainSetTile(NGTerrainHandle handle, u16 tile_x, u16 tile_y, u8 tile_in
 
 Both `NGTerrainSetTile` and `NGTerrainSetCollision` are stubs. The header documents them as requiring "RAM copy support." This is a significant gap -- destructible terrain, collectibles that disappear, and doors that open are standard platformer features. The terrain data is in ROM (const pointers from the asset pipeline), so runtime modification requires copying to RAM first. The arena allocator could serve this purpose.
 
-### 3.6 No Sprite Flipping on Actors
-
-The HAL supports horizontal and vertical flip via SCB1 attribute bits. The visual asset system and graphic layer propagate flip flags. But the Actor API has no `NGActorSetFlip(handle, h_flip, v_flip)` function. For a platformer where a character faces left or right, this is essential. Currently the developer would need to either:
-- Create separate left-facing and right-facing animations (wastes C-ROM space).
-- Drop down to the Graphic layer to set flip flags directly (breaks the abstraction).
-
-### 3.7 No Object Pooling or Entity System
+### 3.6 No Object Pooling or Entity System
 
 Games typically have many instances of the same object type (bullets, particles, enemies). The SDK provides raw actor slots (up to `NG_ACTOR_MAX`) but no pooling mechanism. Each bullet requires a full `NGActorCreate` / `NGActorDestroy` cycle, which includes graphic allocation and VRAM setup.
 
 A lightweight pool -- pre-allocate N actors of a given type, show/hide them as needed -- would dramatically reduce per-frame overhead for projectile-heavy games (shmups, Metal Slug-style games).
 
-### 3.8 Camera Zoom Range Is Limited
+### 3.7 Camera Zoom Range Is Limited
 
 ```c
 #define NG_CAM_ZOOM_100 16
@@ -287,33 +263,30 @@ This should at minimum log a warning in debug builds. In practice, NeoGeo games 
 
 ### Critical (Blocks Real Game Development)
 
-1. **Implement actor sprite flipping** -- `NGActorSetFlip(handle, h_flip, v_flip)`. Every platformer and beat-em-up needs this.
-2. **Add collision callbacks to the physics system** -- Without knowing *what* collided, the physics system is limited to bouncing balls.
-3. **Add `NGActorAnimFinished()` query** -- Required for any animation-driven game logic.
-4. **Implement `NGTerrainSetTile` / `NGTerrainSetCollision`** -- Copy terrain data to RAM on creation (from state arena), then allow modification.
+1. **Implement `NGTerrainSetTile` / `NGTerrainSetCollision`** -- Copy terrain data to RAM on creation (from state arena), then allow modification. Destructible terrain, collectibles, and doors are standard platformer features.
+2. **Add sprite count queries** -- `NGGraphicGetAvailableSprites()` so developers can manage their sprite budget. Running out of the 381 hardware sprites is a constant concern.
 
 ### Important (Performance & Correctness)
 
-5. **Optimize `memcpy`/`memset` for word/long alignment** -- Lighting palette operations will benefit significantly.
-6. **Document and mitigate `FIX_DIV` cost** -- Provide reciprocal lookup table or fast approximation alternatives.
-7. **Fix `NGSin(ANGLE_90)` precision** -- Table entry at index 64 should produce exactly `FIX_ONE`.
-8. **Add sprite count queries** -- `NGGraphicGetAvailableSprites()` so developers can manage their budget.
-9. **Evaluate SCB1 write timing** -- Profile on real hardware to determine if VBlank-only writes are necessary.
+3. **Optimize `memcpy`/`memset` for word/long alignment** -- Lighting palette operations (up to 1KB per frame) will benefit significantly.
+4. **Document and mitigate `FIX_DIV` cost** -- Provide reciprocal lookup table or fast approximation alternatives.
+5. **Fix `NGSin(ANGLE_90)` precision** -- Table entry at index 64 should produce exactly `FIX_ONE`.
+6. **Evaluate SCB1 write timing** -- Profile on real hardware to determine if VBlank-only writes are necessary.
 
 ### Valuable (Quality of Life)
 
-10. **Add host-compilable unit tests** -- Start with math, arena, and collision modules.
-11. **Provide an object pooling utility** -- Pre-allocated actor pools for bullets/particles.
-12. **Add automatic dependency generation** in Makefiles (`-MMD -MP`).
-13. **Add debug-build OOM hook** for arena allocator.
-14. **Document the internal call graph** in `sdk_internal.h`.
-15. **Add asset pipeline caching** based on content hashes.
+7. **Add host-compilable unit tests** -- Start with math, arena, and collision modules.
+8. **Provide an object pooling utility** -- Pre-allocated actor pools for bullets/particles.
+9. **Add automatic dependency generation** in Makefiles (`-MMD -MP`).
+10. **Add debug-build OOM hook** for arena allocator.
+11. **Document the internal call graph** in `sdk_internal.h`.
+12. **Add asset pipeline caching** based on content hashes.
 
 ---
 
 ## 8. Conclusion
 
-ProGearSDK is a genuinely useful SDK for NeoGeo development. The architecture is sound, the hardware abstraction is correct, and the asset pipeline bridges the gap between modern development tools and 1990s hardware. The main gaps are in the game-logic layer: collision callbacks, animation events, sprite flipping, and object pooling are the kinds of features that every real game needs and that the SDK should provide rather than leaving to each developer.
+ProGearSDK is a genuinely useful SDK for NeoGeo development. The architecture is sound, the hardware abstraction is correct, and the asset pipeline bridges the gap between modern development tools and 1990s hardware. The game-logic layer already covers the most common needs well -- actor flipping, animation completion queries, physics collision callbacks, and terrain collision resolution are all present and functional. The remaining gaps are in runtime terrain modification, sprite budget visibility, and object pooling for bullet-heavy games.
 
 The low-level m68k code shows real understanding of the hardware but has room for optimization in critical paths (memcpy, FIX_DIV, palette operations). The build system is solid for the project's current size but should grow toward automated testing and incremental asset building.
 
