@@ -110,9 +110,8 @@ NG_COLOR_RED, NG_COLOR_GREEN, NG_COLOR_BLUE
 NG_COLOR_DARK_BLUE, NG_COLOR_DARK_RED, ...
 
 // Color manipulation
-NGColorLerp(a, b, t)       // Interpolate between colors
-NGColorBrighten(c, amount)
-NGColorDarken(c, amount)
+NGColorBlend(a, b, ratio)               // Interpolate between colors
+NGColorAdjustBrightness(c, amount)      // -31 (darken) to +31 (lighten)
 ```
 
 ### ng_palette.h - Palette Management
@@ -130,8 +129,7 @@ NGPalSet(palette, colors)
 NGPalSetBackdrop(color)
 
 // Palette effects
-NGPalFadeToBlack(palette, amount)  // 0=normal, 16=black
-NGPalFadeToWhite(palette, amount)
+NGPalFadeToColor(palette, target, amount)  // 0=no change, 31=target color
 ```
 
 ### ng_sprite.h - Sprite Hardware

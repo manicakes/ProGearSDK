@@ -40,8 +40,8 @@
  * immediate updates.
  */
 
-#ifndef _GRAPHIC_H_
-#define _GRAPHIC_H_
+#ifndef NG_GRAPHIC_H
+#define NG_GRAPHIC_H
 
 #include <ng_types.h>
 #include <visual.h>
@@ -364,29 +364,6 @@ s16 NGGraphicGetX(const NGGraphic *g);
 s16 NGGraphicGetY(const NGGraphic *g);
 /** @} */
 
-/** @name System Functions (Internal) */
-/** @{ */
-
-/**
- * Initialize graphics system.
- * Called by NGEngineInit().
- */
-void NGGraphicSystemInit(void);
-
-/**
- * Draw all active graphics in layer/z-order.
- * Handles resource allocation and optimization internally.
- * Called by NGSceneDraw().
- */
-void NGGraphicSystemDraw(void);
-
-/**
- * Reset graphics system, destroying all graphics.
- * Called on scene transitions.
- */
-void NGGraphicSystemReset(void);
-/** @} */
-
 /** @} */ /* end of graphic group */
 
-#endif /* _GRAPHIC_H_ */
+#endif /* NG_GRAPHIC_H */

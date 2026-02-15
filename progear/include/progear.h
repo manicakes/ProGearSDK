@@ -33,8 +33,8 @@
  * - @ref spring - Spring physics animations
  */
 
-#ifndef _PROGEARSDK_H_
-#define _PROGEARSDK_H_
+#ifndef NG_PROGEARSDK_H
+#define NG_PROGEARSDK_H
 
 /* Hardware Abstraction Layer (provides types, hardware, math, color,
  * palette, sprite, fix, input, audio, arena) */
@@ -66,4 +66,4 @@
 /* Engine lifecycle */
 #include <engine.h>
 
-#endif /* _PROGEARSDK_H_ */
+#endif /* NG_PROGEARSDK_H */

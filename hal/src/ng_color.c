@@ -26,37 +26,7 @@ NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio) {
     u8 g = (u8)(((u16)ga * inv_ratio + (u16)gb * ratio + 128) >> 8);
     u8 b_out = (u8)(((u16)ba * inv_ratio + (u16)bb * ratio + 128) >> 8);
 
-    return NG_RGB5(r, g, b_out);
-}
-
-NGColor NGColorDarken(NGColor c, u8 amount) {
-    if (amount > 31)
-        amount = 31;
-
-    u8 r = NGColorGetRed(c);
-    u8 g = NGColorGetGreen(c);
-    u8 b = NGColorGetBlue(c);
-
-    r = (r > amount) ? r - amount : 0;
-    g = (g > amount) ? g - amount : 0;
-    b = (b > amount) ? b - amount : 0;
-
-    return NG_RGB5(r, g, b);
-}
-
-NGColor NGColorLighten(NGColor c, u8 amount) {
-    if (amount > 31)
-        amount = 31;
-
-    u8 r = NGColorGetRed(c);
-    u8 g = NGColorGetGreen(c);
-    u8 b = NGColorGetBlue(c);
-
-    r = (u8)((r + amount > 31) ? 31 : r + amount);
-    g = (u8)((g + amount > 31) ? 31 : g + amount);
-    b = (u8)((b + amount > 31) ? 31 : b + amount);
-
-    return NG_RGB5(r, g, b);
+    return NG_RGB(r, g, b_out);
 }
 
 NGColor NGColorInvert(NGColor c) {
@@ -64,7 +34,7 @@ NGColor NGColorInvert(NGColor c) {
     u8 g = 31 - NGColorGetGreen(c);
     u8 b = 31 - NGColorGetBlue(c);
 
-    return NG_RGB5(r, g, b);
+    return NG_RGB(r, g, b);
 }
 
 NGColor NGColorGrayscale(NGColor c) {
@@ -77,21 +47,35 @@ NGColor NGColorGrayscale(NGColor c) {
     if (lum > 31)
         lum = 31;
 
-    return NG_RGB5(lum, lum, lum);
+    return NG_RGB(lum, lum, lum);
 }
 
 NGColor NGColorAdjustBrightness(NGColor c, s8 amount) {
+    u8 abs_amount = (u8)(amount >= 0 ? amount : -amount);
+    if (abs_amount > 31)
+        abs_amount = 31;
+
+    u8 r = NGColorGetRed(c);
+    u8 g = NGColorGetGreen(c);
+    u8 b = NGColorGetBlue(c);
+
     if (amount >= 0) {
-        return NGColorLighten(c, (u8)amount);
+        r = (u8)((r + abs_amount > 31) ? 31 : r + abs_amount);
+        g = (u8)((g + abs_amount > 31) ? 31 : g + abs_amount);
+        b = (u8)((b + abs_amount > 31) ? 31 : b + abs_amount);
     } else {
-        return NGColorDarken(c, (u8)(-amount));
+        r = (r > abs_amount) ? r - abs_amount : 0;
+        g = (g > abs_amount) ? g - abs_amount : 0;
+        b = (b > abs_amount) ? b - abs_amount : 0;
     }
+
+    return NG_RGB(r, g, b);
 }
 
 NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
     if (s == 0) {
         u8 gray = v >> 3;
-        return NG_RGB5(gray, gray, gray);
+        return NG_RGB(gray, gray, gray);
     }
 
     u8 sector = h / 43;
@@ -108,16 +92,16 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v) {
 
     switch (sector) {
         case 0:
-            return NG_RGB5(v, t, p);
+            return NG_RGB(v, t, p);
         case 1:
-            return NG_RGB5(q, v, p);
+            return NG_RGB(q, v, p);
         case 2:
-            return NG_RGB5(p, v, t);
+            return NG_RGB(p, v, t);
         case 3:
-            return NG_RGB5(p, q, v);
+            return NG_RGB(p, q, v);
         case 4:
-            return NG_RGB5(t, p, v);
+            return NG_RGB(t, p, v);
         default:
-            return NG_RGB5(v, p, q);
+            return NG_RGB(v, p, q);
     }
 }

@@ -22,8 +22,8 @@
  * - NGInputHeld(): True every frame button is down
  */
 
-#ifndef _NG_INPUT_H_
-#define _NG_INPUT_H_
+#ifndef NG_INPUT_H
+#define NG_INPUT_H
 
 #include <ng_types.h>
 
@@ -194,4 +194,4 @@ u16 NGSystemGetRaw(void);
 
 /** @} */ /* end of input group */
 
-#endif // _NG_INPUT_H_
+#endif /* NG_INPUT_H */

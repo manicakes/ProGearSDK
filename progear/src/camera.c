@@ -58,7 +58,7 @@ static struct {
     .track.actor = NG_ACTOR_INVALID,
     .track.deadzone_w = 64,
     .track.deadzone_h = 32,
-    .track.follow_speed = FIX_FROM_FLOAT(0.15),
+    .track.follow_speed = FIX(0.15),
 };
 
 static inline u8 zoom_to_index(u8 zoom) {
@@ -128,10 +128,6 @@ void NGCameraSetZoomSpeed(fixed speed) {
 
 u8 NGCameraGetZoom(void) {
     return index_to_zoom(camera.zoom.index);
-}
-
-fixed NGCameraGetZoomFixed(void) {
-    return FIX(8) + ((fixed)camera.zoom.index << 12);
 }
 
 u8 NGCameraIsZooming(void) {

@@ -30,8 +30,8 @@
  * - @ref arena - Bump-pointer arena memory allocator
  */
 
-#ifndef _NEOGEO_CORE_H_
-#define _NEOGEO_CORE_H_
+#ifndef NG_NEOGEO_CORE_H
+#define NG_NEOGEO_CORE_H
 
 /* Foundation types */
 #include <ng_types.h>
@@ -45,4 +45,4 @@
 /* String/memory functions (for compiler-generated calls) */
 #include <ng_string.h>
 
-#endif /* _NEOGEO_CORE_H_ */
+#endif /* NG_NEOGEO_CORE_H */

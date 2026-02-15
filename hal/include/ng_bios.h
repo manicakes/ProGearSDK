@@ -17,8 +17,8 @@
  * BIOS RAM is at 0x10F000-0x10FFFF (4KB).
  */
 
-#ifndef _NG_BIOS_H_
-#define _NG_BIOS_H_
+#ifndef NG_BIOS_H
+#define NG_BIOS_H
 
 #include <ng_types.h>
 
@@ -164,4 +164,4 @@ const NGSoftDip *NGBiosGetSoftDip(void);
 
 /** @} */ /* end of bios group */
 
-#endif /* _NG_BIOS_H_ */
+#endif /* NG_BIOS_H */

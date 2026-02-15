@@ -21,8 +21,8 @@
  * 4. Call NGPhysWorldUpdate() each frame
  */
 
-#ifndef _PHYSICS_H_
-#define _PHYSICS_H_
+#ifndef NG_PHYSICS_H
+#define NG_PHYSICS_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -354,4 +354,4 @@ u8 NGPhysTestCollision(NGBodyHandle a, NGBodyHandle b, NGCollision *out);
 
 /** @} */ /* end of physics group */
 
-#endif // _PHYSICS_H_
+#endif /* NG_PHYSICS_H */

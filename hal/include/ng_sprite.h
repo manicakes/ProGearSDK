@@ -26,8 +26,8 @@
  * - Values wrap at 512 (9-bit field)
  */
 
-#ifndef _NG_SPRITE_H_
-#define _NG_SPRITE_H_
+#ifndef NG_SPRITE_H
+#define NG_SPRITE_H
 
 #include <ng_types.h>
 #include <ng_hardware.h>
@@ -350,4 +350,4 @@ void NGSpriteSetupGrid(u16 first_sprite, u8 num_cols, s16 screen_x, s16 screen_y
 
 /** @} */ /* end of sprite group */
 
-#endif /* _NG_SPRITE_H_ */
+#endif /* NG_SPRITE_H */

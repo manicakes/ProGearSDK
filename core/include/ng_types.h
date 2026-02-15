@@ -11,8 +11,8 @@
  * Provides fixed-width integer types and volatile variants for hardware access.
  */
 
-#ifndef _NG_TYPES_H_
-#define _NG_TYPES_H_
+#ifndef NG_TYPES_H
+#define NG_TYPES_H
 
 #include <stdint.h>
 
@@ -46,4 +46,4 @@ typedef volatile u32 vu32; /**< Volatile unsigned 32-bit */
 #define NULL ((void *)0)
 #endif
 
-#endif // _NG_TYPES_H_
+#endif /* NG_TYPES_H */

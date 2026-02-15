@@ -30,8 +30,8 @@
  * 4. Call NGCameraUpdate() each frame
  */
 
-#ifndef _CAMERA_H_
-#define _CAMERA_H_
+#ifndef NG_CAMERA_H
+#define NG_CAMERA_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -137,12 +137,6 @@ void NGCameraSetZoomSpeed(fixed speed);
 u8 NGCameraGetZoom(void);
 
 /**
- * Get current camera zoom level (fixed-point for smooth transitions).
- * @return Current zoom as fixed-point value
- */
-fixed NGCameraGetZoomFixed(void);
-
-/**
  * Check if zoom is currently animating.
  * @return 1 if zoom is transitioning, 0 if stable
  */
@@ -153,14 +147,6 @@ u8 NGCameraIsZooming(void);
  * @return Target zoom level
  */
 u8 NGCameraGetTargetZoom(void);
-
-/**
- * Get precalculated shrink value for current zoom.
- * Returns SCB2 format: (h_shrink << 8) | v_shrink
- * Uses lookup table for zero runtime calculation.
- * @return Shrink value ready for VRAM
- */
-u16 NGCameraGetShrink(void);
 
 /**
  * Update camera (call once per frame).
@@ -190,20 +176,6 @@ u8 NGCameraIsShaking(void);
  * Stop shake effect immediately.
  */
 void NGCameraShakeStop(void);
-
-/**
- * Get camera X position with shake offset applied.
- * Use this for rendering to include shake effect.
- * @return World X coordinate including shake offset
- */
-fixed NGCameraGetRenderX(void);
-
-/**
- * Get camera Y position with shake offset applied.
- * Use this for rendering to include shake effect.
- * @return World Y coordinate including shake offset
- */
-fixed NGCameraGetRenderY(void);
 /** @} */
 
 /** @name Utilities */
@@ -306,4 +278,4 @@ void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y);
 
 /** @} */ /* end of camera group */
 
-#endif // _CAMERA_H_
+#endif /* NG_CAMERA_H */

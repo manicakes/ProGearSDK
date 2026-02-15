@@ -108,7 +108,7 @@ void NGLightingInit(void) {
     g_lighting.backup_count = 0;
 
     /* Initialize pre-baked preset state */
-    g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+    g_lighting.prebaked_handle = NG_LIGHTING_INVALID;
     g_lighting.prebaked_fading = 0;
 
     /* Register pre-baked presets if available (provided by progear_assets.h) */
@@ -158,7 +158,7 @@ NGLightingLayerHandle NGLightingPush(u8 priority) {
             return i;
         }
     }
-    return NG_LIGHTING_INVALID_HANDLE;
+    return NG_LIGHTING_INVALID;
 }
 
 void NGLightingPop(NGLightingLayerHandle handle) {
@@ -182,7 +182,7 @@ void NGLightingPop(NGLightingLayerHandle handle) {
     /* If no layers active, restore to appropriate state */
     if (!any_active && g_lighting.backup_valid) {
         /* If a pre-baked preset is active, re-apply it */
-        if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+        if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
             apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
         } else {
             restore_palettes();
@@ -272,11 +272,11 @@ void NGLightingSetBlendMode(NGLightingLayerHandle handle, NGLightingBlendMode mo
 
 NGLightingLayerHandle NGLightingFlash(s8 r, s8 g, s8 b, u16 duration) {
     NGLightingLayerHandle handle = NGLightingPush(NG_LIGHTING_PRIORITY_TRANSIENT);
-    if (handle == NG_LIGHTING_INVALID_HANDLE)
+    if (handle == NG_LIGHTING_INVALID)
         return handle;
 
     NGLightingSetTint(handle, r, g, b);
-    NGLightingSetBrightness(handle, FIX_FROM_FLOAT(1.3));
+    NGLightingSetBrightness(handle, FIX(1.3));
     NGLightingSetDuration(handle, duration);
     NGLightingSetBlendMode(handle, NG_LIGHTING_BLEND_ADDITIVE);
 
@@ -285,7 +285,7 @@ NGLightingLayerHandle NGLightingFlash(s8 r, s8 g, s8 b, u16 duration) {
 
 NGLightingLayerHandle NGLightingApplyPreset(NGLightingPreset preset) {
     NGLightingLayerHandle handle = NGLightingPush(NG_LIGHTING_PRIORITY_AMBIENT);
-    if (handle == NG_LIGHTING_INVALID_HANDLE)
+    if (handle == NG_LIGHTING_INVALID)
         return handle;
 
     switch (preset) {
@@ -295,44 +295,44 @@ NGLightingLayerHandle NGLightingApplyPreset(NGLightingPreset preset) {
 
         case NG_LIGHTING_PRESET_NIGHT:
             NGLightingSetTint(handle, -8, -5, 12);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.65));
+            NGLightingSetBrightness(handle, FIX(0.65));
             break;
 
         case NG_LIGHTING_PRESET_SUNSET:
             NGLightingSetTint(handle, 12, 4, -6);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.9));
+            NGLightingSetBrightness(handle, FIX(0.9));
             break;
 
         case NG_LIGHTING_PRESET_DAWN:
             NGLightingSetTint(handle, 6, -2, 8);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.85));
+            NGLightingSetBrightness(handle, FIX(0.85));
             break;
 
         case NG_LIGHTING_PRESET_SANDSTORM:
             NGLightingSetTint(handle, 10, 6, -4);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.85));
-            NGLightingSetSaturation(handle, FIX_FROM_FLOAT(0.6));
+            NGLightingSetBrightness(handle, FIX(0.85));
+            NGLightingSetSaturation(handle, FIX(0.6));
             break;
 
         case NG_LIGHTING_PRESET_FOG:
             NGLightingSetTint(handle, 4, 4, 4);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.9));
-            NGLightingSetSaturation(handle, FIX_FROM_FLOAT(0.4));
+            NGLightingSetBrightness(handle, FIX(0.9));
+            NGLightingSetSaturation(handle, FIX(0.4));
             break;
 
         case NG_LIGHTING_PRESET_UNDERWATER:
             NGLightingSetTint(handle, -6, 4, 10);
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.8));
-            NGLightingSetSaturation(handle, FIX_FROM_FLOAT(0.85));
+            NGLightingSetBrightness(handle, FIX(0.8));
+            NGLightingSetSaturation(handle, FIX(0.85));
             break;
 
         case NG_LIGHTING_PRESET_SEPIA:
             NGLightingSetTint(handle, 8, 4, -4);
-            NGLightingSetSaturation(handle, FIX_FROM_FLOAT(0.3));
+            NGLightingSetSaturation(handle, FIX(0.3));
             break;
 
         case NG_LIGHTING_PRESET_MENU_DIM:
-            NGLightingSetBrightness(handle, FIX_FROM_FLOAT(0.5));
+            NGLightingSetBrightness(handle, FIX(0.5));
             break;
     }
 
@@ -454,7 +454,7 @@ void NGLightingUpdate(void) {
         if (!any_active && g_lighting.backup_valid) {
             /* If a pre-baked preset is active, re-apply it instead of
              * restoring to original palettes */
-            if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+            if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
                 apply_prebaked_step(g_lighting.prebaked_preset_id,
                                     g_lighting.prebaked_current_step);
             } else {
@@ -693,7 +693,7 @@ static void resolve_palettes(void) {
      * Without this, apply_additive_to_current_palettes() reads from VRAM which
      * already has the previous frame's modified values, causing exponential
      * decay to black over multiple frames. */
-    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
         if (has_additive) {
             apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
             apply_additive_to_current_palettes(add_r, add_g, add_b, add_bright);
@@ -791,7 +791,7 @@ static void resolve_palettes(void) {
                 tb = 31;
 
             /* Write directly to palette RAM */
-            dest[c] = NG_RGB5((u8)tr, (u8)tg, (u8)tb);
+            dest[c] = NG_RGB((u8)tr, (u8)tg, (u8)tb);
         }
     }
 }
@@ -823,13 +823,13 @@ static const void *get_prebaked_info(u8 preset_id) {
 }
 
 NGLightingLayerHandle NGLightingPushPreset(u8 preset_id, u16 fade_frames) {
-    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
-        return NG_LIGHTING_INVALID_HANDLE;
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
+        return NG_LIGHTING_INVALID;
     }
 
     const void *info_ptr = get_prebaked_info(preset_id);
     if (!info_ptr) {
-        return NG_LIGHTING_INVALID_HANDLE;
+        return NG_LIGHTING_INVALID;
     }
 
     /* Extract fade_steps from NGLightingPresetInfo (byte after name pointer) */
@@ -872,14 +872,14 @@ void NGLightingPopPreset(NGLightingLayerHandle handle, u16 fade_frames) {
         return; /* Not the active preset */
     }
 
-    if (g_lighting.prebaked_handle == NG_LIGHTING_INVALID_HANDLE) {
+    if (g_lighting.prebaked_handle == NG_LIGHTING_INVALID) {
         return; /* No preset active */
     }
 
     if (fade_frames == 0) {
         /* Instant restore */
         restore_palettes();
-        g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+        g_lighting.prebaked_handle = NG_LIGHTING_INVALID;
         g_lighting.prebaked_fading = 0;
         g_lighting.backup_valid = 0;
     } else {
@@ -944,7 +944,7 @@ u8 NGLightingUpdatePrebakedFade(void) {
         if (g_lighting.prebaked_fade_out) {
             /* Fade-out complete - restore original palettes */
             restore_palettes();
-            g_lighting.prebaked_handle = NG_LIGHTING_INVALID_HANDLE;
+            g_lighting.prebaked_handle = NG_LIGHTING_INVALID;
             g_lighting.backup_valid = 0;
         } else {
             /* Fade-in complete - snap to final step */
@@ -961,7 +961,7 @@ u8 NGLightingIsPrebakedFading(void) {
 }
 
 u8 NGLightingGetActivePreset(void) {
-    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID_HANDLE) {
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
         return g_lighting.prebaked_preset_id;
     }
     return 0xFF;

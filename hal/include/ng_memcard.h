@@ -24,8 +24,8 @@
  * @endcode
  */
 
-#ifndef _NG_MEMCARD_H_
-#define _NG_MEMCARD_H_
+#ifndef NG_MEMCARD_H
+#define NG_MEMCARD_H
 
 #include <ng_types.h>
 
@@ -128,4 +128,4 @@ u16 NGMemcardGetSize(void);
 
 /** @} */ /* end of memcard group */
 
-#endif /* _NG_MEMCARD_H_ */
+#endif /* NG_MEMCARD_H */

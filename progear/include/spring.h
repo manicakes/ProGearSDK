@@ -21,8 +21,8 @@
  * - Higher damping = less overshoot (critical damping = no overshoot)
  */
 
-#ifndef SPRING_H
-#define SPRING_H
+#ifndef NG_SPRING_H
+#define NG_SPRING_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -41,20 +41,20 @@
 /** @{ */
 
 /** Snappy with minimal overshoot - good for UI cursors */
-#define NG_SPRING_SNAPPY_STIFFNESS FIX_FROM_FLOAT(0.35)
-#define NG_SPRING_SNAPPY_DAMPING   FIX_FROM_FLOAT(0.65)
+#define NG_SPRING_SNAPPY_STIFFNESS FIX(0.35)
+#define NG_SPRING_SNAPPY_DAMPING   FIX(0.65)
 
 /** Bouncy with noticeable overshoot - good for playful UI */
-#define NG_SPRING_BOUNCY_STIFFNESS FIX_FROM_FLOAT(0.25)
-#define NG_SPRING_BOUNCY_DAMPING   FIX_FROM_FLOAT(0.45)
+#define NG_SPRING_BOUNCY_STIFFNESS FIX(0.25)
+#define NG_SPRING_BOUNCY_DAMPING   FIX(0.45)
 
 /** Smooth with no overshoot - good for subtle transitions */
-#define NG_SPRING_SMOOTH_STIFFNESS FIX_FROM_FLOAT(0.20)
-#define NG_SPRING_SMOOTH_DAMPING   FIX_FROM_FLOAT(0.80)
+#define NG_SPRING_SMOOTH_STIFFNESS FIX(0.20)
+#define NG_SPRING_SMOOTH_DAMPING   FIX(0.80)
 
 /** Quick snap - very fast, almost instant */
-#define NG_SPRING_QUICK_STIFFNESS FIX_FROM_FLOAT(0.50)
-#define NG_SPRING_QUICK_DAMPING   FIX_FROM_FLOAT(0.70)
+#define NG_SPRING_QUICK_STIFFNESS FIX(0.50)
+#define NG_SPRING_QUICK_DAMPING   FIX(0.70)
 /** @} */
 
 /** @name 1D Spring */
@@ -69,11 +69,9 @@ typedef struct NGSpring {
     fixed damping;   /**< Damping ratio (higher = less bouncy) */
 } NGSpring;
 
-/** Initialize spring with starting value and default snappy physics */
-void NGSpringInit(NGSpring *spring, fixed initial);
-
-/** Initialize spring with custom physics parameters */
-void NGSpringInitEx(NGSpring *spring, fixed initial, fixed stiffness, fixed damping);
+/** Initialize spring with starting value and physics parameters.
+ *  Use NG_SPRING_*_STIFFNESS/DAMPING presets for common behaviors. */
+void NGSpringInit(NGSpring *spring, fixed initial, fixed stiffness, fixed damping);
 
 /** Set target value (spring will animate toward it) */
 void NGSpringSetTarget(NGSpring *spring, fixed target);
@@ -110,11 +108,9 @@ typedef struct NGSpring2D {
     NGSpring y; /**< Y-axis spring */
 } NGSpring2D;
 
-/** Initialize 2D spring with starting position and default snappy physics */
-void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y);
-
-/** Initialize 2D spring with custom physics parameters */
-void NGSpring2DInitEx(NGSpring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping);
+/** Initialize 2D spring with starting position and physics parameters.
+ *  Use NG_SPRING_*_STIFFNESS/DAMPING presets for common behaviors. */
+void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping);
 
 /** Set target position */
 void NGSpring2DSetTarget(NGSpring2D *spring, fixed x, fixed y);
@@ -137,4 +133,4 @@ u8 NGSpring2DSettled(NGSpring2D *spring);
 
 /** @} */ /* end of spring group */
 
-#endif // SPRING_H
+#endif /* NG_SPRING_H */

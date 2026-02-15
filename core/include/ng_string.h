@@ -12,8 +12,8 @@
  * for struct copies and array initialization.
  */
 
-#ifndef _NG_STRING_H_
-#define _NG_STRING_H_
+#ifndef NG_STRING_H
+#define NG_STRING_H
 
 #include <ng_types.h>
 
@@ -56,4 +56,4 @@ void *memmove(void *dest, const void *src, u32 n);
 
 /** @} */ /* end of string group */
 
-#endif /* _NG_STRING_H_ */
+#endif /* NG_STRING_H */

@@ -53,9 +53,8 @@ fixed16          // 8.8 fixed-point (16-bit)
 angle_t          // 0-255 = 0-360 degrees
 
 // Conversion
-FIX(n)           // Integer to fixed (compile-time)
+FIX(n)           // Integer or float literal to fixed (compile-time)
 FIX_INT(f)       // Fixed to integer (truncate)
-FIX_FROM_FLOAT(f) // Float to fixed (compile-time only)
 
 // Arithmetic
 FIX_MUL(a, b)    // Multiply two fixed values

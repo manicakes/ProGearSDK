@@ -29,8 +29,8 @@
  * - 0xF0-0xFF: Play SFX 16-31 (right pan)
  */
 
-#ifndef _NG_AUDIO_H_
-#define _NG_AUDIO_H_
+#ifndef NG_AUDIO_H
+#define NG_AUDIO_H
 
 #include <ng_hardware.h>
 
@@ -249,4 +249,4 @@ u8 NGAudioGetVolume(void);
 
 /** @} */ /* end of audio group */
 
-#endif /* _NG_AUDIO_H_ */
+#endif /* NG_AUDIO_H */

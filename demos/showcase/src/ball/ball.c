@@ -145,7 +145,7 @@ u8 BallSpawn(BallSystemHandle sys) {
 
             ball->body = NGPhysBodyCreateAABB(sys->physics, x, y, BALL_HALF_SIZE, BALL_HALF_SIZE);
             NGPhysBodySetVel(ball->body, vx, vy);
-            NGPhysBodySetRestitution(ball->body, FIX_FROM_FLOAT(1));
+            NGPhysBodySetRestitution(ball->body, FIX(1));
             NGPhysBodySetUserData(ball->body, ball);
 
             ball->actor = NGActorCreate(&NGVisualAsset_ball, 0, 0);

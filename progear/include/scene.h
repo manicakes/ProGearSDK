@@ -25,11 +25,12 @@
  * 4. Call NGSceneUpdate() and NGSceneDraw() each frame
  */
 
-#ifndef _SCENE_H_
-#define _SCENE_H_
+#ifndef NG_SCENE_H
+#define NG_SCENE_H
 
 #include <ng_types.h>
 #include <ng_math.h>
+#include <collision.h>
 
 /* Forward declaration */
 struct NGTerrainAsset;
@@ -47,26 +48,6 @@ struct NGTerrainAsset;
 #define NG_SCENE_MAX_HEIGHT 512 /**< Maximum scene height in pixels */
 #define NG_SCENE_VIEWPORT_W 320 /**< Viewport width (NeoGeo resolution) */
 #define NG_SCENE_VIEWPORT_H 224 /**< Viewport height (NeoGeo resolution) */
-/** @} */
-
-/** @name Collision Flags */
-/** @{ */
-
-/* Collision direction flags (returned by NGSceneResolveCollision) */
-#define NG_COLL_NONE   0x00 /**< No collision */
-#define NG_COLL_LEFT   0x01 /**< Hit terrain on left */
-#define NG_COLL_RIGHT  0x02 /**< Hit terrain on right */
-#define NG_COLL_TOP    0x04 /**< Hit terrain above */
-#define NG_COLL_BOTTOM 0x08 /**< Hit terrain below (landed) */
-
-/* Tile property flags (returned by NGSceneGetCollisionAt) */
-#define NG_TILE_SOLID    0x01 /**< Blocks movement (walls/floors) */
-#define NG_TILE_PLATFORM 0x02 /**< One-way platform (solid from above) */
-#define NG_TILE_SLOPE_L  0x04 /**< Left-to-right slope */
-#define NG_TILE_SLOPE_R  0x08 /**< Right-to-left slope */
-#define NG_TILE_HAZARD   0x10 /**< Damages player on contact */
-#define NG_TILE_TRIGGER  0x20 /**< Triggers callback on contact */
-#define NG_TILE_LADDER   0x40 /**< Climbable tile */
 /** @} */
 
 /** @name Core Functions */
@@ -200,4 +181,4 @@ void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision);
 
 /** @} */ /* end of scene group */
 
-#endif /* _SCENE_H_ */
+#endif /* NG_SCENE_H */

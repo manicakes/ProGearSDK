@@ -26,8 +26,8 @@
  * @endcode
  */
 
-#ifndef _NG_SRAM_H_
-#define _NG_SRAM_H_
+#ifndef NG_SRAM_H
+#define NG_SRAM_H
 
 #include <ng_types.h>
 
@@ -184,4 +184,4 @@ void NGSramClear(u16 offset, u16 length);
 
 /** @} */ /* end of sram group */
 
-#endif /* _NG_SRAM_H_ */
+#endif /* NG_SRAM_H */

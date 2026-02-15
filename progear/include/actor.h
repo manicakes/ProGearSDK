@@ -25,8 +25,8 @@
  * 4. Scene automatically updates and draws actors
  */
 
-#ifndef _ACTOR_H_
-#define _ACTOR_H_
+#ifndef NG_ACTOR_H
+#define NG_ACTOR_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -115,6 +115,13 @@ void NGActorMove(NGActorHandle actor, fixed dx, fixed dy);
  * @param z Z-index for render order
  */
 void NGActorSetZ(NGActorHandle actor, u8 z);
+
+/**
+ * Get actor position as a vector.
+ * @param actor Actor handle
+ * @return Position vector (fixed-point x, y)
+ */
+NGVec2 NGActorGetPos(NGActorHandle actor);
 
 /**
  * Get actor X position.
@@ -226,4 +233,4 @@ void NGActorPlaySfx(NGActorHandle actor, u8 sfx_index);
 
 /** @} */ /* end of actor group */
 
-#endif /* _ACTOR_H_ */
+#endif /* NG_ACTOR_H */

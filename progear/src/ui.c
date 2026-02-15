@@ -26,7 +26,7 @@
 #define PANEL_TOP_ROWS    1
 #define PANEL_BOTTOM_ROWS 1
 
-#define MENU_HIDDEN_OFFSET_FIX FIX_FROM_FLOAT(-120.0)
+#define MENU_HIDDEN_OFFSET_FIX FIX(-120.0)
 
 #define MENU_BLINK_COUNT  3
 #define MENU_BLINK_FRAMES 4
@@ -236,13 +236,10 @@ NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
     menu->viewport_x = (s16)((320 - panel_asset->width_pixels) / 2);
     menu->viewport_y = 40;
 
-    NGSpringInit(&menu->panel_y_spring, MENU_HIDDEN_OFFSET_FIX);
-    NGSpringInit(&menu->cursor_y_spring, FIX(0));
-
-    menu->panel_y_spring.stiffness = NG_SPRING_BOUNCY_STIFFNESS;
-    menu->panel_y_spring.damping = NG_SPRING_BOUNCY_DAMPING;
-    menu->cursor_y_spring.stiffness = NG_SPRING_SNAPPY_STIFFNESS;
-    menu->cursor_y_spring.damping = NG_SPRING_SNAPPY_DAMPING;
+    NGSpringInit(&menu->panel_y_spring, MENU_HIDDEN_OFFSET_FIX, NG_SPRING_BOUNCY_STIFFNESS,
+                 NG_SPRING_BOUNCY_DAMPING);
+    NGSpringInit(&menu->cursor_y_spring, FIX(0), NG_SPRING_SNAPPY_STIFFNESS,
+                 NG_SPRING_SNAPPY_DAMPING);
 
     menu->title = 0;
     menu->item_count = 0;
@@ -264,7 +261,7 @@ NGMenuHandle NGMenuCreate(NGArena *arena, const NGVisualAsset *panel_asset,
     menu->dim_amount = dim_amount;
     menu->panel_pal = panel_asset->palette;
     menu->cursor_pal = cursor_asset->palette;
-    menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
+    menu->dim_layer = NG_LIGHTING_INVALID;
 
     menu->sfx_move = 0xFF;
     menu->sfx_select = 0xFF;
@@ -353,9 +350,9 @@ void NGMenuShow(NGMenuHandle menu) {
     NGSpringSetTarget(&menu->cursor_y_spring, FIX(cursor_offset));
 
     /* Create lighting layer for dimming effect */
-    if (menu->dim_amount > 0 && menu->dim_layer == NG_LIGHTING_INVALID_HANDLE) {
+    if (menu->dim_amount > 0 && menu->dim_layer == NG_LIGHTING_INVALID) {
         menu->dim_layer = NGLightingPush(NG_LIGHTING_PRIORITY_OVERLAY);
-        if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+        if (menu->dim_layer != NG_LIGHTING_INVALID) {
             /* Animate brightness from 1.0 to target dim level.
              * dim_amount=10 produces 50% brightness (50% dimming).
              * dim_amount=20 produces 0% brightness (full black). */
@@ -402,7 +399,7 @@ void NGMenuHide(NGMenuHandle menu) {
     }
 
     /* Start fade-out animation on lighting layer */
-    if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+    if (menu->dim_layer != NG_LIGHTING_INVALID) {
         NGLightingFadeBrightness(menu->dim_layer, FIX_ONE, 8);
     }
 }
@@ -415,13 +412,13 @@ void NGMenuUpdate(NGMenuHandle menu) {
     NGSpringUpdate(&menu->cursor_y_spring);
 
     /* Check if we can clean up after hiding */
-    u8 dim_done = (menu->dim_layer == NG_LIGHTING_INVALID_HANDLE) || !NGLightingIsAnimating();
+    u8 dim_done = (menu->dim_layer == NG_LIGHTING_INVALID) || !NGLightingIsAnimating();
     if (!menu->visible && NGSpringSettled(&menu->panel_y_spring) && dim_done) {
         if (menu->showing) {
             /* Remove lighting layer when fully hidden */
-            if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+            if (menu->dim_layer != NG_LIGHTING_INVALID) {
                 NGLightingPop(menu->dim_layer);
-                menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
+                menu->dim_layer = NG_LIGHTING_INVALID;
             }
             hide_panel_graphic(menu);
             NGActorRemoveFromScene(menu->cursor_actor);
@@ -557,7 +554,7 @@ u8 NGMenuIsAnimating(NGMenuHandle menu) {
         return 0;
     /* Animating if spring not settled OR lighting is fading */
     u8 lighting_animating =
-        (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) && NGLightingIsAnimating();
+        (menu->dim_layer != NG_LIGHTING_INVALID) && NGLightingIsAnimating();
     return !NGSpringSettled(&menu->panel_y_spring) || lighting_animating;
 }
 
@@ -601,9 +598,9 @@ void NGMenuDestroy(NGMenuHandle menu) {
         return;
 
     /* Remove lighting layer if active */
-    if (menu->dim_layer != NG_LIGHTING_INVALID_HANDLE) {
+    if (menu->dim_layer != NG_LIGHTING_INVALID) {
         NGLightingPop(menu->dim_layer);
-        menu->dim_layer = NG_LIGHTING_INVALID_HANDLE;
+        menu->dim_layer = NG_LIGHTING_INVALID;
     }
 
     if (menu->text_visible) {

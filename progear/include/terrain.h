@@ -32,11 +32,12 @@
  * 4. Use NGTerrainResolveAABB() for collision response
  */
 
-#ifndef _TERRAIN_H_
-#define _TERRAIN_H_
+#ifndef NG_TERRAIN_H
+#define NG_TERRAIN_H
 
 #include <ng_types.h>
 #include <ng_math.h>
+#include <collision.h>
 
 /**
  * @defgroup terrain Terrain System
@@ -57,28 +58,6 @@
 
 /** Maximum rows renderable (limited by 512px hardware constraint) */
 #define NG_TERRAIN_MAX_ROWS 32
-/** @} */
-
-/** @name Tile Collision Flags */
-/** @{ */
-
-#define NG_TILE_SOLID    0x01 /**< Blocks movement (walls/floors) */
-#define NG_TILE_PLATFORM 0x02 /**< One-way platform (solid from above) */
-#define NG_TILE_SLOPE_L  0x04 /**< Left-to-right slope */
-#define NG_TILE_SLOPE_R  0x08 /**< Right-to-left slope */
-#define NG_TILE_HAZARD   0x10 /**< Damages player on contact */
-#define NG_TILE_TRIGGER  0x20 /**< Triggers callback on contact */
-#define NG_TILE_LADDER   0x40 /**< Climbable tile */
-/** @} */
-
-/** @name Collision Resolution Flags */
-/** @{ */
-
-#define NG_COLL_NONE   0x00 /**< No collision */
-#define NG_COLL_LEFT   0x01 /**< Hit tile on left */
-#define NG_COLL_RIGHT  0x02 /**< Hit tile on right */
-#define NG_COLL_TOP    0x04 /**< Hit tile above */
-#define NG_COLL_BOTTOM 0x08 /**< Hit tile below (landed) */
 /** @} */
 
 /** @name Handle Type */
@@ -253,4 +232,4 @@ void NGTerrainSetCollision(NGTerrainHandle terrain, u16 tile_x, u16 tile_y, u8 c
 
 /** @} */ /* end of terrain group */
 
-#endif /* _TERRAIN_H_ */
+#endif /* NG_TERRAIN_H */

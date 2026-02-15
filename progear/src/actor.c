@@ -290,6 +290,15 @@ void NGActorSetZ(NGActorHandle handle, u8 z) {
     }
 }
 
+NGVec2 NGActorGetPos(NGActorHandle handle) {
+    NGVec2 pos = {0, 0};
+    if (handle < 0 || handle >= NG_ACTOR_MAX)
+        return pos;
+    pos.x = actors[handle].x;
+    pos.y = actors[handle].y;
+    return pos;
+}
+
 fixed NGActorGetX(NGActorHandle handle) {
     if (handle < 0 || handle >= NG_ACTOR_MAX)
         return 0;

@@ -14,8 +14,8 @@
  * Visual assets are used to create NGActors and NGParallaxEffects.
  */
 
-#ifndef _VISUAL_H_
-#define _VISUAL_H_
+#ifndef NG_VISUAL_H
+#define NG_VISUAL_H
 
 #include <ng_types.h>
 
@@ -91,4 +91,4 @@ u8 NGVisualGetAnimIndex(const NGVisualAsset *asset, const char *name);
 
 /** @} */ /* end of visual group */
 
-#endif /* _VISUAL_H_ */
+#endif /* NG_VISUAL_H */

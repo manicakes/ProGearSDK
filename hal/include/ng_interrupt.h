@@ -31,8 +31,8 @@
  * @endcode
  */
 
-#ifndef _NG_INTERRUPT_H_
-#define _NG_INTERRUPT_H_
+#ifndef NG_INTERRUPT_H
+#define NG_INTERRUPT_H
 
 #include <ng_types.h>
 
@@ -157,4 +157,4 @@ static inline void NGTimerSetScanline(u16 scanlines) {
 
 /** @} */ /* end of interrupt group */
 
-#endif /* _NG_INTERRUPT_H_ */
+#endif /* NG_INTERRUPT_H */
