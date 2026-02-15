@@ -31,13 +31,13 @@
  *
  * @section backdroprates Parallax Rates
  * - FIX_ONE (1.0): moves 1:1 with camera (foreground)
- * - FIX_FROM_FLOAT(0.5): moves at half camera speed (mid-ground)
- * - FIX_FROM_FLOAT(0.25): moves at quarter speed (distant background)
+ * - FIX(0.5): moves at half camera speed (mid-ground)
+ * - FIX(0.25): moves at quarter speed (distant background)
  * - 0: doesn't move with camera (fixed on viewport)
  */
 
-#ifndef _BACKDROP_H_
-#define _BACKDROP_H_
+#ifndef NG_BACKDROP_H
+#define NG_BACKDROP_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -146,4 +146,4 @@ void NGBackdropSetPalette(NGBackdropHandle backdrop, u8 palette);
 
 /** @} */ /* end of backdrop group */
 
-#endif /* _BACKDROP_H_ */
+#endif /* NG_BACKDROP_H */

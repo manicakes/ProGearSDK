@@ -198,8 +198,8 @@ NGBackdropHandle bg = NGBackdropCreate(
     &NGVisualAsset_mountains,
     NG_BACKDROP_WIDTH_INFINITE,  // Tile horizontally
     0,                           // Fixed height
-    FIX_FROM_FLOAT(0.5),        // X parallax (slower = further)
-    FIX_FROM_FLOAT(0.5)         // Y parallax
+    FIX(0.5),        // X parallax (slower = further)
+    FIX(0.5)         // Y parallax
 );
 NGBackdropAddToScene(bg, x, y, z);
 NGBackdropRemoveFromScene(bg);
@@ -235,7 +235,7 @@ NGPhysWorldSetBounds(world, min_x, max_x, min_y, max_y);
 // Create bodies
 NGBodyHandle body = NGPhysBodyCreateAABB(world, x, y, half_w, half_h);
 NGPhysBodySetVel(body, vx, vy);
-NGPhysBodySetRestitution(body, FIX_FROM_FLOAT(0.8));
+NGPhysBodySetRestitution(body, FIX(0.8));
 
 // Update (call each frame)
 NGPhysWorldUpdate(world, collision_callback, user_data);
@@ -345,7 +345,7 @@ for (;;) {
 // Setup
 NGCameraTrackActor(player);
 NGCameraSetDeadzone(80, 40);        // Don't move until player near edge
-NGCameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));  // Smooth follow
+NGCameraSetFollowSpeed(FIX(0.12));  // Smooth follow
 NGCameraSetBounds(level_width, level_height);  // Don't show outside level
 
 // The camera now automatically follows the player each frame

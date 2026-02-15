@@ -119,28 +119,6 @@ void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx, NGColor start_color, NG
     }
 }
 
-void NGPalGradientToBlack(u8 palette, u8 start_idx, u8 end_idx, NGColor color) {
-    NGPalGradient(palette, start_idx, end_idx, color, NG_COLOR_BLACK);
-}
-
-void NGPalGradientToWhite(u8 palette, u8 start_idx, u8 end_idx, NGColor color) {
-    NGPalGradient(palette, start_idx, end_idx, color, NG_COLOR_WHITE);
-}
-
-void NGPalFadeToBlack(u8 palette, u8 amount) {
-    volatile u16 *pal = NGPalGetPtr(palette);
-    for (u8 i = 1; i < NG_PAL_SIZE; i++) {
-        pal[i] = NGColorDarken(pal[i], amount);
-    }
-}
-
-void NGPalFadeToWhite(u8 palette, u8 amount) {
-    volatile u16 *pal = NGPalGetPtr(palette);
-    for (u8 i = 1; i < NG_PAL_SIZE; i++) {
-        pal[i] = NGColorLighten(pal[i], amount);
-    }
-}
-
 void NGPalFadeToColor(u8 palette, NGColor target, u8 amount) {
     if (amount > 31)
         amount = 31;
@@ -208,8 +186,8 @@ void NGPalSetupShaded(u8 palette, NGColor base_color) {
     pal[1] = base_color;
 
     for (u8 i = 2; i < NG_PAL_SIZE; i++) {
-        u8 darken_amount = (u8)((i - 1) * 2);
-        pal[i] = NGColorDarken(base_color, darken_amount);
+        s8 darken_amount = (s8)(-((i - 1) * 2));
+        pal[i] = NGColorAdjustBrightness(base_color, darken_amount);
     }
 }
 

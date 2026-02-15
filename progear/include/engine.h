@@ -13,8 +13,8 @@
  * various subsystem init calls and frame timing.
  */
 
-#ifndef ENGINE_H
-#define ENGINE_H
+#ifndef NG_ENGINE_H
+#define NG_ENGINE_H
 
 #include <ng_types.h>
 #include <ui.h>
@@ -77,4 +77,4 @@ NGMenuHandle NGEngineGetActiveMenu(void);
 
 /** @} */ /* end of engine group */
 
-#endif // ENGINE_H
+#endif /* NG_ENGINE_H */

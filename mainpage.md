@@ -117,7 +117,7 @@ The m68000 has no FPU. All positions use 16.16 fixed-point:
 
 ```c
 fixed x = FIX(10);              // Integer to fixed
-fixed y = FIX_FROM_FLOAT(2.5);  // Float to fixed (compile-time only)
+fixed y = FIX(2.5);            // Float to fixed (compile-time)
 fixed z = FIX_MUL(x, y);        // Multiplication
 int i = FIX_INT(z);             // Fixed to integer
 ```

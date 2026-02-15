@@ -6,18 +6,10 @@
 
 #include <spring.h>
 
-#define SETTLE_VELOCITY_THRESHOLD FIX_FROM_FLOAT(0.1)
-#define SETTLE_POSITION_THRESHOLD FIX_FROM_FLOAT(0.5)
+#define SETTLE_VELOCITY_THRESHOLD FIX(0.1)
+#define SETTLE_POSITION_THRESHOLD FIX(0.5)
 
-void NGSpringInit(NGSpring *spring, fixed initial) {
-    spring->value = initial;
-    spring->velocity = 0;
-    spring->target = initial;
-    spring->stiffness = NG_SPRING_SNAPPY_STIFFNESS;
-    spring->damping = NG_SPRING_SNAPPY_DAMPING;
-}
-
-void NGSpringInitEx(NGSpring *spring, fixed initial, fixed stiffness, fixed damping) {
+void NGSpringInit(NGSpring *spring, fixed initial, fixed stiffness, fixed damping) {
     spring->value = initial;
     spring->velocity = 0;
     spring->target = initial;
@@ -62,14 +54,9 @@ u8 NGSpringSettled(NGSpring *spring) {
     return (displacement < SETTLE_POSITION_THRESHOLD) && (vel < SETTLE_VELOCITY_THRESHOLD);
 }
 
-void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y) {
-    NGSpringInit(&spring->x, x);
-    NGSpringInit(&spring->y, y);
-}
-
-void NGSpring2DInitEx(NGSpring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping) {
-    NGSpringInitEx(&spring->x, x, stiffness, damping);
-    NGSpringInitEx(&spring->y, y, stiffness, damping);
+void NGSpring2DInit(NGSpring2D *spring, fixed x, fixed y, fixed stiffness, fixed damping) {
+    NGSpringInit(&spring->x, x, stiffness, damping);
+    NGSpringInit(&spring->y, y, stiffness, damping);
 }
 
 void NGSpring2DSetTarget(NGSpring2D *spring, fixed x, fixed y) {

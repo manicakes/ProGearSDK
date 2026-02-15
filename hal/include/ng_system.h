@@ -15,8 +15,8 @@
  * - System detection (AES vs MVS)
  */
 
-#ifndef _NG_SYSTEM_H_
-#define _NG_SYSTEM_H_
+#ifndef NG_SYSTEM_H
+#define NG_SYSTEM_H
 
 #include <ng_types.h>
 
@@ -162,4 +162,4 @@ u8 NGRtcIsAvailable(void);
 
 /** @} */ /* end of system group */
 
-#endif /* _NG_SYSTEM_H_ */
+#endif /* NG_SYSTEM_H */

@@ -51,11 +51,11 @@ void ScrollDemoInit(void) {
     state->bob_phase = 0;
 
     state->back = NGBackdropCreate(&NGVisualAsset_back_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
-                                   FIX_FROM_FLOAT(0.25), FIX_FROM_FLOAT(0.25));
+                                   FIX(0.25), FIX(0.25));
     NGBackdropAddToScene(state->back, 0, 0, 0);
 
     state->middle = NGBackdropCreate(&NGVisualAsset_middle_layer, NG_BACKDROP_WIDTH_INFINITE, 0,
-                                     FIX_FROM_FLOAT(0.5), FIX_FROM_FLOAT(0.5));
+                                     FIX(0.5), FIX(0.5));
     s16 middle_y = (s16)(NG_SCENE_VIEWPORT_H - NGVisualAsset_middle_layer.height_pixels - 20);
     NGBackdropAddToScene(state->middle, 0, middle_y, 1);
 

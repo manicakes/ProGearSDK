@@ -20,8 +20,8 @@
  * Each channel has 5 bits + 1 shared dark bit = 32 shades per channel.
  */
 
-#ifndef _NG_COLOR_H_
-#define _NG_COLOR_H_
+#ifndef NG_COLOR_H
+#define NG_COLOR_H
 
 #include <ng_types.h>
 
@@ -43,13 +43,8 @@ typedef u16 NGColor;
     ((((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | ((((r) >> 1) & 0xF) << 8) | \
      ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF))
 
-/** Alias for NG_RGB (5-bit components) */
-#define NG_RGB5(r, g, b)                                                                     \
-    ((((r) & 1) << 14) | (((g) & 1) << 13) | (((b) & 1) << 12) | ((((r) >> 1) & 0xF) << 8) | \
-     ((((g) >> 1) & 0xF) << 4) | (((b) >> 1) & 0xF))
-
 /** Build color from 5-bit RGB with dark bit set */
-#define NG_RGB5_DARK(r, g, b) (NG_RGB5(r, g, b) | 0x8000)
+#define NG_RGB_DARK(r, g, b) (NG_RGB(r, g, b) | 0x8000)
 
 /** Build color from 4-bit RGB components (0-15 each) */
 #define NG_RGB4(r, g, b) ((((r) & 0xF) << 8) | (((g) & 0xF) << 4) | ((b) & 0xF))
@@ -58,7 +53,7 @@ typedef u16 NGColor;
 #define NG_RGB4_DARK(r, g, b) (NG_RGB4(r, g, b) | 0x8000)
 
 /** Build color from 8-bit RGB (0-255), auto-converts to 5-bit */
-#define NG_RGB8(r, g, b) NG_RGB5((r) >> 3, (g) >> 3, (b) >> 3)
+#define NG_RGB8(r, g, b) NG_RGB((r) >> 3, (g) >> 3, (b) >> 3)
 
 /** Build color from 8-bit RGB with dark bit */
 #define NG_RGB8_DARK(r, g, b) (NG_RGB8(r, g, b) | 0x8000)
@@ -154,22 +149,6 @@ static inline NGColor NGColorClearDark(NGColor c) {
 NGColor NGColorBlend(NGColor a, NGColor b, u8 ratio);
 
 /**
- * Darken a color toward black.
- * @param c Color to darken
- * @param amount Darken amount (0=no change, 31=black)
- * @return Darkened color
- */
-NGColor NGColorDarken(NGColor c, u8 amount);
-
-/**
- * Lighten a color toward white.
- * @param c Color to lighten
- * @param amount Lighten amount (0=no change, 31=white)
- * @return Lightened color
- */
-NGColor NGColorLighten(NGColor c, u8 amount);
-
-/**
  * Invert a color.
  * @param c Color to invert
  * @return Inverted color
@@ -184,7 +163,7 @@ NGColor NGColorInvert(NGColor c);
 NGColor NGColorGrayscale(NGColor c);
 
 /**
- * Adjust brightness.
+ * Adjust brightness (positive = lighten toward white, negative = darken toward black).
  * @param c Color to adjust
  * @param amount Adjustment (-31 to +31)
  * @return Adjusted color
@@ -210,10 +189,10 @@ NGColor NGColorFromHSV(u8 h, u8 s, u8 v);
  * @return Grayscale color
  */
 static inline NGColor NGColorGray(u8 level) {
-    return NG_RGB5(level, level, level);
+    return NG_RGB(level, level, level);
 }
 /** @} */
 
 /** @} */ /* end of color group */
 
-#endif // _NG_COLOR_H_
+#endif /* NG_COLOR_H */

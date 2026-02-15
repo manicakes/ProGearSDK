@@ -49,8 +49,8 @@
  *       are automatically restored when all layers are removed.
  */
 
-#ifndef LIGHTING_H
-#define LIGHTING_H
+#ifndef NG_LIGHTING_H
+#define NG_LIGHTING_H
 
 #include <ng_types.h>
 #include <ng_math.h>
@@ -70,7 +70,7 @@
 #define NG_LIGHTING_MAX_LAYERS 8
 
 /** Invalid layer handle (returned on error) */
-#define NG_LIGHTING_INVALID_HANDLE 0xFF
+#define NG_LIGHTING_INVALID 0xFF
 /** @} */
 
 /** @name Priority Levels */
@@ -145,7 +145,7 @@ void NGLightingReset(void);
  *
  * @param priority Layer priority (lower = applied first). Use
  *                 NG_LIGHTING_PRIORITY_* constants as guidelines.
- * @return Layer handle, or NG_LIGHTING_INVALID_HANDLE if no slots available
+ * @return Layer handle, or NG_LIGHTING_INVALID if no slots available
  *
  * @note Layers with the same priority are applied in creation order.
  */
@@ -389,7 +389,7 @@ void NGLightingInitPresets(void);
  *
  * @param preset_id Preset index (NG_LIGHTING_PREBAKED_*)
  * @param fade_frames Fade duration (0 = instant apply)
- * @return Layer handle for later pop, or NG_LIGHTING_INVALID_HANDLE on error
+ * @return Layer handle for later pop, or NG_LIGHTING_INVALID on error
  */
 NGLightingLayerHandle NGLightingPushPreset(u8 preset_id, u16 fade_frames);
 
@@ -431,4 +431,4 @@ u8 NGLightingGetActivePreset(void);
 
 /** @} */ /* end of lighting group */
 
-#endif // LIGHTING_H
+#endif /* NG_LIGHTING_H */

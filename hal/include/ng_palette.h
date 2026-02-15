@@ -15,8 +15,8 @@
  * @note Update palettes during VBlank to avoid visual artifacts.
  */
 
-#ifndef _NG_PALETTE_H_
-#define _NG_PALETTE_H_
+#ifndef NG_PALETTE_H
+#define NG_PALETTE_H
 
 #include <ng_types.h>
 #include <ng_color.h>
@@ -105,42 +105,10 @@ void NGPalClear(u8 palette);
  * @param end_color Ending color
  */
 void NGPalGradient(u8 palette, u8 start_idx, u8 end_idx, NGColor start_color, NGColor end_color);
-
-/**
- * Generate gradient from color to black.
- * @param palette Palette index
- * @param start_idx First color index
- * @param end_idx Last color index
- * @param color Starting color
- */
-void NGPalGradientToBlack(u8 palette, u8 start_idx, u8 end_idx, NGColor color);
-
-/**
- * Generate gradient from color to white.
- * @param palette Palette index
- * @param start_idx First color index
- * @param end_idx Last color index
- * @param color Starting color
- */
-void NGPalGradientToWhite(u8 palette, u8 start_idx, u8 end_idx, NGColor color);
 /** @} */
 
 /** @name Fade Effects */
 /** @{ */
-
-/**
- * Fade palette toward black.
- * @param palette Palette index
- * @param amount Fade amount (0=no change, 31=black)
- */
-void NGPalFadeToBlack(u8 palette, u8 amount);
-
-/**
- * Fade palette toward white.
- * @param palette Palette index
- * @param amount Fade amount (0=no change, 31=white)
- */
-void NGPalFadeToWhite(u8 palette, u8 amount);
 
 /**
  * Fade palette toward a specific color.
@@ -233,4 +201,4 @@ static inline volatile u16 *NGPalGetColorPtr(u8 palette, u8 index) {
 
 /** @} */ /* end of palette group */
 
-#endif // _NG_PALETTE_H_
+#endif /* NG_PALETTE_H */

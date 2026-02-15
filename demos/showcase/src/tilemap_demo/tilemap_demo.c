@@ -24,10 +24,10 @@
 #define PLAYER_SPEED  FIX(2)
 
 // Tuned jump physics (inspired by Celeste/Hollow Knight)
-#define JUMP_FORCE         FIX_FROM_FLOAT(-6.5) // Initial jump velocity
-#define GRAVITY_UP         FIX_FROM_FLOAT(0.35) // Gravity while rising
-#define GRAVITY_DOWN       FIX_FROM_FLOAT(0.55) // Gravity while falling (faster)
-#define JUMP_CUT_MULT      FIX_FROM_FLOAT(0.4)  // Velocity multiplier when releasing jump early
+#define JUMP_FORCE         FIX(-6.5) // Initial jump velocity
+#define GRAVITY_UP         FIX(0.35) // Gravity while rising
+#define GRAVITY_DOWN       FIX(0.55) // Gravity while falling (faster)
+#define JUMP_CUT_MULT      FIX(0.4)  // Velocity multiplier when releasing jump early
 #define MAX_FALL_SPEED     FIX(10)              // Terminal velocity
 #define COYOTE_FRAMES      6                    // Frames after leaving ground you can still jump
 #define JUMP_BUFFER_FRAMES 6                    // Frames before landing a jump press is remembered
@@ -87,7 +87,7 @@ void TilemapDemoInit(void) {
 
     NGCameraTrackActor(state->player);
     NGCameraSetDeadzone(80, 40);
-    NGCameraSetFollowSpeed(FIX_FROM_FLOAT(0.12));
+    NGCameraSetFollowSpeed(FIX(0.12));
     NGCameraSetBounds(state->level_width, state->level_height);
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);

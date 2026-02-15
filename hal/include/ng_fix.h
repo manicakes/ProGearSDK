@@ -17,8 +17,8 @@
  * - Safe area: 38x25 tiles (accounts for CRT overscan)
  */
 
-#ifndef _NG_FIX_H_
-#define _NG_FIX_H_
+#ifndef NG_FIX_H
+#define NG_FIX_H
 
 #include <ng_hardware.h>
 
@@ -164,4 +164,4 @@ void NGTextPrintf(NGFixLayout layout, u8 palette, const char *fmt, ...);
 
 /** @} */ /* end of fix group */
 
-#endif // _NG_FIX_H_
+#endif /* NG_FIX_H */

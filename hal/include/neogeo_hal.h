@@ -39,8 +39,8 @@
  * - @ref audio - ADPCM audio playback
  */
 
-#ifndef _NEOGEO_HAL_H_
-#define _NEOGEO_HAL_H_
+#ifndef NG_NEOGEO_HAL_H
+#define NG_NEOGEO_HAL_H
 
 /* Core foundation (types, math, arena) */
 #include <neogeo_core.h>
@@ -79,4 +79,4 @@
 /* BIOS calls */
 #include <ng_bios.h>
 
-#endif /* _NEOGEO_HAL_H_ */
+#endif /* NG_NEOGEO_HAL_H */

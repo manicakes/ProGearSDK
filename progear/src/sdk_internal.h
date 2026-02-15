@@ -15,13 +15,39 @@
  * All functions here use the _NG prefix to indicate internal use.
  */
 
-#ifndef _SDK_INTERNAL_H_
-#define _SDK_INTERNAL_H_
+#ifndef NG_SDK_INTERNAL_H
+#define NG_SDK_INTERNAL_H
 
 #include <ng_types.h>
 #include "actor.h"
 #include "backdrop.h"
 #include "terrain.h"
+
+/* ------------------------------------------------------------------------ */
+/* Camera internals                                                         */
+/* ------------------------------------------------------------------------ */
+
+/** Get precalculated shrink value for current zoom (SCB2 format) */
+u16 NGCameraGetShrink(void);
+
+/** Get camera X position with shake offset applied (for rendering) */
+fixed NGCameraGetRenderX(void);
+
+/** Get camera Y position with shake offset applied (for rendering) */
+fixed NGCameraGetRenderY(void);
+
+/* ------------------------------------------------------------------------ */
+/* Graphic system internals                                                 */
+/* ------------------------------------------------------------------------ */
+
+/** Initialize graphics system (called by scene init) */
+void NGGraphicSystemInit(void);
+
+/** Draw all active graphics in layer/z-order (called by scene draw) */
+void NGGraphicSystemDraw(void);
+
+/** Reset graphics system, destroying all graphics (called on scene reset) */
+void NGGraphicSystemReset(void);
 
 /* ------------------------------------------------------------------------ */
 /* Scene internals                                                          */
@@ -84,4 +110,4 @@ void _NGTerrainSyncGraphics(void);
 /** Collect palette indices used by terrain into a bitmask */
 void _NGTerrainCollectPalettes(u8 *palette_mask);
 
-#endif /* _SDK_INTERNAL_H_ */
+#endif /* NG_SDK_INTERNAL_H */

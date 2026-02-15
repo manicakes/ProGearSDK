@@ -17,8 +17,8 @@
  * - BIOS RAM: 0x10F000 - 0x10FFFF (reserved)
  */
 
-#ifndef _NG_HARDWARE_H_
-#define _NG_HARDWARE_H_
+#ifndef NG_HARDWARE_H
+#define NG_HARDWARE_H
 
 #include <ng_types.h>
 #include <ng_color.h>
@@ -354,4 +354,4 @@ static inline void NGWatchdogKick(void) {
 
 /** @} */ /* end of hardware group */
 
-#endif // _NG_HARDWARE_H_
+#endif /* NG_HARDWARE_H */

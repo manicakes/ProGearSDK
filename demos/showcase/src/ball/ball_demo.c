@@ -103,7 +103,7 @@ static void update_day_night_cycle(void) {
     NGLightingUpdatePrebakedFade();
 
     /* Check if fade-out completed (transitioning back to day) */
-    if (state->is_night && state->night_preset == NG_LIGHTING_INVALID_HANDLE) {
+    if (state->is_night && state->night_preset == NG_LIGHTING_INVALID) {
         /* Fade completed, now fully day */
         state->is_night = 0;
     }
@@ -126,7 +126,7 @@ static void update_day_night_cycle(void) {
         state->day_night_timer = 0;
         /* Pop preset with fade - animates back to original palettes */
         NGLightingPopPreset(state->night_preset, NIGHT_TRANSITION_FRAMES);
-        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+        state->night_preset = NG_LIGHTING_INVALID;
         BallSystemSetGravity(state->balls, FIX(1));
     }
 
@@ -145,7 +145,7 @@ void BallDemoInit(void) {
     /* Initialize night mode state */
     state->day_night_timer = 0;
     state->is_night = 0;
-    state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+    state->night_preset = NG_LIGHTING_INVALID;
     state->lightning_timer = 0;
     state->rng_state = 12345;
 
@@ -153,13 +153,13 @@ void BallDemoInit(void) {
 
     // Match brick asset size to avoid sprite limits
     state->brick_pattern = NGBackdropCreate(&NGVisualAsset_brick_pattern, 336, 256,
-                                            FIX_FROM_FLOAT(0.8), FIX_FROM_FLOAT(0.8));
+                                            FIX(0.8), FIX(0.8));
     NGBackdropAddToScene(state->brick_pattern, 0, 0, 4);
 
     // Shadow moves slower than camera for depth effect
     state->brick_shadow = NGBackdropCreate(
         &NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
-        NGVisualAsset_brick_shadow.height_pixels, FIX_FROM_FLOAT(0.9), FIX_FROM_FLOAT(0.9));
+        NGVisualAsset_brick_shadow.height_pixels, FIX(0.9), FIX(0.9));
     NGBackdropAddToScene(state->brick_shadow, 8, 8, 5);
 
     state->brick = NGActorCreate(&NGVisualAsset_brick, 0, 0);
@@ -307,9 +307,9 @@ void BallDemoCleanup(void) {
     NGMusicStop();
 
     /* Clean up lighting - instant pop (no fade) */
-    if (state->night_preset != NG_LIGHTING_INVALID_HANDLE) {
+    if (state->night_preset != NG_LIGHTING_INVALID) {
         NGLightingPopPreset(state->night_preset, 0);
-        state->night_preset = NG_LIGHTING_INVALID_HANDLE;
+        state->night_preset = NG_LIGHTING_INVALID;
     }
 
     NGFixClear(0, 3, 40, 1);

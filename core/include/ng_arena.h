@@ -17,8 +17,8 @@
  *   ng_arena_frame      - Cleared every frame (temp strings, scratch)
  */
 
-#ifndef _NG_ARENA_H_
-#define _NG_ARENA_H_
+#ifndef NG_ARENA_H
+#define NG_ARENA_H
 
 #include <ng_types.h>
 
@@ -163,4 +163,4 @@ void NGArenaSystemInit(void);
 
 /** @} */ /* end of arena group */
 
-#endif // _NG_ARENA_H_
+#endif /* NG_ARENA_H */

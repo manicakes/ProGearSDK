@@ -19,8 +19,8 @@
  * - All animations are snappy (~200-300ms)
  */
 
-#ifndef UI_H
-#define UI_H
+#ifndef NG_UI_H
+#define NG_UI_H
 
 #include <ng_types.h>
 #include <ng_arena.h>
@@ -240,4 +240,4 @@ void NGMenuDestroy(NGMenuHandle menu);
 
 /** @} */ /* end of ui group */
 
-#endif // UI_H
+#endif /* NG_UI_H */

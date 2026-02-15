@@ -14,8 +14,8 @@
  * - `fixed16` (8.8): 16-bit, range ~127, precision 0.004
  */
 
-#ifndef _NG_MATH_H_
-#define _NG_MATH_H_
+#ifndef NG_MATH_H
+#define NG_MATH_H
 
 #include <ng_types.h>
 
@@ -43,7 +43,7 @@ typedef s16 fixed16;
 #define FIX_ONE   (1 << FIX_SHIFT)       /**< 1.0 in fixed format */
 #define FIX_HALF  (1 << (FIX_SHIFT - 1)) /**< 0.5 in fixed format */
 
-/** Convert integer to fixed (works with negative values) */
+/** Convert integer or float literal to fixed: FIX(3), FIX(-1), FIX(0.5) */
 #define FIX(x) ((fixed)((x) * FIX_ONE))
 
 /** Convert fixed to integer (truncates toward zero) */
@@ -51,9 +51,6 @@ typedef s16 fixed16;
 
 /** Convert fixed to integer (rounds to nearest) */
 #define FIX_ROUND(x) ((s16)(((x) + FIX_HALF) >> FIX_SHIFT))
-
-/** Convert float literal to fixed (compile-time only) */
-#define FIX_FROM_FLOAT(x) ((fixed)((x) * FIX_ONE))
 
 /**
  * Multiply two fixed values.
@@ -249,4 +246,4 @@ NGVec2 NGVec2Normalize(NGVec2 v);
 
 /** @} */ /* end of math group */
 
-#endif // _NG_MATH_H_
+#endif /* NG_MATH_H */
