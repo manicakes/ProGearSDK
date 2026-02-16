@@ -79,7 +79,6 @@ typedef struct NGBody {
     fixed mass;        /**< Mass (FIX_ONE = 1.0) */
     fixed inv_mass;    /**< Cached 1/mass */
     fixed restitution; /**< Bounciness (FIX_ONE = perfect) */
-    fixed friction;    /**< Friction coefficient */
 
     NGShape shape;      /**< Collision shape */
     u8 collision_mask;  /**< Layers this body collides with */
@@ -286,13 +285,6 @@ void NGPhysBodySetMass(NGBodyHandle body, fixed mass);
  * @param restitution Restitution (0 to FIX_ONE)
  */
 void NGPhysBodySetRestitution(NGBodyHandle body, fixed restitution);
-
-/**
- * Set body friction.
- * @param body Body handle
- * @param friction Friction coefficient (fixed)
- */
-void NGPhysBodySetFriction(NGBodyHandle body, fixed friction);
 
 /**
  * Set body flags.

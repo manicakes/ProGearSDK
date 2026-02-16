@@ -8,6 +8,7 @@
 #include <camera.h>
 #include <graphic.h>
 #include <ng_audio.h>
+#include <ng_string.h>
 
 #include "sdk_internal.h"
 
@@ -31,14 +32,6 @@ typedef struct {
 } Actor;
 
 static Actor actors[NG_ACTOR_MAX];
-
-static u8 str_equal(const char *a, const char *b) {
-    while (*a && *b) {
-        if (*a++ != *b++)
-            return 0;
-    }
-    return *a == *b;
-}
 
 void _NGActorSystemInit(void) {
     for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
@@ -98,9 +91,7 @@ static void sync_actor_graphic(Actor *actor) {
         scale = NG_GRAPHIC_SCALE_ONE;
     } else {
         NGCameraWorldToScreen(actor->x, actor->y, &screen_x, &screen_y);
-        // Convert camera zoom (1-16, where 16 is full) to scale (256 = 1.0x)
-        u8 zoom = NGCameraGetZoom();
-        scale = (u16)((zoom * NG_GRAPHIC_SCALE_ONE) >> 4);
+        scale = NGCameraZoomToScale(NGCameraGetZoom());
     }
 
     NGGraphicSetPosition(actor->graphic, screen_x, screen_y);
@@ -214,7 +205,6 @@ void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
         sync_actor_graphic(actor);
     }
 
-    _NGSceneMarkRenderQueueDirty();
 }
 
 void NGActorRemoveFromScene(NGActorHandle handle) {
@@ -232,9 +222,6 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
         NGGraphicSetVisible(actor->graphic, 0);
     }
 
-    if (was_in_scene) {
-        _NGSceneMarkRenderQueueDirty();
-    }
 }
 
 void NGActorDestroy(NGActorHandle handle) {
@@ -283,9 +270,6 @@ void NGActorSetZ(NGActorHandle handle, u8 z) {
         actor->z = z;
         if (actor->graphic) {
             NGGraphicSetZOrder(actor->graphic, z);
-        }
-        if (actor->in_scene) {
-            _NGSceneMarkRenderQueueDirty();
         }
     }
 }
@@ -347,7 +331,7 @@ u8 NGActorSetAnimByName(NGActorHandle handle, const char *name) {
         return 0;
 
     for (u8 i = 0; i < actor->asset->anim_count; i++) {
-        if (str_equal(actor->asset->anims[i].name, name)) {
+        if (ng_str_equal(actor->asset->anims[i].name, name)) {
             NGActorSetAnim(handle, i);
             return 1;
         }
@@ -473,8 +457,7 @@ void _NGActorCollectPalettes(u8 *palette_mask) {
     for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
         Actor *actor = &actors[i];
         if (actor->active && actor->in_scene && actor->visible) {
-            u8 pal = actor->palette;
-            palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+            _NGPaletteMaskSet(palette_mask, actor->palette);
         }
     }
 }

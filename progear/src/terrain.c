@@ -23,6 +23,19 @@ typedef struct {
 
 static Terrain terrains[NG_TERRAIN_MAX];
 
+/** Clamp tile coordinate range to terrain asset bounds. */
+static inline void clamp_tile_bounds(const NGTerrainAsset *asset, s16 *left, s16 *right, s16 *top,
+                                     s16 *bottom) {
+    if (*left < 0)
+        *left = 0;
+    if (*right >= asset->width_tiles)
+        *right = (s16)(asset->width_tiles - 1);
+    if (*top < 0)
+        *top = 0;
+    if (*bottom >= asset->height_tiles)
+        *bottom = (s16)(asset->height_tiles - 1);
+}
+
 void _NGTerrainSystemInit(void) {
     for (u8 i = 0; i < NG_TERRAIN_MAX; i++) {
         terrains[i].active = 0;
@@ -59,8 +72,7 @@ static void sync_terrain_graphic(Terrain *tm) {
     NGGraphicSetSourceOffset(tm->graphic, tile_offset_x, tile_offset_y);
 
     /* Apply camera zoom as scale */
-    u16 scale = (u16)((zoom * NG_GRAPHIC_SCALE_ONE) >> 4);
-    NGGraphicSetScale(tm->graphic, scale);
+    NGGraphicSetScale(tm->graphic, NGCameraZoomToScale(zoom));
 }
 
 NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
@@ -270,15 +282,7 @@ u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fix
     s16 right_tile = FIX_INT(x + half_w - tm->world_x) / NG_TILE_SIZE;
     s16 top_tile = FIX_INT(y - half_h - tm->world_y) / NG_TILE_SIZE;
     s16 bottom_tile = FIX_INT(y + half_h - tm->world_y) / NG_TILE_SIZE;
-
-    if (left_tile < 0)
-        left_tile = 0;
-    if (right_tile >= tm->asset->width_tiles)
-        right_tile = (s16)(tm->asset->width_tiles - 1);
-    if (top_tile < 0)
-        top_tile = 0;
-    if (bottom_tile >= tm->asset->height_tiles)
-        bottom_tile = (s16)(tm->asset->height_tiles - 1);
+    clamp_tile_bounds(tm->asset, &left_tile, &right_tile, &top_tile, &bottom_tile);
 
     u8 result = 0;
     for (s16 ty = top_tile; ty <= bottom_tile; ty++) {
@@ -312,15 +316,7 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
         s16 right_tile = FIX_INT(*x + half_w - tm->world_x) / NG_TILE_SIZE;
         s16 top_tile = FIX_INT(new_y - half_h - tm->world_y) / NG_TILE_SIZE;
         s16 bottom_tile = FIX_INT(new_y + half_h - tm->world_y) / NG_TILE_SIZE;
-
-        if (left_tile < 0)
-            left_tile = 0;
-        if (right_tile >= tm->asset->width_tiles)
-            right_tile = (s16)(tm->asset->width_tiles - 1);
-        if (top_tile < 0)
-            top_tile = 0;
-        if (bottom_tile >= tm->asset->height_tiles)
-            bottom_tile = (s16)(tm->asset->height_tiles - 1);
+        clamp_tile_bounds(tm->asset, &left_tile, &right_tile, &top_tile, &bottom_tile);
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
@@ -362,15 +358,7 @@ u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w
         s16 right_tile = FIX_INT(new_x + half_w - tm->world_x) / NG_TILE_SIZE;
         s16 top_tile = FIX_INT(new_y - half_h + FIX(2) - tm->world_y) / NG_TILE_SIZE;
         s16 bottom_tile = FIX_INT(new_y + half_h - FIX(2) - tm->world_y) / NG_TILE_SIZE;
-
-        if (left_tile < 0)
-            left_tile = 0;
-        if (right_tile >= tm->asset->width_tiles)
-            right_tile = (s16)(tm->asset->width_tiles - 1);
-        if (top_tile < 0)
-            top_tile = 0;
-        if (bottom_tile >= tm->asset->height_tiles)
-            bottom_tile = (s16)(tm->asset->height_tiles - 1);
+        clamp_tile_bounds(tm->asset, &left_tile, &right_tile, &top_tile, &bottom_tile);
 
         u8 hit = 0;
         for (s16 ty = top_tile; ty <= bottom_tile && !hit; ty++) {
@@ -438,15 +426,14 @@ void _NGTerrainCollectPalettes(u8 *palette_mask) {
             continue;
 
         /* Add default palette */
-        u8 pal = tm->asset->default_palette;
-        palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+        _NGPaletteMaskSet(palette_mask, tm->asset->default_palette);
 
         /* Add all palettes from tile_to_palette lookup */
         if (tm->asset->tile_to_palette) {
             for (u16 t = 0; t < 256; t++) {
-                pal = tm->asset->tile_to_palette[t];
+                u8 pal = tm->asset->tile_to_palette[t];
                 if (pal > 0) {
-                    palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+                    _NGPaletteMaskSet(palette_mask, pal);
                 }
             }
         }

@@ -20,11 +20,6 @@ static NGTerrainHandle scene_terrain = NG_TERRAIN_INVALID;
 static u8 terrain_z;
 static u8 terrain_in_scene;
 
-/* Kept for backwards compatibility - no longer used internally */
-void _NGSceneMarkRenderQueueDirty(void) {
-    (void)0;
-}
-
 void NGSceneInit(void) {
     NGGraphicSystemInit();
     _NGActorSystemInit();
@@ -44,7 +39,6 @@ void NGSceneUpdate(void) {
 
     NGCameraUpdate();
     _NGActorSystemUpdate();
-    _NGBackdropSystemUpdate();
 }
 
 void NGSceneDraw(void) {
@@ -182,4 +176,8 @@ void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision) {
     if (scene_terrain != NG_TERRAIN_INVALID) {
         NGTerrainSetCollision(scene_terrain, tile_x, tile_y, collision);
     }
+}
+
+NGTerrainHandle NGSceneGetTerrain(void) {
+    return scene_terrain;
 }

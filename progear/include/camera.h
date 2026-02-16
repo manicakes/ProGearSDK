@@ -36,6 +36,7 @@
 #include <ng_types.h>
 #include <ng_math.h>
 #include <ng_hardware.h>
+#include <graphic.h>
 
 /**
  * @defgroup camera Camera System
@@ -274,6 +275,23 @@ void NGCameraSetBounds(u16 world_width, u16 world_height);
  * @param offset_y Vertical offset in pixels
  */
 void NGCameraSetTrackOffset(s16 offset_x, s16 offset_y);
+/** @} */
+
+/** @} */
+
+/** @name Internal Utilities */
+/** @{ */
+
+/**
+ * Convert camera zoom level to graphic scale value.
+ * Zoom 16 (100%) maps to NG_GRAPHIC_SCALE_ONE (256).
+ * Zoom 8 (50%) maps to 128.
+ * @param zoom Camera zoom level (8-16)
+ * @return Scale value for NGGraphicSetScale()
+ */
+static inline u16 NGCameraZoomToScale(u8 zoom) {
+    return (u16)((zoom * NG_GRAPHIC_SCALE_ONE) >> 4);
+}
 /** @} */
 
 /** @} */ /* end of camera group */

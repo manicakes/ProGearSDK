@@ -6,8 +6,6 @@
 
 #include <physics.h>
 
-#define MAX_WORLDS 1
-
 // Fast path for axis-aligned normals (AABB collisions produce ±1,0 or 0,±1)
 static inline fixed mul_by_normal_component(fixed value, fixed normal_comp) {
     if (normal_comp == FIX_ONE)
@@ -28,25 +26,22 @@ static inline fixed dot_with_normal(fixed vx, fixed vy, NGVec2 *normal) {
     return mul_by_normal_component(vx, normal->x) + mul_by_normal_component(vy, normal->y);
 }
 
-static NGPhysWorld world_pool[MAX_WORLDS];
+static NGPhysWorld g_world;
 
 NGPhysWorldHandle NGPhysWorldCreate(void) {
-    for (int i = 0; i < MAX_WORLDS; i++) {
-        if (!world_pool[i].active) {
-            NGPhysWorld *world = &world_pool[i];
-            world->active = 1;
-            world->gravity.x = 0;
-            world->gravity.y = 0;
-            world->bounds_enabled = 0;
+    if (g_world.active)
+        return 0;
 
-            for (int j = 0; j < NG_PHYS_MAX_BODIES; j++) {
-                world->bodies[j].active = 0;
-            }
+    g_world.active = 1;
+    g_world.gravity.x = 0;
+    g_world.gravity.y = 0;
+    g_world.bounds_enabled = 0;
 
-            return world;
-        }
+    for (int j = 0; j < NG_PHYS_MAX_BODIES; j++) {
+        g_world.bodies[j].active = 0;
     }
-    return 0;
+
+    return &g_world;
 }
 
 void NGPhysWorldDestroy(NGPhysWorldHandle world) {
@@ -402,7 +397,6 @@ static NGBody *alloc_body(NGPhysWorldHandle world) {
             body->mass = FIX_ONE;
             body->inv_mass = FIX_ONE;
             body->restitution = FIX_ONE;
-            body->friction = 0;
             body->collision_layer = 0x01;
             body->collision_mask = 0xFF;
             body->user_data = 0;
@@ -490,12 +484,6 @@ void NGPhysBodySetRestitution(NGBodyHandle body, fixed restitution) {
     if (!body)
         return;
     body->restitution = restitution;
-}
-
-void NGPhysBodySetFriction(NGBodyHandle body, fixed friction) {
-    if (!body)
-        return;
-    body->friction = friction;
 }
 
 void NGPhysBodySetFlags(NGBodyHandle body, u8 flags) {
