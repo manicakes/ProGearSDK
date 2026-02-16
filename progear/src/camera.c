@@ -212,11 +212,8 @@ void NGCameraClampToBounds(u16 world_width, u16 world_height) {
 }
 
 void NGCameraWorldToScreen(fixed world_x, fixed world_y, s16 *screen_x, s16 *screen_y) {
-    fixed cam_render_x = camera.x + FIX(camera.shake.offset_x);
-    fixed cam_render_y = camera.y + FIX(camera.shake.offset_y);
-
-    fixed rel_x = world_x - cam_render_x;
-    fixed rel_y = world_y - cam_render_y;
+    fixed rel_x = world_x - NGCameraGetRenderX();
+    fixed rel_y = world_y - NGCameraGetRenderY();
 
     s32 zoom = index_to_zoom(camera.zoom.index);
     s32 scaled_x = (FIX_INT(rel_x) * zoom) >> 4;

@@ -31,6 +31,7 @@
 #include <ng_types.h>
 #include <ng_math.h>
 #include <collision.h>
+#include <terrain.h>
 
 /* Forward declaration */
 struct NGTerrainAsset;
@@ -177,6 +178,15 @@ void NGSceneSetTileAt(u16 tile_x, u16 tile_y, u8 tile_index);
  * @param collision New collision flags
  */
 void NGSceneSetCollisionAt(u16 tile_x, u16 tile_y, u8 collision);
+
+/**
+ * Get the terrain handle for direct terrain API access.
+ * Returns the handle set by NGSceneSetTerrain(), or NG_TERRAIN_INVALID
+ * if no terrain is active. Use this to call NGTerrain*() functions directly,
+ * which is equivalent to using the NGScene terrain proxy methods above.
+ * @return Terrain handle, or NG_TERRAIN_INVALID
+ */
+NGTerrainHandle NGSceneGetTerrain(void);
 /** @} */
 
 /** @} */ /* end of scene group */

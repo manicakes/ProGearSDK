@@ -24,6 +24,15 @@
 #include "terrain.h"
 
 /* ------------------------------------------------------------------------ */
+/* Shared utilities                                                         */
+/* ------------------------------------------------------------------------ */
+
+/** Set a bit in a 256-bit palette bitmask (32 bytes, indexed by palette ID) */
+static inline void _NGPaletteMaskSet(u8 *mask, u8 palette) {
+    mask[palette >> 3] |= (u8)(1 << (palette & 7));
+}
+
+/* ------------------------------------------------------------------------ */
 /* Camera internals                                                         */
 /* ------------------------------------------------------------------------ */
 
@@ -48,13 +57,6 @@ void NGGraphicSystemDraw(void);
 
 /** Reset graphics system, destroying all graphics (called on scene reset) */
 void NGGraphicSystemReset(void);
-
-/* ------------------------------------------------------------------------ */
-/* Scene internals                                                          */
-/* ------------------------------------------------------------------------ */
-
-/** Mark the render queue as needing re-sort (called when Z or visibility changes) */
-void _NGSceneMarkRenderQueueDirty(void);
 
 /* ------------------------------------------------------------------------ */
 /* Actor internals                                                          */
@@ -87,9 +89,6 @@ u8 _NGActorIsScreenSpace(NGActorHandle handle);
 
 /** Initialize the backdrop subsystem (called by scene init) */
 void _NGBackdropSystemInit(void);
-
-/** Update all backdrops */
-void _NGBackdropSystemUpdate(void);
 
 /** Sync backdrop state to graphics hardware */
 void _NGBackdropSyncGraphics(void);

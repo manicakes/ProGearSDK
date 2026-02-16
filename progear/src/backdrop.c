@@ -41,8 +41,6 @@ void _NGBackdropSystemInit(void) {
     }
 }
 
-void _NGBackdropSystemUpdate(void) {}
-
 /**
  * Sync backdrop graphic with camera/parallax state.
  */
@@ -76,10 +74,7 @@ static void sync_backdrop_graphic(Backdrop *bd) {
     NGGraphicSetPosition(bd->graphic, screen_x, screen_y);
 
     /* Apply camera zoom to backdrop scale */
-    /* Camera zoom: 16 = 100%, 8 = 50%. Graphic scale: 256 = 100%, 128 = 50% */
-    u8 zoom = NGCameraGetZoom();
-    u16 scale = (u16)(zoom * 16); /* Convert: zoom * 256 / 16 = zoom * 16 */
-    NGGraphicSetScale(bd->graphic, scale);
+    NGGraphicSetScale(bd->graphic, NGCameraZoomToScale(NGCameraGetZoom()));
 }
 
 NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 height,
@@ -296,8 +291,7 @@ void _NGBackdropCollectPalettes(u8 *palette_mask) {
     for (u8 i = 0; i < NG_BACKDROP_MAX; i++) {
         Backdrop *bd = &backdrop_layers[i];
         if (bd->active && bd->in_scene && bd->visible) {
-            u8 pal = bd->palette;
-            palette_mask[pal >> 3] |= (u8)(1 << (pal & 7));
+            _NGPaletteMaskSet(palette_mask, bd->palette);
         }
     }
 }

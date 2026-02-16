@@ -95,6 +95,15 @@ static void apply_prebaked_step(u8 preset_id, u8 step);
 static void recalc_combined_transform(void);
 static s16 clamp_tint(s16 val);
 
+/** Check if any lighting layer is currently active. */
+static u8 any_layer_active(void) {
+    for (u8 i = 0; i < NG_LIGHTING_MAX_LAYERS; i++) {
+        if (g_lighting.layers[i].active)
+            return 1;
+    }
+    return 0;
+}
+
 /* Weak default - games with lighting_presets in assets.yaml provide a strong definition */
 __attribute__((weak)) void NGLightingInitPresets(void) {}
 
@@ -170,17 +179,8 @@ void NGLightingPop(NGLightingLayerHandle handle) {
     g_lighting.layers[handle].active = 0;
     g_lighting.dirty = 1;
 
-    /* Check if all layers are now inactive */
-    u8 any_active = 0;
-    for (u8 i = 0; i < NG_LIGHTING_MAX_LAYERS; i++) {
-        if (g_lighting.layers[i].active) {
-            any_active = 1;
-            break;
-        }
-    }
-
     /* If no layers active, restore to appropriate state */
-    if (!any_active && g_lighting.backup_valid) {
+    if (!any_layer_active() && g_lighting.backup_valid) {
         /* If a pre-baked preset is active, re-apply it */
         if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
             apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
@@ -442,16 +442,7 @@ void NGLightingUpdate(void) {
     if (any_expired) {
         g_lighting.dirty = 1;
 
-        /* Check if all layers are now inactive */
-        u8 any_active = 0;
-        for (u8 i = 0; i < NG_LIGHTING_MAX_LAYERS; i++) {
-            if (g_lighting.layers[i].active) {
-                any_active = 1;
-                break;
-            }
-        }
-
-        if (!any_active && g_lighting.backup_valid) {
+        if (!any_layer_active() && g_lighting.backup_valid) {
             /* If a pre-baked preset is active, re-apply it instead of
              * restoring to original palettes */
             if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
@@ -472,6 +463,9 @@ void NGLightingUpdate(void) {
         resolve_palettes();
         g_lighting.dirty = 0;
     }
+
+    /* Drive pre-baked preset fade animation automatically */
+    NGLightingUpdatePrebakedFade();
 }
 
 void NGLightingInvalidate(void) {
@@ -479,11 +473,7 @@ void NGLightingInvalidate(void) {
 }
 
 u8 NGLightingIsActive(void) {
-    for (u8 i = 0; i < NG_LIGHTING_MAX_LAYERS; i++) {
-        if (g_lighting.layers[i].active)
-            return 1;
-    }
-    return 0;
+    return any_layer_active();
 }
 
 u8 NGLightingIsAnimating(void) {

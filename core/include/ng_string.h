@@ -54,6 +54,21 @@ void *memset(void *s, int c, u32 n);
  */
 void *memmove(void *dest, const void *src, u32 n);
 
+/**
+ * Compare two null-terminated strings for equality.
+ *
+ * @param a First string
+ * @param b Second string
+ * @return 1 if equal, 0 if not
+ */
+static inline u8 ng_str_equal(const char *a, const char *b) {
+    while (*a && *b) {
+        if (*a++ != *b++)
+            return 0;
+    }
+    return *a == *b;
+}
+
 /** @} */ /* end of string group */
 
 #endif /* NG_STRING_H */
