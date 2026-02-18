@@ -1,25 +1,20 @@
 # ProGearSDK
 
-Listen — there is a machine, and the machine is the NeoGeo, and it has lived for
-thirty years and more, and people still gather around it, and they still want to
-make games for it. And so we built ProGearSDK.
+ProGearSDK is a game engine for the NeoGeo AES/MVS. The NeoGeo has been around
+for over thirty years now, and people are still building games for it, and this
+SDK is how you do that. You write your game code in C, and ProGearSDK handles
+the sprites and the scenes and the input and the sound, and it compiles down to
+a ROM that runs on the actual hardware — a Motorola 68000 at 12 MHz with no
+floating-point unit.
 
-ProGearSDK is an engine for that machine. You give it your sprites and your
-sounds and your ideas, and it gives you back a game that runs on the real
-hardware — the mighty Motorola 68000, running at twelve megahertz, with no
-floating-point unit, no shortcuts, no safety net.
-
-> **Hear this well — the SDK is young, and it is rough.**
->
-> It is alpha software, and it is incomplete, and there are bugs in it, and
-> things will break, and things will change without warning. It is for
-> tinkerers and experimenters and the brave-hearted. No support is given.
-> No questions will be answered. You use it, and you use it at your own risk.
+> **This is alpha software.** It is incomplete, and there are bugs, and things
+> will break, and the API will change without notice. It is strictly for
+> hobbyist experimentation. No support is provided. Issues and questions will
+> not be answered. Use it at your own risk.
 
 ## How It Is Built
 
-Now, the SDK is not one thing but three things stacked together, and each one
-rests on the one beneath it, and you should know them by name.
+The SDK is three libraries, and each one builds on the one below it.
 
 ```
 ┌───────────────────────────────────────────────────────┐
@@ -39,35 +34,29 @@ rests on the one beneath it, and you should know them by name.
 └───────────────────────────────────────────────────────┘
 ```
 
-At the bottom sits **[Core](core/)**, the foundation, the bedrock. Core knows
-nothing of the hardware — it knows only numbers and types and memory. It gives
-you your fixed-point math, and it gives you your arena allocator, and it gives
-you the types that every other piece depends on. Core is patient and Core is
-steady and Core asks nothing of the machine.
+**[Core](core/)** is the bottom layer. It has no hardware dependencies at all —
+it is just types and fixed-point math and an arena allocator. Every other part
+of the SDK depends on Core, but Core depends on nothing.
 
-Above Core sits **[HAL](hal/)**, the Hardware Abstraction Layer, and HAL is the
-one who speaks to the NeoGeo itself. HAL knows the sprites and HAL knows the
-palettes and HAL knows the input and HAL knows the sound. It carries the startup
-code and the linker script and the Z80 audio driver — everything you need to
-make the machine wake up and listen. HAL depends on Core, and HAL depends on
-nothing else.
+**[HAL](hal/)** is the hardware layer. It sits on top of Core, and it is the
+part that actually talks to the NeoGeo — the sprites, the palettes, the
+controllers, the audio hardware. HAL also carries the startup code and the
+linker script and the Z80 audio driver, so it has everything you need to get a
+program running on the machine.
 
-And above them both sits **[ProGear](progear/)**, the engine proper, the high
-place where you do your real work. ProGear gives you Scenes — and Scenes are
-the great canvas on which everything is drawn. ProGear gives you Actors — and
-Actors are the living things that move and animate upon that canvas. ProGear
-gives you Cameras — and Cameras are the window, the viewport, the eye through
-which the player sees the world. And ProGear gives you physics and lighting and
-terrain and backdrops and menus, and it builds upon Core and it builds upon HAL,
-and together the three of them hold up your game.
+**[ProGear](progear/)** is the engine itself, and it sits on top of both Core
+and HAL. This is where the high-level abstractions live. You get Scenes, which
+are the world your game takes place in. You get Actors, which are the objects
+in that world — they have position and animation and they move around. You get
+Cameras, which define the 320x224 viewport the player actually sees. And you
+get physics and lighting and terrain and backdrop layers and a menu system.
 
-## Come, Let Us Make Something
+## Getting Started
 
-Here is how you begin. You include the headers, and you initialize the engine,
-and you create an actor, and you place that actor in the scene, and then you
-enter the great loop — the loop that never ends — and inside the loop you read
-the player's input and you move the actor and the engine draws the frame, and
-then it does it again, and again, and again, sixty times every second, forever:
+Here is what a minimal program looks like. You include the headers, and you
+initialize the engine, and you create an actor from an asset, and you place it
+in the scene. Then you enter the main loop, and every frame you check the
+input and move the actor accordingly:
 
 ```c
 #include <progear.h>
@@ -90,102 +79,94 @@ int main(void) {
 }
 ```
 
-You see it? You create the player, and you add the player to the scene, and then
-you listen — left, right, left, right — and you move, and the engine takes care
-of the rest.
+That is the whole structure. You create things, you put them in the scene, and
+then you run the loop — read input, update state, render — and the engine does
+the rest. Every frame, sixty times a second.
 
-## Building Your Work
+## Building
 
-When you are ready to build, you go to the command line, and you call upon
-`make`, and `make` will do the work:
+You build with `make`. The default target builds everything — Core and HAL and
+ProGear and all the demos:
 
 ```bash
-make              # Build everything — Core and HAL and ProGear and all the demos
-make core         # Build Core alone (and you get core/build/libneogeo_core.a)
-make hal          # Build Core and HAL together (and you get hal/build/libneogeo.a)
-make progear      # Build all three (and you get progear/build/libprogearsdk.a)
-make showcase     # Build the showcase demo and run it
-make docs         # Generate the documentation (you will need Doxygen for this)
+make              # Build everything
+make core         # Build Core only (outputs core/build/libneogeo_core.a)
+make hal          # Build Core + HAL (outputs hal/build/libneogeo.a)
+make progear      # Build all three libraries (outputs progear/build/libprogearsdk.a)
+make showcase     # Build and run the showcase demo
+make docs         # Generate API docs (requires Doxygen)
 ```
 
-And when you want to see your demo running — when you want to see it alive and
-moving on the screen — you go into the demo directory and you call upon MAME:
+To run a demo in MAME:
 
 ```bash
 cd demos/showcase
-make mame         # Build the demo and run it in the MAME emulator
+make mame
 ```
 
-And MAME will open, and your creation will appear, and you will see what you
-have made.
-
-## Where Everything Lives
-
-Now, the files and folders — you must know where things are, so listen:
+## Project Structure
 
 ```
 ProGearSDK/
-├── core/             # Here is Core, the foundation
-│   ├── include/      # Its headers: ng_types.h, ng_math.h, ng_arena.h
-│   └── src/          # Its source, its implementation
-├── hal/              # Here is HAL, who speaks to the hardware
-│   ├── include/      # Its headers, all named ng_*.h
-│   ├── src/          # Its source
-│   ├── startup/      # The 68000 startup code, the crt0.s that wakes the machine
-│   ├── z80/          # The Z80 audio driver, the faithful servant of sound
-│   └── rom/          # ROM support — the linker script, the system fix tiles
-├── progear/          # Here is ProGear, the engine itself
-│   ├── include/      # Its headers
-│   └── src/          # Its source
+├── core/             # Core library — types, math, memory
+│   ├── include/      # Headers: ng_types.h, ng_math.h, ng_arena.h
+│   └── src/
+├── hal/              # HAL library — hardware access
+│   ├── include/      # Headers: ng_sprite.h, ng_palette.h, ng_input.h, etc.
+│   ├── src/
+│   ├── startup/      # 68000 startup code (crt0.s)
+│   ├── z80/          # Z80 audio driver
+│   └── rom/          # Linker script and system fix tiles
+├── progear/          # ProGear engine library
+│   ├── include/      # Headers: actor.h, scene.h, camera.h, etc.
+│   └── src/
 ├── demos/
-│   ├── showcase/     # A demonstration of what the engine can do
-│   └── template/     # A bare starting point for your own game
-└── tools/            # The asset pipeline, the tools that prepare your art and sound
+│   ├── showcase/     # Feature demonstration
+│   └── template/     # Starter template for new games
+└── tools/            # Asset pipeline (Python)
 ```
 
-## What You Need Before You Begin
+## Requirements
 
-Before you can build, you must gather your tools. You need three things:
+You need three tools to build the SDK:
 
-- **m68k-elf-gcc** — the cross-compiler, the one that speaks the language of the
-  68000
-- **SDCC** — for the Z80 assembler, sdasz80, because the sound CPU has its own
-  code and its own tongue
-- **Python 3.8 or newer** — with the Pillow library and with PyYAML, because the
-  asset pipeline is written in Python and it needs these to do its work
+- **m68k-elf-gcc** — the cross-compiler that targets the 68000
+- **SDCC** — specifically the sdasz80 assembler, because the Z80 sound CPU
+  needs its own code
+- **Python 3.8+** — with Pillow and PyYAML, because the asset pipeline uses
+  them to process sprites and audio and terrain data
 
-On macOS you gather them like this:
+On macOS:
 
 ```bash
 brew install m68k-elf-gcc m68k-elf-binutils sdcc
 pip install -r requirements.txt
 ```
 
-And then you are ready.
+## Hardware Constraints
 
-## Know Your Machine
+The NeoGeo has hard limits, and you need to know them, because the hardware
+does not give you any flexibility here:
 
-The NeoGeo is a particular machine, and it has particular limits, and you must
-know them and you must respect them, because the machine will not bend for you:
+| Component | Specification |
+|-----------|---------------|
+| CPU | Motorola 68000 @ 12 MHz — no FPU, so all math is fixed-point |
+| Resolution | 320x224 pixels |
+| Sprites | 381 total, 96 per scanline — if you put too many on one line, they drop out |
+| Palettes | 256 palettes of 16 colors each |
+| Fix layer | 40x32 character tiles, always on top — this is where your HUD and text go |
+| Scene Y-axis | 512 pixels maximum, due to hardware |
 
-| What | How Much |
-|------|----------|
-| The CPU | A Motorola 68000, twelve megahertz, and no floating-point unit — every decimal is fixed-point, every multiplication is done by hand |
-| The screen | 320 pixels across and 224 pixels down, and not one pixel more |
-| The sprites | 381 in total, but only 96 on any single scanline — crowd them together and they will vanish |
-| The palettes | 256 of them, and each one holds 16 colors — that is all the color you get |
+Every NeoGeo game ever made worked within these same constraints. The SDK does
+not try to hide them from you — it gives you tools to work within them.
 
-These are the walls of the arena. Learn them. Work within them. The great games
-were all made inside these same walls.
+## Resources
 
-## Where to Learn More
-
-- [The NeoGeo Development Wiki](https://wiki.neogeodev.org) — where the
-  community has gathered its knowledge, and where you can learn the hardware
-  from the ground up
-- [The 68000 Programmer's Reference](https://www.nxp.com/docs/en/reference-manual/M68000PRM.pdf) —
-  the manual for the CPU itself, from Motorola, who made it
+- [NeoGeo Development Wiki](https://wiki.neogeodev.org) — community-maintained
+  documentation on the hardware, the BIOS, the memory map, all of it
+- [68000 Programmer's Reference](https://www.nxp.com/docs/en/reference-manual/M68000PRM.pdf) —
+  the CPU reference manual from Motorola
 
 ## License
 
-MIT License — take it and use it and build with it and share what you make.
+MIT License
