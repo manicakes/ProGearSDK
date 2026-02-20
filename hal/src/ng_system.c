@@ -13,25 +13,25 @@
 #include <ng_hardware.h>
 
 /* Hardware register addresses */
-#define REG_DIPSW      (*(vu8 *)0x300001)  /* DIP switches (directly mapped) */
-#define REG_COIN_LOCK  (*(vu8 *)0x300001)  /* Coin lockout (directly mapped to output) */
-#define REG_LED_MARKER (*(vu8 *)0x380000)  /* LED/Marker output register */
+#define REG_DIPSW      (*(vu8 *)0x300001) /* DIP switches (directly mapped) */
+#define REG_COIN_LOCK  (*(vu8 *)0x300001) /* Coin lockout (directly mapped to output) */
+#define REG_LED_MARKER (*(vu8 *)0x380000) /* LED/Marker output register */
 
 /* RTC registers (directly mapped 4-bit uPD4990A via LSPC) */
-#define REG_RTC_CTRL   (*(vu8 *)0x320001)  /* RTC control port */
-#define REG_RTC_DATA   (*(vu8 *)0x380021)  /* RTC data port */
+#define REG_RTC_CTRL (*(vu8 *)0x320001) /* RTC control port */
+#define REG_RTC_DATA (*(vu8 *)0x380021) /* RTC data port */
 
 /* System output port bits */
-#define COIN_COUNTER_1  0x01
-#define COIN_COUNTER_2  0x02
-#define COIN_LOCKOUT_1  0x04
-#define COIN_LOCKOUT_2  0x08
+#define COIN_COUNTER_1 0x01
+#define COIN_COUNTER_2 0x02
+#define COIN_LOCKOUT_1 0x04
+#define COIN_LOCKOUT_2 0x08
 
 /* RTC control bits */
-#define RTC_CLK   0x01
-#define RTC_STB   0x02
-#define RTC_DATA  0x04
-#define RTC_CMD   0x08
+#define RTC_CLK  0x01
+#define RTC_STB  0x02
+#define RTC_DATA 0x04
+#define RTC_CMD  0x08
 
 /* Track coin lockout state (we need to read-modify-write) */
 static u8 coin_lockout_state = 0;
@@ -142,7 +142,7 @@ u8 NGRtcRead(NGRtcTime *time) {
     (void)time;
     return 0;
 
-#if 0 /* Disabled RTC code */
+#if 0  /* Disabled RTC code */
     /* Send a 4-bit command to the RTC */
     static void rtc_send_cmd(u8 cmd) {
         u8 i;

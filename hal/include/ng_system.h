@@ -136,13 +136,13 @@ void NGCoinLockoutP2(u8 locked);
  * RTC time structure
  */
 typedef struct {
-    u8 year;   /**< Year (0-99, add to base year) */
-    u8 month;  /**< Month (1-12) */
-    u8 day;    /**< Day of month (1-31) */
+    u8 year;    /**< Year (0-99, add to base year) */
+    u8 month;   /**< Month (1-12) */
+    u8 day;     /**< Day of month (1-31) */
     u8 weekday; /**< Day of week (0=Sunday, 6=Saturday) */
-    u8 hour;   /**< Hour (0-23) */
-    u8 minute; /**< Minute (0-59) */
-    u8 second; /**< Second (0-59) */
+    u8 hour;    /**< Hour (0-23) */
+    u8 minute;  /**< Minute (0-59) */
+    u8 second;  /**< Second (0-59) */
 } NGRtcTime;
 
 /**

@@ -73,6 +73,10 @@ static inline u8 index_to_zoom(u8 index) {
     return 8 + (index >> 4);
 }
 
+// Forward declarations
+fixed NGCameraGetRenderX(void);
+fixed NGCameraGetRenderY(void);
+
 void NGCameraInit(void) {
     camera.x = 0;
     camera.y = 0;

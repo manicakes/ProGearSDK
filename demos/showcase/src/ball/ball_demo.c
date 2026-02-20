@@ -152,14 +152,14 @@ void BallDemoInit(void) {
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
     // Match brick asset size to avoid sprite limits
-    state->brick_pattern = NGBackdropCreate(&NGVisualAsset_brick_pattern, 336, 256,
-                                            FIX(0.8), FIX(0.8));
+    state->brick_pattern =
+        NGBackdropCreate(&NGVisualAsset_brick_pattern, 336, 256, FIX(0.8), FIX(0.8));
     NGBackdropAddToScene(state->brick_pattern, 0, 0, 4);
 
     // Shadow moves slower than camera for depth effect
-    state->brick_shadow = NGBackdropCreate(
-        &NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
-        NGVisualAsset_brick_shadow.height_pixels, FIX(0.9), FIX(0.9));
+    state->brick_shadow =
+        NGBackdropCreate(&NGVisualAsset_brick_shadow, NGVisualAsset_brick_shadow.width_pixels,
+                         NGVisualAsset_brick_shadow.height_pixels, FIX(0.9), FIX(0.9));
     NGBackdropAddToScene(state->brick_shadow, 8, 8, 5);
 
     state->brick = NGActorCreate(&NGVisualAsset_brick, 0, 0);

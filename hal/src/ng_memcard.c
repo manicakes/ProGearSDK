@@ -23,8 +23,8 @@
 #define REG_CARD_STATUS (*(vu8 *)0x380021) /* Card status bits */
 
 /* Status register bits */
-#define CARD_PRESENT      0x01 /* Card inserted (active low) */
-#define CARD_WRITE_PROT   0x02 /* Write protect (active low) */
+#define CARD_PRESENT    0x01 /* Card inserted (active low) */
+#define CARD_WRITE_PROT 0x02 /* Write protect (active low) */
 
 /* Card signature for formatted cards */
 #define CARD_SIGNATURE_OFFSET 0x0000

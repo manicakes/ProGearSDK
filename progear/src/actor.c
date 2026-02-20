@@ -204,7 +204,6 @@ void NGActorAddToScene(NGActorHandle handle, fixed x, fixed y, u8 z) {
         NGGraphicSetVisible(actor->graphic, actor->visible);
         sync_actor_graphic(actor);
     }
-
 }
 
 void NGActorRemoveFromScene(NGActorHandle handle) {
@@ -221,7 +220,6 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
     if (actor->graphic) {
         NGGraphicSetVisible(actor->graphic, 0);
     }
-
 }
 
 void NGActorDestroy(NGActorHandle handle) {

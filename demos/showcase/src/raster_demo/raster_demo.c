@@ -46,29 +46,29 @@ typedef struct RasterDemoState {
 
 static RasterDemoState *state;
 
-#define MENU_RESUME       0
-#define MENU_TOGGLE_FX    1
-#define MENU_NEXT_EFFECT  2
-#define MENU_BALL_DEMO    3
+#define MENU_RESUME      0
+#define MENU_TOGGLE_FX   1
+#define MENU_NEXT_EFFECT 2
+#define MENU_BALL_DEMO   3
 
 /* Scanlines per band for gradient (224 / 8 = 28 scanlines per band) */
 #define SCANLINES_PER_BAND 28
 
 /* Raster interrupt state */
 static volatile u8 raster_band = 0;
-static volatile u8 water_line = 112;  /* Current water line position */
-static volatile u8 anim_offset = 0;   /* Animation offset for gradient */
+static volatile u8 water_line = 112; /* Current water line position */
+static volatile u8 anim_offset = 0;  /* Animation offset for gradient */
 
 /* Sky gradient colors (8 bands from dark blue to light) */
 static const u16 sky_gradient[8] = {
-    0x0001,  /* Very dark blue */
-    0x0012,  /* Dark blue */
-    0x0023,  /* Blue */
-    0x0034,  /* Medium blue */
-    0x0145,  /* Light blue */
-    0x0256,  /* Lighter blue */
-    0x0367,  /* Very light blue */
-    0x0478,  /* Near cyan */
+    0x0001, /* Very dark blue */
+    0x0012, /* Dark blue */
+    0x0023, /* Blue */
+    0x0034, /* Medium blue */
+    0x0145, /* Light blue */
+    0x0256, /* Lighter blue */
+    0x0367, /* Very light blue */
+    0x0478, /* Near cyan */
 };
 
 /**
@@ -93,19 +93,19 @@ static void raster_interrupt_handler(void) {
 
         case EFFECT_WATER_REFLECT:
             /* Water effect - darker blue for "water" below the line */
-            *backdrop = 0x0023;  /* Dark blue for water */
+            *backdrop = 0x0023; /* Dark blue for water */
             break;
 
         case EFFECT_SCANLINE_DARK:
             /* CRT scanline effect - every other pair of lines is darker */
             if ((raster_band + (anim_offset >> 2)) & 1) {
-                *backdrop = 0x0222;  /* Dark */
+                *backdrop = 0x0222; /* Dark */
             } else {
-                *backdrop = 0x0666;  /* Light */
+                *backdrop = 0x0666; /* Light */
             }
             raster_band++;
             /* Set timer for next band (4 scanlines for tighter effect) */
-            if (raster_band < 56) {  /* 224 / 4 = 56 bands */
+            if (raster_band < 56) { /* 224 / 4 = 56 bands */
                 NGTimerSetReload(NGTimerScanlineToReload(4));
             }
             break;
@@ -232,8 +232,9 @@ u8 RasterDemoUpdate(void) {
         if (state->current_effect == EFFECT_WATER_REFLECT) {
             /* Simple sine-like oscillation using frame counter */
             s16 wave = (s16)(state->frame_counter & 63);
-            if (wave > 31) wave = (s16)(63 - wave);
-            water_line = (u8)(96 + wave);  /* Oscillates 96-127 */
+            if (wave > 31)
+                wave = (s16)(63 - wave);
+            water_line = (u8)(96 + wave); /* Oscillates 96-127 */
         }
 
         /* Reset raster band counter */
@@ -243,15 +244,15 @@ u8 RasterDemoUpdate(void) {
         switch (state->current_effect) {
             case EFFECT_GRADIENT_SKY:
                 NG_REG_BACKDROP = sky_gradient[anim_offset & 7];
-                raster_band = 1;  /* First interrupt will set band 1 */
+                raster_band = 1; /* First interrupt will set band 1 */
                 NGTimerSetReload(NGTimerScanlineToReload(28));
                 break;
             case EFFECT_WATER_REFLECT:
-                NG_REG_BACKDROP = 0x0478;  /* Light cyan sky */
+                NG_REG_BACKDROP = 0x0478; /* Light cyan sky */
                 NGTimerSetReload(NGTimerScanlineToReload(water_line));
                 break;
             case EFFECT_SCANLINE_DARK:
-                NG_REG_BACKDROP = 0x0666;  /* Light gray */
+                NG_REG_BACKDROP = 0x0666; /* Light gray */
                 NGTimerSetReload(NGTimerScanlineToReload(4));
                 break;
             default:
@@ -320,7 +321,8 @@ u8 RasterDemoUpdate(void) {
                     if (was_enabled) {
                         disable_raster_effect();
                     }
-                    state->current_effect = (RasterEffect)((state->current_effect + 1) % EFFECT_COUNT);
+                    state->current_effect =
+                        (RasterEffect)((state->current_effect + 1) % EFFECT_COUNT);
                     if (was_enabled) {
                         enable_raster_effect();
                     }

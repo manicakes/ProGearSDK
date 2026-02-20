@@ -553,8 +553,7 @@ u8 NGMenuIsAnimating(NGMenuHandle menu) {
     if (!menu)
         return 0;
     /* Animating if spring not settled OR lighting is fading */
-    u8 lighting_animating =
-        (menu->dim_layer != NG_LIGHTING_INVALID) && NGLightingIsAnimating();
+    u8 lighting_animating = (menu->dim_layer != NG_LIGHTING_INVALID) && NGLightingIsAnimating();
     return !NGSpringSettled(&menu->panel_y_spring) || lighting_animating;
 }
 

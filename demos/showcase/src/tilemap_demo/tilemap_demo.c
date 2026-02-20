@@ -28,9 +28,9 @@
 #define GRAVITY_UP         FIX(0.35) // Gravity while rising
 #define GRAVITY_DOWN       FIX(0.55) // Gravity while falling (faster)
 #define JUMP_CUT_MULT      FIX(0.4)  // Velocity multiplier when releasing jump early
-#define MAX_FALL_SPEED     FIX(10)              // Terminal velocity
-#define COYOTE_FRAMES      6                    // Frames after leaving ground you can still jump
-#define JUMP_BUFFER_FRAMES 6                    // Frames before landing a jump press is remembered
+#define MAX_FALL_SPEED     FIX(10)   // Terminal velocity
+#define COYOTE_FRAMES      6         // Frames after leaving ground you can still jump
+#define JUMP_BUFFER_FRAMES 6         // Frames before landing a jump press is remembered
 
 typedef struct TilemapDemoState {
     NGMenuHandle menu;

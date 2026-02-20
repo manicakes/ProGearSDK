@@ -16,7 +16,14 @@
 #include "mvs_demo/mvs_demo.h"
 #include "raster_demo/raster_demo.h"
 
-typedef enum { DEMO_BALL, DEMO_SCROLL, DEMO_BLANK_SCENE, DEMO_TILEMAP, DEMO_MVS, DEMO_RASTER } DemoMode;
+typedef enum {
+    DEMO_BALL,
+    DEMO_SCROLL,
+    DEMO_BLANK_SCENE,
+    DEMO_TILEMAP,
+    DEMO_MVS,
+    DEMO_RASTER
+} DemoMode;
 
 int main(void) {
     NGEngineInit();

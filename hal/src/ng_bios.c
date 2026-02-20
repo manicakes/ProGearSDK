@@ -13,10 +13,10 @@
 #include <ng_hardware.h>
 
 /* BIOS RAM addresses */
-#define BIOS_CREDITS      (*(vu8 *)0x10FE00)  /* Credit count */
-#define BIOS_TITLE        ((const char *)0x10F800) /* Game title */
-#define BIOS_VERSION      (*(vu8 *)0x10FDFA)  /* BIOS version */
-#define BIOS_SOFT_DIP     ((const NGSoftDip *)0x10FD84) /* Soft DIP settings */
+#define BIOS_CREDITS  (*(vu8 *)0x10FE00)            /* Credit count */
+#define BIOS_TITLE    ((const char *)0x10F800)      /* Game title */
+#define BIOS_VERSION  (*(vu8 *)0x10FDFA)            /* BIOS version */
+#define BIOS_SOFT_DIP ((const NGSoftDip *)0x10FD84) /* Soft DIP settings */
 
 /* BIOS entry points (as function pointers) */
 typedef void (*BiosVoidFunc)(void);
@@ -34,24 +34,17 @@ void NGBiosSystemReturn(void) {
     NG_BIOS_SYSTEM_MODE &= ~0x80;
 
     /* Jump to BIOS system return - does not return */
-    __asm__ volatile(
-        "jmp 0xC00444.l"
-        :
-        :
-        : "memory"
-    );
+    __asm__ volatile("jmp 0xC00444.l" : : : "memory");
     __builtin_unreachable();
 }
 
 void NGBiosSoftReset(void) {
     /* Jump to reset vector */
-    __asm__ volatile(
-        "move.l 4.w, %%a0\n\t"
-        "jmp (%%a0)"
-        :
-        :
-        : "a0", "memory"
-    );
+    __asm__ volatile("move.l 4.w, %%a0\n\t"
+                     "jmp (%%a0)"
+                     :
+                     :
+                     : "a0", "memory");
 }
 
 void NGBiosEyecatcher(void) {
@@ -106,12 +99,7 @@ u8 NGBiosIsDev(void) {
 
 void NGBiosFixClear(void) {
     /* Call BIOS fix clear routine */
-    __asm__ volatile(
-        "jsr 0xC004C2.l"
-        :
-        :
-        : "d0", "d1", "a0", "a1", "memory"
-    );
+    __asm__ volatile("jsr 0xC004C2.l" : : : "d0", "d1", "a0", "a1", "memory");
 }
 
 void NGBiosFixPrint(u8 x, u8 y, const char *str) {

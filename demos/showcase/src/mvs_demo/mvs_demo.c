@@ -36,18 +36,18 @@ typedef struct MVSDemoState {
 
 static MVSDemoState *state;
 
-#define MENU_RESUME        0
-#define MENU_PULSE_COIN1   1
-#define MENU_PULSE_COIN2   2
-#define MENU_BALL_DEMO     3
+#define MENU_RESUME      0
+#define MENU_PULSE_COIN1 1
+#define MENU_PULSE_COIN2 2
+#define MENU_BALL_DEMO   3
 
 /* Display positions */
-#define INFO_X      2
-#define VALUE_X     22
-#define SYSTEM_Y    4
-#define DIP_Y       8
-#define RTC_Y       16
-#define COIN_Y      22
+#define INFO_X   2
+#define VALUE_X  22
+#define SYSTEM_Y 4
+#define DIP_Y    8
+#define RTC_Y    16
+#define COIN_Y   22
 
 static void draw_static_labels(void) {
     /* Title */
@@ -112,15 +112,18 @@ static void update_dynamic_values(void) {
 
     NGTextPrint(NGFixLayoutXY(VALUE_X, DIP_Y + 3), 0, NGDipTestMode() ? "ON " : "OFF");
     NGTextPrint(NGFixLayoutXY(VALUE_X, DIP_Y + 4), 0, NGDipFreePlay() ? "ON " : "OFF");
-    NGTextPrint(NGFixLayoutXY(VALUE_X, DIP_Y + 5), 0, NGDipIsSet(NG_DIP_CABINET) ? "VS/Cocktail" : "Normal     ");
+    NGTextPrint(NGFixLayoutXY(VALUE_X, DIP_Y + 5), 0,
+                NGDipIsSet(NG_DIP_CABINET) ? "VS/Cocktail" : "Normal     ");
     NGTextPrint(NGFixLayoutXY(VALUE_X, DIP_Y + 6), 0, NGDipIsSet(NG_DIP_MULTIPLAY) ? "ON " : "OFF");
 
     /* RTC (update every second = 60 frames) */
     if (state->frame_counter % 60 == 0) {
         NGRtcTime rtc;
         if (NGRtcRead(&rtc)) {
-            NGTextPrintf(NGFixLayoutXY(VALUE_X, RTC_Y + 2), 0, "20%02d-%02d-%02d", rtc.year, rtc.month, rtc.day);
-            NGTextPrintf(NGFixLayoutXY(VALUE_X, RTC_Y + 3), 0, "%02d:%02d:%02d  ", rtc.hour, rtc.minute, rtc.second);
+            NGTextPrintf(NGFixLayoutXY(VALUE_X, RTC_Y + 2), 0, "20%02d-%02d-%02d", rtc.year,
+                         rtc.month, rtc.day);
+            NGTextPrintf(NGFixLayoutXY(VALUE_X, RTC_Y + 3), 0, "%02d:%02d:%02d  ", rtc.hour,
+                         rtc.minute, rtc.second);
         } else {
             NGTextPrint(NGFixLayoutXY(VALUE_X, RTC_Y + 2), 0, "N/A (AES)   ");
             NGTextPrint(NGFixLayoutXY(VALUE_X, RTC_Y + 3), 0, "N/A         ");

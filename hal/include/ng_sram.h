@@ -39,9 +39,9 @@
  */
 
 /* SRAM address range */
-#define NG_SRAM_BASE 0xD00000 /**< SRAM base address */
-#define NG_SRAM_SIZE 0x10000  /**< Total SRAM size (64KB address space) */
-#define NG_SRAM_EFFECTIVE_SIZE 0x8000 /**< Usable bytes (32KB, odd bytes only) */
+#define NG_SRAM_BASE           0xD00000 /**< SRAM base address */
+#define NG_SRAM_SIZE           0x10000  /**< Total SRAM size (64KB address space) */
+#define NG_SRAM_EFFECTIVE_SIZE 0x8000   /**< Usable bytes (32KB, odd bytes only) */
 
 /* ============================================================================
  * SRAM Protection
