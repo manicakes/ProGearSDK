@@ -184,13 +184,20 @@ static u16 scale_to_shrink_val(u16 scale) {
 
 /**
  * Compare function for sorting graphics by layer and z_order.
- * Returns <0 if a should render before b.
+ * Returns <0 if a should render before b, >0 if after, 0 if equal.
+ *
+ * Uses explicit comparisons rather than subtraction: layer/z_order are u8,
+ * so a subtraction cast to s8 would wrap for differences > 127 and corrupt
+ * the sort order.
  */
 static s8 compare_graphics(NGGraphic *a, NGGraphic *b) {
     if (a->layer != b->layer) {
-        return (s8)(a->layer - b->layer);
+        return a->layer < b->layer ? -1 : 1;
     }
-    return (s8)(a->z_order - b->z_order);
+    if (a->z_order != b->z_order) {
+        return a->z_order < b->z_order ? -1 : 1;
+    }
+    return 0;
 }
 
 /**
