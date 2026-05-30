@@ -37,8 +37,6 @@
 static u8 current_music_index = 0xFF;
 static u8 music_paused = 0;
 static u8 master_volume = 15;
-static u8 channel_volumes[NG_AUDIO_MAX_CHANNELS] = {31, 31, 31, 31, 31, 31};
-static u8 music_volume = 255;
 
 void NGAudioSendCommand(u8 cmd) {
     u8 reply;
@@ -186,28 +184,14 @@ u8 NGAudioGetVolume(void) {
 }
 
 void NGSfxSetChannelVolume(u8 channel, u8 volume) {
-    if (channel >= NG_AUDIO_MAX_CHANNELS)
-        return;
-    if (volume > 31)
-        volume = 31;
-
-    channel_volumes[channel] = volume;
-
-    /*
-     * Note: Full per-channel volume control requires Z80 driver support.
-     * The volume is stored here for tracking. A future Z80 driver update
-     * could add commands 0x66-0x6B for per-channel volume.
-     *
-     * For now, this affects the next SFX played on this channel.
-     */
+    /* Per-channel SFX volume is not yet supported by the Z80 driver; this is a
+     * stub until the driver gains commands 0x66-0x6B. */
+    (void)channel;
+    (void)volume;
 }
 
 void NGMusicSetVolume(u8 volume) {
-    music_volume = volume;
-
-    /*
-     * Note: Full music volume control requires Z80 driver support.
-     * The volume is stored here for tracking. A future Z80 driver update
-     * could add command 0x6C for music volume.
-     */
+    /* ADPCM-B (music) volume is not yet supported by the Z80 driver; this is a
+     * stub until the driver gains command 0x6C. */
+    (void)volume;
 }
