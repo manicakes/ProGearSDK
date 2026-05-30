@@ -33,6 +33,14 @@ typedef struct {
 
 static Backdrop backdrop_layers[NG_BACKDROP_MAX];
 
+/* Resolve a handle to an active backdrop, or NULL if out of range or inactive. */
+static Backdrop *resolve_backdrop(NGBackdropHandle handle) {
+    if (handle < 0 || handle >= NG_BACKDROP_MAX)
+        return NULL;
+    Backdrop *bd = &backdrop_layers[handle];
+    return bd->active ? bd : NULL;
+}
+
 void _NGBackdropSystemInit(void) {
     for (u8 i = 0; i < NG_BACKDROP_MAX; i++) {
         backdrop_layers[i].active = 0;
@@ -162,10 +170,8 @@ NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 hei
 }
 
 void NGBackdropAddToScene(NGBackdropHandle handle, s16 viewport_x, s16 viewport_y, u8 z) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
 
     bd->viewport_x = viewport_x;
@@ -186,10 +192,8 @@ void NGBackdropAddToScene(NGBackdropHandle handle, s16 viewport_x, s16 viewport_
 }
 
 void NGBackdropRemoveFromScene(NGBackdropHandle handle) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
 
     bd->in_scene = 0;
@@ -217,10 +221,8 @@ void NGBackdropDestroy(NGBackdropHandle handle) {
 }
 
 void NGBackdropSetViewportPos(NGBackdropHandle handle, s16 viewport_x, s16 viewport_y) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
 
     bd->viewport_x = viewport_x;
@@ -231,10 +233,8 @@ void NGBackdropSetViewportPos(NGBackdropHandle handle, s16 viewport_x, s16 viewp
 }
 
 void NGBackdropSetZ(NGBackdropHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
     if (bd->z != z) {
         bd->z = z;
@@ -245,10 +245,8 @@ void NGBackdropSetZ(NGBackdropHandle handle, u8 z) {
 }
 
 void NGBackdropSetVisible(NGBackdropHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
     bd->visible = visible ? 1 : 0;
 
@@ -259,10 +257,8 @@ void NGBackdropSetVisible(NGBackdropHandle handle, u8 visible) {
 }
 
 void NGBackdropSetPalette(NGBackdropHandle handle, u8 palette) {
-    if (handle < 0 || handle >= NG_BACKDROP_MAX)
-        return;
-    Backdrop *bd = &backdrop_layers[handle];
-    if (!bd->active)
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
         return;
     if (bd->palette != palette) {
         bd->palette = palette;

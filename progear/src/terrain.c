@@ -23,6 +23,14 @@ typedef struct {
 
 static Terrain terrains[NG_TERRAIN_MAX];
 
+/* Resolve a handle to an active terrain, or NULL if out of range or inactive. */
+static Terrain *resolve_terrain(NGTerrainHandle handle) {
+    if (handle < 0 || handle >= NG_TERRAIN_MAX)
+        return NULL;
+    Terrain *tm = &terrains[handle];
+    return tm->active ? tm : NULL;
+}
+
 /** Clamp tile coordinate range to terrain asset bounds. */
 static inline void clamp_tile_bounds(const NGTerrainAsset *asset, s16 *left, s16 *right, s16 *top,
                                      s16 *bottom) {
@@ -125,10 +133,8 @@ NGTerrainHandle NGTerrainCreate(const NGTerrainAsset *asset) {
 }
 
 void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u8 z) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm)
         return;
 
     tm->world_x = world_x;
@@ -145,10 +151,8 @@ void NGTerrainAddToScene(NGTerrainHandle handle, fixed world_x, fixed world_y, u
 }
 
 void NGTerrainRemoveFromScene(NGTerrainHandle handle) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm)
         return;
 
     tm->in_scene = 0;
@@ -176,10 +180,8 @@ void NGTerrainDestroy(NGTerrainHandle handle) {
 }
 
 void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm)
         return;
 
     tm->world_x = world_x;
@@ -187,10 +189,8 @@ void NGTerrainSetPos(NGTerrainHandle handle, fixed world_x, fixed world_y) {
 }
 
 void NGTerrainSetZ(NGTerrainHandle handle, u8 z) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm)
         return;
     if (tm->z != z) {
         tm->z = z;
@@ -201,10 +201,8 @@ void NGTerrainSetZ(NGTerrainHandle handle, u8 z) {
 }
 
 void NGTerrainSetVisible(NGTerrainHandle handle, u8 visible) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm)
         return;
     tm->visible = visible ? 1 : 0;
 
@@ -215,15 +213,8 @@ void NGTerrainSetVisible(NGTerrainHandle handle, u8 visible) {
 }
 
 void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_out) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX) {
-        if (width_out)
-            *width_out = 0;
-        if (height_out)
-            *height_out = 0;
-        return;
-    }
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset) {
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm || !tm->asset) {
         if (width_out)
             *width_out = 0;
         if (height_out)
@@ -237,10 +228,8 @@ void NGTerrainGetDimensions(NGTerrainHandle handle, u16 *width_out, u16 *height_
 }
 
 u8 NGTerrainGetCollision(NGTerrainHandle handle, fixed world_x, fixed world_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm || !tm->asset || !tm->asset->collision_data)
         return 0;
 
     s16 tile_x = FIX_INT(world_x - tm->world_x) / NG_TILE_SIZE;
@@ -256,10 +245,8 @@ u8 NGTerrainGetCollision(NGTerrainHandle handle, fixed world_x, fixed world_y) {
 }
 
 u8 NGTerrainGetTileAt(NGTerrainHandle handle, u16 tile_x, u16 tile_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm || !tm->asset)
         return 0;
 
     if (tile_x >= tm->asset->width_tiles || tile_y >= tm->asset->height_tiles) {
@@ -272,10 +259,8 @@ u8 NGTerrainGetTileAt(NGTerrainHandle handle, u16 tile_x, u16 tile_y) {
 
 u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fixed half_h,
                      u8 *flags_out) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return 0;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm || !tm->asset || !tm->asset->collision_data)
         return 0;
 
     s16 left_tile = FIX_INT(x - half_w - tm->world_x) / NG_TILE_SIZE;
@@ -300,10 +285,8 @@ u8 NGTerrainTestAABB(NGTerrainHandle handle, fixed x, fixed y, fixed half_w, fix
 
 u8 NGTerrainResolveAABB(NGTerrainHandle handle, fixed *x, fixed *y, fixed half_w, fixed half_h,
                         fixed *vel_x, fixed *vel_y) {
-    if (handle < 0 || handle >= NG_TERRAIN_MAX)
-        return NG_COLL_NONE;
-    Terrain *tm = &terrains[handle];
-    if (!tm->active || !tm->asset || !tm->asset->collision_data)
+    Terrain *tm = resolve_terrain(handle);
+    if (!tm || !tm->asset || !tm->asset->collision_data)
         return NG_COLL_NONE;
 
     u8 result = NG_COLL_NONE;
