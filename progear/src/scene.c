@@ -39,18 +39,20 @@ void NGSceneUpdate(void) {
 
     NGCameraUpdate();
     _NGActorSystemUpdate();
+
+    /* Fold the updated world state into each object's graphic (screen position,
+     * scale, flip, visibility). This is pure computation - no VRAM is touched,
+     * so it runs outside VBlank; NGSceneDraw() does the hardware commit. */
+    _NGBackdropSyncGraphics();
+    _NGTerrainSyncGraphics();
+    _NGActorSyncGraphics();
 }
 
 void NGSceneDraw(void) {
     if (!scene_initialized)
         return;
 
-    /* Sync all scene objects to their graphics */
-    _NGBackdropSyncGraphics();
-    _NGTerrainSyncGraphics();
-    _NGActorSyncGraphics();
-
-    /* Graphics system handles all rendering */
+    /* Commit the synced graphics to sprite VRAM. Must run during VBlank. */
     NGGraphicSystemDraw();
 }
 

@@ -40,20 +40,25 @@ void NGEngineFrameStart(void) {
     NGWaitVBlank();
     NGWatchdogKick();
 
-    // Draw menu text immediately after vblank while VRAM is safe to write.
-    // Fix layer tiles persist in VRAM, so we only write when content changes.
+    // VBlank is the only safe window to touch VRAM: the LSPC is not scanning
+    // sprite or fix-layer RAM. Commit the frame that was computed during the
+    // previous iteration now, before any game logic runs.
     if (g_active_menu && NGMenuNeedsDraw(g_active_menu)) {
         NGMenuDraw(g_active_menu);
     }
+    NGSceneDraw();
 
     NGArenaReset(&ng_arena_frame);
     NGInputUpdate();
 }
 
 void NGEngineFrameEnd(void) {
+    // Advance the simulation and fold the result into the scene graphics. This
+    // is all computation - the sprite VRAM commit happens at the next
+    // NGEngineFrameStart() during VBlank, trading one frame of latency for
+    // tear-free output.
     NGLightingUpdate();
     NGSceneUpdate();
-    NGSceneDraw();
 }
 
 void NGEngineSetActiveMenu(NGMenuHandle menu) {

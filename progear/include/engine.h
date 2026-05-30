@@ -47,13 +47,21 @@ void NGEngineInit(void);
 
 /**
  * Call at the start of each frame (top of main loop).
- * Calls: NGWaitVBlank, NGWatchdogKick, NGArenaReset(&ng_arena_frame), NGInputUpdate
+ * Waits for VBlank, then commits the previous frame's rendering while VRAM is
+ * safe to write: draws the active menu (if set) and the scene sprites. Then
+ * resets the frame arena and polls input.
+ *
+ * Rendering is deliberately committed here rather than at frame end so that all
+ * VRAM writes land during VBlank. This means a frame's gameplay changes become
+ * visible on the following frame.
  */
 void NGEngineFrameStart(void);
 
 /**
  * Call at the end of each frame (bottom of main loop).
- * Calls: NGSceneUpdate, NGSceneDraw, and draws the active menu if set.
+ * Advances lighting and the scene (camera, animation, graphic sync). This is
+ * pure computation; the resulting frame is committed to VRAM by the next
+ * NGEngineFrameStart() during VBlank.
  */
 void NGEngineFrameEnd(void);
 /** @} */
