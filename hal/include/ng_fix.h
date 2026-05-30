@@ -138,8 +138,9 @@ void NGFixClearAll(void);
 
 /**
  * Set font base tile (optional).
- * ASCII characters map to: font_base + (char - 0x20)
- * @param font_base_tile First tile of font
+ * A character's glyph is drawn from tile (font_base + char), so glyphs are laid
+ * out by ASCII code and the first 0x20 tiles (control codes) go unused.
+ * @param font_base_tile Tile index that character code 0 maps to
  */
 void NGTextSetFont(u16 font_base_tile);
 
