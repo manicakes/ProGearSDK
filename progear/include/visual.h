@@ -77,18 +77,6 @@ typedef struct {
 #define NG_TILE_MASK  0x0FFF /**< Tile index mask (bits 0-11) */
 /** @} */
 
-/** @name Utility Functions */
-/** @{ */
-
-/**
- * Get animation index by name.
- * @param asset Visual asset
- * @param name Animation name to find
- * @return Animation index, or 0xFF if not found
- */
-u8 NGVisualGetAnimIndex(const NGVisualAsset *asset, const char *name);
-/** @} */
-
 /** @} */ /* end of visual group */
 
 #endif /* NG_VISUAL_H */

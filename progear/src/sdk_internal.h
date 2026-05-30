@@ -36,9 +36,6 @@ static inline void _NGPaletteMaskSet(u8 *mask, u8 palette) {
 /* Camera internals                                                         */
 /* ------------------------------------------------------------------------ */
 
-/** Get precalculated shrink value for current zoom (SCB2 format) */
-u16 NGCameraGetShrink(void);
-
 /** Get camera X position with shake offset applied (for rendering) */
 fixed NGCameraGetRenderX(void);
 
@@ -73,15 +70,6 @@ void _NGActorSyncGraphics(void);
 
 /** Collect palette indices used by actors into a bitmask */
 void _NGActorCollectPalettes(u8 *palette_mask);
-
-/** Check if an actor is currently in the scene */
-u8 _NGActorIsInScene(NGActorHandle handle);
-
-/** Get an actor's Z depth */
-u8 _NGActorGetZ(NGActorHandle handle);
-
-/** Check if an actor is in screen-space mode */
-u8 _NGActorIsScreenSpace(NGActorHandle handle);
 
 /* ------------------------------------------------------------------------ */
 /* Backdrop internals                                                       */

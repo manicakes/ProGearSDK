@@ -109,24 +109,6 @@ static void sync_actor_graphic(Actor *actor) {
     NGGraphicSetVisible(actor->graphic, actor->visible);
 }
 
-u8 _NGActorIsInScene(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return 0;
-    return actors[handle].active && actors[handle].in_scene;
-}
-
-u8 _NGActorGetZ(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return 0;
-    return actors[handle].z;
-}
-
-u8 _NGActorIsScreenSpace(NGActorHandle handle) {
-    if (handle < 0 || handle >= NG_ACTOR_MAX)
-        return 0;
-    return actors[handle].active && actors[handle].screen_space;
-}
-
 NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
     if (!asset)
         return NG_ACTOR_INVALID;
@@ -213,7 +195,6 @@ void NGActorRemoveFromScene(NGActorHandle handle) {
     if (!actor->active)
         return;
 
-    u8 was_in_scene = actor->in_scene;
     actor->in_scene = 0;
 
     // Hide graphic
