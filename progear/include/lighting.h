@@ -134,6 +134,32 @@ void NGLightingInit(void);
 void NGLightingReset(void);
 /** @} */
 
+/** @name Palette Exclusions */
+/** @{ */
+
+/**
+ * Exempt a palette from all lighting transforms.
+ *
+ * Excluded palettes are never captured or modified by the lighting system, so
+ * their colors stay exactly as the game sets them. Use this for UI palettes
+ * that should ignore day/night, flashes, and dimming.
+ *
+ * If the palette is already under lighting control its original colors are
+ * restored first, so set the colors you want @em after excluding it.
+ *
+ * @param palette Palette index (0-255)
+ */
+void NGLightingExcludePalette(u8 palette);
+
+/**
+ * Return a palette to lighting control (undo NGLightingExcludePalette).
+ * Takes effect the next time the lighting system captures palettes.
+ *
+ * @param palette Palette index (0-255)
+ */
+void NGLightingIncludePalette(u8 palette);
+/** @} */
+
 /** @name Layer Management */
 /** @{ */
 

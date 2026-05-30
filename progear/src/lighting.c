@@ -59,6 +59,9 @@ static struct {
     u8 initialized;
     u8 backup_valid;
 
+    /* Palettes exempt from lighting (1 bit per palette, e.g. UI palettes) */
+    u8 exclude_mask[NG_PAL_COUNT / 8];
+
     /* Sparse backup of only palettes in use */
     PaletteBackup backup[LIGHTING_MAX_BACKUP_PALETTES];
     u8 backup_count; /* Number of palettes actually backed up */
@@ -115,6 +118,10 @@ void NGLightingInit(void) {
     g_lighting.initialized = 1;
     g_lighting.backup_valid = 0;
     g_lighting.backup_count = 0;
+
+    for (u8 i = 0; i < (NG_PAL_COUNT / 8); i++) {
+        g_lighting.exclude_mask[i] = 0;
+    }
 
     /* Initialize pre-baked preset state */
     g_lighting.prebaked_handle = NG_LIGHTING_INVALID;
@@ -503,6 +510,8 @@ static void backup_palettes(void) {
     /* Convert bitmask to sparse list and backup each palette */
     g_lighting.backup_count = 0;
     for (u16 pal = 1; pal < NG_PAL_COUNT; pal++) { /* Skip palette 0 (fix layer) */
+        if (g_lighting.exclude_mask[pal >> 3] & (1 << (pal & 7)))
+            continue; /* palette is exempt from lighting */
         if (palette_mask[pal >> 3] & (1 << (pal & 7))) {
             if (g_lighting.backup_count < LIGHTING_MAX_BACKUP_PALETTES) {
                 PaletteBackup *entry = &g_lighting.backup[g_lighting.backup_count];
@@ -519,6 +528,33 @@ static void restore_palettes(void) {
         PaletteBackup *entry = &g_lighting.backup[i];
         NGPalRestore(entry->palette_index, entry->colors);
     }
+}
+
+void NGLightingExcludePalette(u8 palette) {
+    u8 idx = (u8)(palette >> 3);
+    u8 bit = (u8)(1 << (palette & 7));
+    if (g_lighting.exclude_mask[idx] & bit)
+        return;
+    g_lighting.exclude_mask[idx] |= bit;
+
+    /* If the palette is already under lighting control, restore its original
+     * colors and drop it from the active set so it stops being transformed. */
+    if (g_lighting.backup_valid) {
+        for (u8 i = 0; i < g_lighting.backup_count; i++) {
+            if (g_lighting.backup[i].palette_index == palette) {
+                NGPalRestore(palette, g_lighting.backup[i].colors);
+                g_lighting.backup_count--;
+                g_lighting.backup[i] = g_lighting.backup[g_lighting.backup_count];
+                break;
+            }
+        }
+    }
+}
+
+void NGLightingIncludePalette(u8 palette) {
+    u8 idx = (u8)(palette >> 3);
+    u8 bit = (u8)(1 << (palette & 7));
+    g_lighting.exclude_mask[idx] &= (u8)~bit;
 }
 
 static s16 clamp_tint(s16 val) {
