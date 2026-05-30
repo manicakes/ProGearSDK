@@ -50,17 +50,28 @@ angle_t NGAtan2(fixed y, fixed x) {
     fixed abs_y = FIX_ABS(y);
 
     u8 octant = 0;
-    fixed ratio;
-
+    fixed larger, smaller;
     if (abs_x >= abs_y) {
-        ratio = FIX_DIV(abs_y, abs_x);
+        larger = abs_x;
+        smaller = abs_y;
     } else {
-        ratio = FIX_DIV(abs_x, abs_y);
+        larger = abs_y;
+        smaller = abs_x;
         octant = 1;
     }
 
-    // Linear approximation: atan(x) ≈ x * 32 / PI
-    angle_t angle = (angle_t)((ratio * 32) >> FIX_SHIFT);
+    // Scale the larger magnitude down to 16 bits (smaller follows it, since
+    // smaller <= larger). This turns the ratio into a 32/16-bit divide instead
+    // of FIX_DIV's 64-bit long-long division, and only costs low bits we don't
+    // need for a 0-32 result.
+    while (larger > 0xFFFF) {
+        larger >>= 1;
+        smaller >>= 1;
+    }
+
+    // Linear approximation: angle = (smaller / larger) * 32, evaluated as
+    // (smaller * 32) / larger.
+    angle_t angle = larger ? (angle_t)(((u32)smaller << 5) / (u32)larger) : 0;
 
     if (octant)
         angle = 64 - angle;
