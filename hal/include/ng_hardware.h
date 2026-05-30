@@ -145,15 +145,18 @@
         }                                      \
     } while (0)
 #else
-#define NG_VRAM_CLEAR_FAST(count)                             \
-    do {                                                      \
-        register u16 _cnt __asm__("d0") = (u16)((count) - 1); \
-        __asm__ volatile("1:\n\t"                             \
-                         "    clr.w 2(%[base])\n\t"           \
-                         "    dbf %[cnt], 1b\n\t"             \
-                         : [cnt] "+d"(_cnt)                   \
-                         : [base] "a"(_ng_vram_base)          \
-                         : "memory");                         \
+#define NG_VRAM_CLEAR_FAST(count)                               \
+    do {                                                        \
+        u16 _ng_n = (u16)(count);                               \
+        if (_ng_n) { /* count 0 would underflow dbf to 65536 */ \
+            register u16 _cnt __asm__("d0") = (u16)(_ng_n - 1); \
+            __asm__ volatile("1:\n\t"                           \
+                             "    clr.w 2(%[base])\n\t"         \
+                             "    dbf %[cnt], 1b\n\t"           \
+                             : [cnt] "+d"(_cnt)                 \
+                             : [base] "a"(_ng_vram_base)        \
+                             : "memory");                       \
+        }                                                       \
     } while (0)
 #endif
 
@@ -173,16 +176,19 @@
         }                                      \
     } while (0)
 #else
-#define NG_VRAM_FILL_FAST(value, count)                               \
-    do {                                                              \
-        register u16 _val __asm__("d1") = (u16)(value);               \
-        register u16 _cnt __asm__("d0") = (u16)((count) - 1);         \
-        __asm__ volatile("1:\n\t"                                     \
-                         "    move.w %[val], 2(%[base])\n\t"          \
-                         "    dbf %[cnt], 1b\n\t"                     \
-                         : [cnt] "+d"(_cnt)                           \
-                         : [base] "a"(_ng_vram_base), [val] "d"(_val) \
-                         : "memory");                                 \
+#define NG_VRAM_FILL_FAST(value, count)                                   \
+    do {                                                                  \
+        u16 _ng_n = (u16)(count);                                         \
+        if (_ng_n) { /* count 0 would underflow dbf to 65536 */           \
+            register u16 _val __asm__("d1") = (u16)(value);               \
+            register u16 _cnt __asm__("d0") = (u16)(_ng_n - 1);           \
+            __asm__ volatile("1:\n\t"                                     \
+                             "    move.w %[val], 2(%[base])\n\t"          \
+                             "    dbf %[cnt], 1b\n\t"                     \
+                             : [cnt] "+d"(_cnt)                           \
+                             : [base] "a"(_ng_vram_base), [val] "d"(_val) \
+                             : "memory");                                 \
+        }                                                                 \
     } while (0)
 #endif
 /** @} */

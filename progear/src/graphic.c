@@ -33,13 +33,13 @@
 #define TILE_SHIFT        4 /* log2(TILE_SIZE) for fast division */
 #define MAX_SPRITE_HEIGHT 32
 #define HW_SPRITE_FIRST   1
-#define HW_SPRITE_MAX     380
+#define HW_SPRITE_COUNT   381 /* total hardware sprites (indices 0-380) */
 
 /* Reserve sprites for UI layer to prevent shifts when entity layer changes.
  * UI sprites are allocated from the back of the pool, entities from the front.
  * This prevents UI redraws when entities are added/removed. */
 #define UI_SPRITE_POOL_SIZE 64
-#define UI_SPRITE_FIRST     (HW_SPRITE_MAX - UI_SPRITE_POOL_SIZE)
+#define UI_SPRITE_FIRST     (HW_SPRITE_COUNT - UI_SPRITE_POOL_SIZE)
 
 /* Dirty flags */
 #define DIRTY_SOURCE 0x01
@@ -1579,7 +1579,7 @@ void NGGraphicSystemDraw(void) {
 
         /* UI layer uses reserved pool at end, others use main pool */
         if (g->layer == NG_GRAPHIC_LAYER_UI) {
-            if (ui_idx + needed > HW_SPRITE_MAX) {
+            if (ui_idx + needed > HW_SPRITE_COUNT) {
                 continue; /* Out of UI sprites */
             }
             sprite_idx = ui_idx;
@@ -1618,9 +1618,9 @@ void NGGraphicSystemDraw(void) {
         }
     }
 
-    /* Hide unused UI sprites (between ui_idx and HW_SPRITE_MAX) */
-    if (ui_idx < HW_SPRITE_MAX) {
-        u16 remaining = (u16)(HW_SPRITE_MAX - ui_idx);
+    /* Hide unused UI sprites (between ui_idx and HW_SPRITE_COUNT) */
+    if (ui_idx < HW_SPRITE_COUNT) {
+        u16 remaining = (u16)(HW_SPRITE_COUNT - ui_idx);
         while (remaining > 0) {
             u8 batch = (remaining > 255) ? 255 : (u8)remaining;
             NGSpriteHideRange(ui_idx, batch);
@@ -1633,7 +1633,7 @@ void NGGraphicSystemDraw(void) {
 void NGGraphicSystemReset(void) {
     /* Hide all sprites */
     NGSpriteHideRange(0, 255);
-    NGSpriteHideRange(255, (u8)(HW_SPRITE_MAX - 255));
+    NGSpriteHideRange(255, (u8)(HW_SPRITE_COUNT - 255));
 
     /* Reset all graphics */
     for (u8 i = 0; i < NG_GRAPHIC_MAX; i++) {
