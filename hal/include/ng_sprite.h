@@ -174,7 +174,10 @@ static inline void NGSpriteHideRange(u16 first_sprite, u8 count) {
  *
  * @param sprite_idx Hardware sprite index (0-380)
  */
-void NGSpriteTileBegin(u16 sprite_idx);
+static inline void NGSpriteTileBegin(u16 sprite_idx) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_SETUP_FAST(NG_SCB1_BASE + (sprite_idx * 64), 1);
+}
 
 /**
  * Write one tile entry (index + attributes) to current column.
@@ -185,7 +188,16 @@ void NGSpriteTileBegin(u16 sprite_idx);
  * @param h_flip    Horizontal flip (0=normal, 1=flipped)
  * @param v_flip    Vertical flip (0=normal, 1=flipped)
  */
-void NGSpriteTileWrite(u16 tile_idx, u8 palette, u8 h_flip, u8 v_flip);
+static inline void NGSpriteTileWrite(u16 tile_idx, u8 palette, u8 h_flip, u8 v_flip) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_WRITE_FAST(tile_idx);
+    u16 attr = ((u16)palette << 8);
+    if (h_flip)
+        attr |= 0x01;
+    if (v_flip)
+        attr |= 0x02;
+    NG_VRAM_WRITE_FAST(attr);
+}
 
 /**
  * Write one raw tile entry (pre-computed index and attributes).
@@ -194,12 +206,20 @@ void NGSpriteTileWrite(u16 tile_idx, u8 palette, u8 h_flip, u8 v_flip);
  * @param tile_idx  C-ROM tile index
  * @param attr      Pre-computed attribute word (palette<<8 | flip bits)
  */
-void NGSpriteTileWriteRaw(u16 tile_idx, u16 attr);
+static inline void NGSpriteTileWriteRaw(u16 tile_idx, u16 attr) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_WRITE_FAST(tile_idx);
+    NG_VRAM_WRITE_FAST(attr);
+}
 
 /**
  * Write an empty tile slot (tile 0, no attributes).
  */
-void NGSpriteTileWriteEmpty(void);
+static inline void NGSpriteTileWriteEmpty(void) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_WRITE_FAST(0);
+    NG_VRAM_WRITE_FAST(0);
+}
 
 /**
  * Pad remaining rows to 32 with empty tiles.
@@ -207,7 +227,13 @@ void NGSpriteTileWriteEmpty(void);
  *
  * @param rows_written Number of rows already written (0-32)
  */
-void NGSpriteTilePadTo32(u8 rows_written);
+static inline void NGSpriteTilePadTo32(u8 rows_written) {
+    if (rows_written >= 32)
+        return;
+    NG_VRAM_DECLARE_BASE();
+    u8 remaining = (u8)(32 - rows_written);
+    NG_VRAM_CLEAR_FAST(remaining * 2);
+}
 /** @} */
 
 /** @name SCB2: Shrink Values */
@@ -301,7 +327,10 @@ void NGSpriteXSetSpaced(u16 first_sprite, u8 count, s16 base_x, s16 spacing);
  *
  * @param first_sprite First hardware sprite index
  */
-void NGSpriteXBegin(u16 first_sprite);
+static inline void NGSpriteXBegin(u16 first_sprite) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_SETUP_FAST(NG_SCB4_BASE + first_sprite, 1);
+}
 
 /**
  * Write next X position in batch sequence.
@@ -309,7 +338,10 @@ void NGSpriteXBegin(u16 first_sprite);
  *
  * @param screen_x Screen X coordinate
  */
-void NGSpriteXWriteNext(s16 screen_x);
+static inline void NGSpriteXWriteNext(s16 screen_x) {
+    NG_VRAM_DECLARE_BASE();
+    NG_VRAM_WRITE_FAST(NGSpriteSCB4(screen_x));
+}
 /** @} */
 
 /** @name Combined High-Level Operations */
