@@ -63,29 +63,11 @@ void NGInputInit(void) {
 }
 
 static u16 read_player_input(u8 player) {
-    u16 result = 0;
-
-    // P1CNT/P2CNT: active-low (0 = pressed)
-    // Bits 0-7: Up, Down, Left, Right, A, B, C, D
+    // P1CNT/P2CNT are active-low (0 = pressed) with bit order UDLRABCD, which is
+    // exactly the NG_BTN_UP..NG_BTN_D layout, so the inverted low byte maps
+    // straight onto the button bitmask.
     u8 joy = (player == 0) ? NG_REG_P1CNT : NG_REG_P2CNT;
-    joy = ~joy;
-
-    if (joy & 0x01)
-        result |= NG_BTN_UP;
-    if (joy & 0x02)
-        result |= NG_BTN_DOWN;
-    if (joy & 0x04)
-        result |= NG_BTN_LEFT;
-    if (joy & 0x08)
-        result |= NG_BTN_RIGHT;
-    if (joy & 0x10)
-        result |= NG_BTN_A;
-    if (joy & 0x20)
-        result |= NG_BTN_B;
-    if (joy & 0x40)
-        result |= NG_BTN_C;
-    if (joy & 0x80)
-        result |= NG_BTN_D;
+    u16 result = (u8)~joy;
 
     // STATUS_B bits 0-3: Start P1, Select P1, Start P2, Select P2
     u8 status = NG_REG_STATUS_B;
