@@ -28,19 +28,25 @@ static inline fixed dot_with_normal(fixed vx, fixed vy, NGVec2 *normal) {
 
 static NGPhysWorld g_world;
 
+void NGPhysWorldInit(NGPhysWorldHandle world) {
+    if (!world)
+        return;
+
+    world->active = 1;
+    world->gravity.x = 0;
+    world->gravity.y = 0;
+    world->bounds_enabled = 0;
+
+    for (int j = 0; j < NG_PHYS_MAX_BODIES; j++) {
+        world->bodies[j].active = 0;
+    }
+}
+
 NGPhysWorldHandle NGPhysWorldCreate(void) {
     if (g_world.active)
         return 0;
 
-    g_world.active = 1;
-    g_world.gravity.x = 0;
-    g_world.gravity.y = 0;
-    g_world.bounds_enabled = 0;
-
-    for (int j = 0; j < NG_PHYS_MAX_BODIES; j++) {
-        g_world.bodies[j].active = 0;
-    }
-
+    NGPhysWorldInit(&g_world);
     return &g_world;
 }
 

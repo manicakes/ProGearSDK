@@ -145,10 +145,28 @@ typedef void (*NGCollisionCallback)(NGCollision *collision, void *user_data);
 /** @{ */
 
 /**
- * Create a physics world.
- * @return World handle, or NULL if failed
+ * Get the built-in physics world, initialized and ready to use.
+ *
+ * This returns a single engine-owned world; calling it again before
+ * NGPhysWorldDestroy() returns NULL. For additional independent worlds,
+ * allocate an NGPhysWorld yourself (e.g. from an arena) and call
+ * NGPhysWorldInit() on it.
+ *
+ * @return The built-in world handle, or NULL if it is already in use
  */
 NGPhysWorldHandle NGPhysWorldCreate(void);
+
+/**
+ * Initialize a caller-allocated physics world.
+ *
+ * Use this when you want more than the single built-in world from
+ * NGPhysWorldCreate(): allocate an NGPhysWorld and initialize it here. All
+ * other world and body functions take a world handle, so any number of
+ * independently-allocated worlds can coexist.
+ *
+ * @param world World to initialize (clears gravity, bounds, and all bodies)
+ */
+void NGPhysWorldInit(NGPhysWorldHandle world);
 
 /**
  * Destroy a physics world.
