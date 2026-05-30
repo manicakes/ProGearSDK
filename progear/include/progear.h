@@ -26,7 +26,7 @@
  * - @ref terrain - Tile-based levels with collision
  * - @ref backdrop - Parallax backgrounds
  * - @ref visual - Visual asset definitions
- * - @ref graphic - Graphics abstraction API
+ * - @ref graphic - NeoGeo sprite-group management
  * - @ref physics - 2D physics simulation
  * - @ref lighting - Palette-based lighting effects
  * - @ref ui - Menu system

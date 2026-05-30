@@ -6,16 +6,23 @@
 
 /**
  * @file graphic.h
- * @brief Platform-agnostic graphics abstraction API.
+ * @brief Sprite-group manager for NeoGeo hardware sprites.
  *
- * NGGraphic provides a portable abstraction for 2D sprite rendering that can
- * be implemented for different backends (NeoGeo hardware, SDL, OpenGL, etc.).
+ * NGGraphic owns a rectangular group of NeoGeo hardware sprites and presents it
+ * in pixel terms instead of tiles and Sprite Control Block indices. It handles
+ * allocating the hardware sprites, packing tile data into VRAM, scaling via the
+ * hardware shrink registers, and dirty-tracking so only changed registers are
+ * rewritten each frame.
  *
- * Key design principles:
- * - All dimensions in pixels (not hardware-specific tiles)
- * - No hardware resource management exposed (sprites, VRAM, etc.)
- * - Backend handles allocation and optimization internally
- * - Automatic dirty tracking for efficient updates
+ * Actors, backdrops, terrain, and UI panels are all built on top of NGGraphic,
+ * so sprite allocation and the SCB write patterns live in one place.
+ *
+ * Design notes:
+ * - Dimensions are in pixels; the tile/SCB layout is internal.
+ * - Hardware sprite allocation is automatic; callers never see sprite indices.
+ * - The layer selects how columns are positioned: entity columns are chained
+ *   with the hardware sticky bit, others are placed independently.
+ * - Dirty tracking minimizes per-frame VRAM writes.
  *
  * @section usage Basic Usage
  * @code
@@ -49,7 +56,7 @@
 /**
  * @defgroup graphic Graphics API
  * @ingroup sdk
- * @brief Platform-agnostic 2D sprite rendering.
+ * @brief NeoGeo sprite-group management.
  * @{
  */
 
@@ -91,7 +98,7 @@ typedef enum {
 
 /**
  * Render layer.
- * Determines rendering order and backend optimization hints.
+ * Determines rendering order and how columns are positioned.
  * Lower layers render first (behind higher layers).
  */
 typedef enum {
@@ -314,7 +321,7 @@ u8 NGGraphicIsVisible(const NGGraphic *g);
 /** @{ */
 
 /**
- * Commit pending changes to backend immediately.
+ * Commit pending changes to sprite hardware immediately.
  * Normally not needed - NGGraphicSystemDraw() handles this automatically.
  * Use only when immediate visual update is required.
  *

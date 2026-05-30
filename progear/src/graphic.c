@@ -6,11 +6,9 @@
 
 /**
  * @file graphic.c
- * @brief NeoGeo backend implementation for graphics abstraction.
+ * @brief NGGraphic sprite-group manager (see graphic.h).
  *
- * This file implements the platform-agnostic graphic.h API using NeoGeo
- * hardware sprites via sprite.h. All hardware-specific details are
- * encapsulated here.
+ * Implements NGGraphic on the NeoGeo LSPC sprite hardware via ng_sprite.h.
  *
  * Key implementation details:
  * - Graphics are stored in a static array and sorted for rendering
