@@ -588,6 +588,28 @@ static void recalc_combined_transform(void) {
     g_lighting.additive_tint_b = clamp_tint(add_b);
 }
 
+/* Extract a NeoGeo color into 5-bit (0-31) R/G/B components, expanding the
+ * 4-bit channels with the shared low bit. ADD is used for the doubling (a cycle
+ * cheaper than LSL #1 on the 68000). */
+static inline void unpack_color5(NGColor c, u16 *r, u16 *g, u16 *b) {
+    u16 cr = (c >> 8) & 0x0F;
+    u16 cg = (c >> 4) & 0x0F;
+    u16 cb = c & 0x0F;
+    u16 d = (c >> 12) & 0x01;
+    *r = (u16)((cr + cr) | d);
+    *g = (u16)((cg + cg) | d);
+    *b = (u16)((cb + cb) | d);
+}
+
+/* Clamp a single 5-bit color channel to 0-31. */
+static inline s16 clamp_channel5(s16 v) {
+    if (v < 0)
+        return 0;
+    if (v > 31)
+        return 31;
+    return v;
+}
+
 /**
  * Apply additive effects (flash) to current palettes.
  * Used when a pre-baked preset is active - applies flash on top of pre-baked colors.
@@ -598,18 +620,8 @@ static void apply_additive_to_current_palettes(s16 add_r, s16 add_g, s16 add_b, 
         volatile u16 *pal = NGPalGetPtr(entry->palette_index);
 
         for (u8 c = 1; c < NG_PAL_SIZE; c++) {
-            u16 original = pal[c];
-
-            /* Extract RGB from current palette (already has pre-baked colors) */
-            u16 r = (original >> 8) & 0x0F;
-            u16 g = (original >> 4) & 0x0F;
-            u16 b = original & 0x0F;
-            u16 d = (original >> 12) & 0x01;
-
-            /* Expand to 5-bit range */
-            r = (r + r) | d;
-            g = (g + g) | d;
-            b = (b + b) | d;
+            u16 r, g, b;
+            unpack_color5(pal[c], &r, &g, &b);
 
             /* Apply brightness */
             if (bright_scale != 256) {
@@ -618,36 +630,13 @@ static void apply_additive_to_current_palettes(s16 add_r, s16 add_g, s16 add_b, 
                 b = (u16)((b * bright_scale) >> 8);
             }
 
-            /* Apply additive tint */
-            s16 sr = (s16)r + add_r;
-            s16 sg = (s16)g + add_g;
-            s16 sb = (s16)b + add_b;
+            /* Apply additive tint and clamp */
+            u16 sr = (u16)clamp_channel5((s16)r + add_r);
+            u16 sg = (u16)clamp_channel5((s16)g + add_g);
+            u16 sb = (u16)clamp_channel5((s16)b + add_b);
 
-            /* Clamp to 0-31 */
-            if (sr < 0)
-                sr = 0;
-            if (sr > 31)
-                sr = 31;
-            if (sg < 0)
-                sg = 0;
-            if (sg > 31)
-                sg = 31;
-            if (sb < 0)
-                sb = 0;
-            if (sb > 31)
-                sb = 31;
-
-            r = (u16)sr;
-            g = (u16)sg;
-            b = (u16)sb;
-
-            /* Pack back to NeoGeo format */
-            d = r & 1;
-            r >>= 1;
-            g >>= 1;
-            b >>= 1;
-
-            pal[c] = (u16)((d << 15) | (r << 8) | (g << 4) | b);
+            /* Pack back to NeoGeo format (shared dark bit carries red's low bit) */
+            pal[c] = (u16)(((sr & 1) << 15) | ((sr >> 1) << 8) | ((sg >> 1) << 4) | (sb >> 1));
         }
     }
 }
@@ -722,21 +711,8 @@ static void resolve_palettes(void) {
         /* Process colors 1-15 (skip color 0 which is reference/transparent).
          * Each color is processed with minimal branching in the inner loop. */
         for (u8 c = 1; c < NG_PAL_SIZE; c++) {
-            NGColor original = src[c];
-
-            /* Extract RGB components using bit operations.
-             * NeoGeo color format: D15=dark, D14-D12=unused, D11-D8=R, D7-D4=G, D3-D0=B */
-            u16 r = (original >> 8) & 0x0F;  /* D11-D8 */
-            u16 g = (original >> 4) & 0x0F;  /* D7-D4 */
-            u16 b = original & 0x0F;         /* D3-D0 */
-            u16 d = (original >> 12) & 0x01; /* Dark bit D15 */
-
-            /* Expand to 5-bit (0-31 range).
-             * Uses ADD for multiply-by-2: faster than LSL #1 per wiki.
-             * r = (r << 1) | d  ->  r = r + r, then OR with dark bit */
-            r = (r + r) | d;
-            g = (g + g) | d;
-            b = (b + b) | d;
+            u16 r, g, b;
+            unpack_color5(src[c], &r, &g, &b);
 
             /* Apply saturation (desaturate toward gray) - integer math only.
              * Luminance coefficients: R*0.299 + G*0.587 + B*0.114
@@ -760,25 +736,10 @@ static void resolve_palettes(void) {
                 b = (u16)((b * bright_scale) >> 8);
             }
 
-            /* Apply tint - simple addition */
-            s16 tr = (s16)r + total_tint_r;
-            s16 tg = (s16)g + total_tint_g;
-            s16 tb = (s16)b + total_tint_b;
-
-            /* Clamp to valid range (0-31) using branchless-friendly comparisons.
-             * The 68000 branch penalty is low, so explicit branches are fine here. */
-            if (tr < 0)
-                tr = 0;
-            else if (tr > 31)
-                tr = 31;
-            if (tg < 0)
-                tg = 0;
-            else if (tg > 31)
-                tg = 31;
-            if (tb < 0)
-                tb = 0;
-            else if (tb > 31)
-                tb = 31;
+            /* Apply tint and clamp to the valid 0-31 range */
+            s16 tr = clamp_channel5((s16)r + total_tint_r);
+            s16 tg = clamp_channel5((s16)g + total_tint_g);
+            s16 tb = clamp_channel5((s16)b + total_tint_b);
 
             /* Write directly to palette RAM */
             dest[c] = NG_RGB((u8)tr, (u8)tg, (u8)tb);
