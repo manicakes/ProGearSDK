@@ -144,6 +144,13 @@ static u8 render_order[NG_GRAPHIC_MAX];
 static u8 render_count;
 static u8 render_order_dirty;
 
+/* High-water marks of the previous frame's sprite allocation. Only sprites
+ * freed since the last frame need hiding - everything below the marks is
+ * rewritten by its new owner during the draw pass. Initialized to the pool
+ * ends so the first draw after boot hides all unused sprites once. */
+static u16 prev_entity_end = UI_SPRITE_FIRST;
+static u16 prev_ui_end = HW_SPRITE_COUNT;
+
 /* ============================================================
  * Internal Helpers
  * ============================================================ */
@@ -1542,6 +1549,12 @@ void NGGraphicSystemInit(void) {
     }
     render_count = 0;
     render_order_dirty = 1;
+
+    /* Hardware sprite state is unknown at boot: make the first draw pass
+     * sweep both pools in full. */
+    prev_entity_end = UI_SPRITE_FIRST;
+    prev_ui_end = HW_SPRITE_COUNT;
+
     graphics_initialized = 1;
 }
 
@@ -1605,33 +1618,26 @@ void NGGraphicSystemDraw(void) {
         flush_graphic(g);
     }
 
-    /* Hide unused entity sprites (between entity_idx and UI_SPRITE_FIRST) */
-    if (entity_idx < UI_SPRITE_FIRST) {
-        u16 remaining = (u16)(UI_SPRITE_FIRST - entity_idx);
-        while (remaining > 0) {
-            u8 batch = (remaining > 255) ? 255 : (u8)remaining;
-            NGSpriteHideRange(entity_idx, batch);
-            entity_idx += batch;
-            remaining -= batch;
-        }
+    /* Hide only the sprites freed since the previous frame (high-water mark).
+     * Sprites below the current allocation were rewritten by their owners. */
+    if (entity_idx < prev_entity_end) {
+        NGSpriteHideRange(entity_idx, (u16)(prev_entity_end - entity_idx));
     }
+    prev_entity_end = entity_idx;
 
-    /* Hide unused UI sprites (between ui_idx and HW_SPRITE_COUNT) */
-    if (ui_idx < HW_SPRITE_COUNT) {
-        u16 remaining = (u16)(HW_SPRITE_COUNT - ui_idx);
-        while (remaining > 0) {
-            u8 batch = (remaining > 255) ? 255 : (u8)remaining;
-            NGSpriteHideRange(ui_idx, batch);
-            ui_idx += batch;
-            remaining -= batch;
-        }
+    if (ui_idx < prev_ui_end) {
+        NGSpriteHideRange(ui_idx, (u16)(prev_ui_end - ui_idx));
     }
+    prev_ui_end = ui_idx;
 }
 
 void NGGraphicSystemReset(void) {
     /* Hide all sprites */
-    NGSpriteHideRange(0, 255);
-    NGSpriteHideRange(255, (u8)(HW_SPRITE_COUNT - 255));
+    NGSpriteHideRange(0, HW_SPRITE_COUNT);
+
+    /* Everything is hidden now, so nothing is left over to sweep next frame */
+    prev_entity_end = HW_SPRITE_FIRST;
+    prev_ui_end = UI_SPRITE_FIRST;
 
     /* Reset all graphics */
     for (u8 i = 0; i < NG_GRAPHIC_MAX; i++) {

@@ -153,9 +153,9 @@ static inline u16 NGSpriteSCB4(s16 screen_x) {
  * Uses optimized VRAM macros for fast clearing.
  *
  * @param first_sprite First sprite index to hide
- * @param count Number of sprites to hide
+ * @param count Number of sprites to hide (may span the whole sprite list)
  */
-static inline void NGSpriteHideRange(u16 first_sprite, u8 count) {
+static inline void NGSpriteHideRange(u16 first_sprite, u16 count) {
     if (count == 0)
         return;
     NG_VRAM_DECLARE_BASE();
