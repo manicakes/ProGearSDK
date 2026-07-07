@@ -69,8 +69,8 @@ static u16 read_player_input(u8 player) {
     u8 joy = (player == 0) ? NG_REG_P1CNT : NG_REG_P2CNT;
     u16 result = (u8)~joy;
 
-    // STATUS_B bits 0-3: Start P1, Select P1, Start P2, Select P2
-    u8 status = NG_REG_STATUS_B;
+    // STATUS_B bits 0-3: Start P1, Select P1, Start P2, Select P2 (active-low)
+    u8 status = (u8)~NG_REG_STATUS_B;
 
     if (player == 0) {
         if (status & 0x01)
