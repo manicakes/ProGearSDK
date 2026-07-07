@@ -269,6 +269,11 @@ void NGBackdropSetPalette(NGBackdropHandle handle, u8 palette) {
     }
 }
 
+struct NGGraphic *NGBackdropGetGraphic(NGBackdropHandle handle) {
+    Backdrop *bd = resolve_backdrop(handle);
+    return bd ? bd->graphic : NULL;
+}
+
 /**
  * Sync all in-scene backdrops to their graphics.
  * Called by scene before graphic system draw.

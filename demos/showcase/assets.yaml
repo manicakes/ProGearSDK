@@ -40,6 +40,12 @@ palettes:
     colors: [0x8000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
              0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
 
+  # Storm recolor of the checkerboard (backdrop under the rain effect):
+  # index 1 = pale blue square, index 2 = dark storm blue square
+  checkerboard_rain:
+    colors: [0x8000, 0x2358, 0x0124, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+
 visual_assets:
   # Animated ball sprite (uses default orange palette) - 32x32 size
   - name: ball
@@ -65,6 +71,14 @@ visual_assets:
   # Simple tileset for tilemap demo (2 tiles: empty, solid)
   - name: tiles_simple
     source: assets/tiles_simple.png
+
+  # Checkerboard texture (tiled full-screen by the raster demo heat wave effect)
+  - name: checkerboard
+    source: assets/checkerboard.png
+
+  # Sparse rain streaks on storm sky (raster demo rain effect)
+  - name: rain_streaks
+    source: assets/rain_streaks.png
 
   # Parallax scrolling layers (for scroll demo)
   - name: back_layer

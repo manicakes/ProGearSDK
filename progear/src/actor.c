@@ -278,6 +278,11 @@ u8 NGActorGetZ(NGActorHandle handle) {
     return actors[handle].z;
 }
 
+struct NGGraphic *NGActorGetGraphic(NGActorHandle handle) {
+    Actor *actor = resolve_actor(handle);
+    return actor ? actor->graphic : NULL;
+}
+
 void NGActorSetAnim(NGActorHandle handle, u8 anim_index) {
     Actor *actor = resolve_actor(handle);
     if (!actor || !actor->asset)

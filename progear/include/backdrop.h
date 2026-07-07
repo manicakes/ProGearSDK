@@ -142,6 +142,14 @@ void NGBackdropSetVisible(NGBackdropHandle backdrop, u8 visible);
  * @param palette Palette index (0-255)
  */
 void NGBackdropSetPalette(NGBackdropHandle backdrop, u8 palette);
+
+/**
+ * Get the graphic backing a backdrop.
+ * Advanced accessor for raster effects (see NGGraphicGetRasterXInfo).
+ * @param backdrop Backdrop handle
+ * @return Graphic, or NULL if the handle is invalid
+ */
+struct NGGraphic *NGBackdropGetGraphic(NGBackdropHandle backdrop);
 /** @} */
 
 /** @} */ /* end of backdrop group */

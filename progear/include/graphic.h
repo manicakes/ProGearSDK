@@ -369,6 +369,56 @@ s16 NGGraphicGetX(const NGGraphic *g);
  * @return Screen Y coordinate
  */
 s16 NGGraphicGetY(const NGGraphic *g);
+
+/**
+ * Get the hardware sprite range currently backing a graphic.
+ *
+ * Advanced accessor for raster effects: a timer interrupt handler can
+ * rewrite the SCB registers of these sprites mid-frame (e.g. per-scanline
+ * X displacement for heat-haze or water effects).
+ *
+ * The range is only valid until the next NGGraphicSystemDraw() — sprites
+ * are reallocated whenever the set of visible graphics changes, so query
+ * the range every frame rather than caching it.
+ *
+ * @param g Graphic
+ * @param first_sprite Out: first hardware sprite index (may be NULL)
+ * @param count Out: number of consecutive sprites (may be NULL)
+ * @return 1 if the graphic has sprites allocated, 0 otherwise
+ */
+u8 NGGraphicGetSpriteRange(const NGGraphic *g, u16 *first_sprite, u8 *count);
+
+/**
+ * Snapshot of the SCB4 X layout a graphic last flushed to hardware.
+ *
+ * A raster interrupt can re-create the graphic's column X positions with
+ * NGSpriteXSetSpaced(first_sprite, count, base_x + offset, spacing) to
+ * displace it per scanline band.
+ */
+typedef struct {
+    u16 first_sprite; /**< First hardware sprite index */
+    u8 count;         /**< X values to write (1 for chained entity strips) */
+    s16 base_x;       /**< Screen X of the first column */
+    s16 spacing;      /**< X spacing between columns (scaled tile width) */
+} NGGraphicRasterXInfo;
+
+/**
+ * Get the info needed to displace a graphic's columns mid-frame.
+ *
+ * Advanced accessor for raster effects on scene-managed graphics (actors,
+ * backdrops). Mirrors the X layout the flush path writes: chained entity
+ * strips need a single head write, other layers one write per column at the
+ * scaled tile spacing.
+ *
+ * The values reflect the graphic's last committed state and are refreshed
+ * by NGGraphicSystemDraw(), so query every frame and expect them to lag a
+ * frame behind mid-update positions.
+ *
+ * @param g Graphic
+ * @param info Out: raster displacement info
+ * @return 1 if the graphic has sprites allocated, 0 otherwise
+ */
+u8 NGGraphicGetRasterXInfo(const NGGraphic *g, NGGraphicRasterXInfo *info);
 /** @} */
 
 /** @} */ /* end of graphic group */

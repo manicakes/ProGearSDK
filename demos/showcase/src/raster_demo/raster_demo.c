@@ -12,6 +12,8 @@
  * - Gradient sky effect (palette change per scanline band)
  * - Water reflection (palette swap on lower half)
  * - Scanline counter display
+ * - Heat wave (per-band sprite X displacement for flame/heat shimmer)
+ * - Rain (sheared, falling texture - no per-drop sprites)
  */
 
 #include "raster_demo.h"
@@ -23,6 +25,9 @@
 #include <ng_palette.h>
 #include <ng_color.h>
 #include <ng_interrupt.h>
+#include <ng_sprite.h>
+#include <ng_math.h>
+#include <graphic.h>
 #include <engine.h>
 #include <ui.h>
 #include <progear_assets.h>
@@ -32,6 +37,8 @@ typedef enum {
     EFFECT_GRADIENT_SKY,
     EFFECT_WATER_REFLECT,
     EFFECT_SCANLINE_DARK,
+    EFFECT_HEAT_WAVE,
+    EFFECT_RAIN,
     EFFECT_COUNT
 } RasterEffect;
 
@@ -42,6 +49,8 @@ typedef struct RasterDemoState {
     RasterEffect current_effect;
     u16 frame_counter;
     u8 effect_enabled;
+    NGGraphic *strip; /* Full-screen checkerboard: heat wave target, rain backdrop */
+    NGGraphic *rain;  /* Transparent streak overlay displaced by the rain effect */
 } RasterDemoState;
 
 static RasterDemoState *state;
@@ -58,6 +67,50 @@ static RasterDemoState *state;
 static volatile u8 raster_band = 0;
 static volatile u8 water_line = 112; /* Current water line position */
 static volatile u8 anim_offset = 0;  /* Animation offset for gradient */
+
+/* Full-screen strips for the heat wave and rain effects. The timer
+ * interrupt displaces the sprite columns of one strip horizontally in bands
+ * of a few scanlines; what varies per effect is the offset formula. */
+#define STRIP_WIDTH      384 /* 32px margin each side of the 320px screen */
+#define STRIP_HEIGHT     224 /* Full screen height */
+#define STRIP_X          -32 /* Margin keeps displacement from exposing the edge */
+#define STRIP_BAND_LINES 4   /* Scanlines per displacement band */
+#define STRIP_BANDS      56  /* 224 screen lines / 4 */
+
+/* Hardware sprites the interrupt displaces (heat: checkerboard strip,
+ * rain: streak overlay) */
+static volatile u16 fx_sprite_first = 0;
+static volatile u8 fx_sprite_count = 0;
+
+/* Heat wave: a sine offset per band that drifts each frame makes the image
+ * shimmer like air above flames. */
+#define HEAT_AMPLITUDE  5 /* Max displacement in pixels */
+#define HEAT_ANGLE_STEP 9 /* Wave angle advance per band (~2 waves down the screen) */
+#define HEAT_PHASE_STEP 6 /* Wave angle advance per frame (shimmer speed) */
+
+static volatile u8 heat_phase = 0;
+
+static s16 heat_wave_offset(u8 band) {
+    angle_t a = (angle_t)(heat_phase + band * HEAT_ANGLE_STEP);
+    return (s16)((NGSin(a) * HEAT_AMPLITUDE) >> FIX_SHIFT);
+}
+
+/* Rain: a transparent overlay of sparse vertical dashes drawn over the
+ * checkerboard backdrop. A linear X ramp per band shears the dashes into
+ * diagonal streaks, while per-frame X/Y phases slide the overlay along the
+ * streak direction so it appears to fall. Offsets wrap at the texture
+ * repeat (32px horizontally, 64px vertically), which is seamless and stays
+ * inside the strip margin. */
+#define RAIN_HEIGHT 288 /* Screen + one 64px texture repeat for vertical scroll */
+#define RAIN_ROWS   18  /* RAIN_HEIGHT in 16px tiles (for SCB3 writes) */
+#define RAIN_SHEAR  1   /* Extra X pixels per band (slant of the streaks) */
+#define RAIN_FALL   8   /* Fall speed in pixels per frame */
+#define RAIN_DRIFT  2   /* X pixels per frame: RAIN_FALL * RAIN_SHEAR / STRIP_BAND_LINES */
+#define RAIN_X_WRAP 31  /* X offsets wrap at the 32px horizontal repeat */
+#define RAIN_Y_WRAP 63  /* Y offsets wrap at the 64px vertical repeat */
+
+static volatile u8 rain_x_phase = 0;
+static u8 rain_y_phase = 0; /* Only read by the main thread */
 
 /* Sky gradient colors (8 bands from dark blue to light) */
 static const u16 sky_gradient[8] = {
@@ -110,6 +163,32 @@ static void raster_interrupt_handler(void) {
             }
             break;
 
+        case EFFECT_HEAT_WAVE:
+            /* Shift the background strip for the band the beam is entering.
+             * The X change takes effect on the following scanlines. */
+            if (raster_band < STRIP_BANDS && fx_sprite_count > 0) {
+                s16 x = (s16)(STRIP_X + heat_wave_offset(raster_band));
+                NGSpriteXSetSpaced(fx_sprite_first, fx_sprite_count, x, 16);
+                raster_band++;
+                if (raster_band < STRIP_BANDS) {
+                    NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+                }
+            }
+            break;
+
+        case EFFECT_RAIN:
+            /* Linear shear on the overlay: each band is shifted a little
+             * further right, turning vertical dashes into diagonal streaks */
+            if (raster_band < STRIP_BANDS && fx_sprite_count > 0) {
+                s16 x = (s16)(STRIP_X + ((rain_x_phase + raster_band * RAIN_SHEAR) & RAIN_X_WRAP));
+                NGSpriteXSetSpaced(fx_sprite_first, fx_sprite_count, x, 16);
+                raster_band++;
+                if (raster_band < STRIP_BANDS) {
+                    NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+                }
+            }
+            break;
+
         default:
             break;
     }
@@ -136,6 +215,20 @@ static void enable_raster_effect(void) {
             /* First interrupt after 8 scanlines */
             NGTimerSetReload(NGTimerScanlineToReload(8));
             break;
+        case EFFECT_HEAT_WAVE:
+            /* Strip covers the whole screen; bands start immediately */
+            NGGraphicSetSource(state->strip, &NGVisualAsset_checkerboard, NGPAL_CHECKERBOARD);
+            NGGraphicSetVisible(state->strip, 1);
+            NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+            break;
+        case EFFECT_RAIN:
+            /* Storm-recolored checkerboard as a static backdrop, with the
+             * transparent streak overlay sheared on top */
+            NGGraphicSetSource(state->strip, &NGVisualAsset_checkerboard, NGPAL_CHECKERBOARD_RAIN);
+            NGGraphicSetVisible(state->strip, 1);
+            NGGraphicSetVisible(state->rain, 1);
+            NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+            break;
         default:
             NGTimerSetReload(NGTimerScanlineToReload(112));
             break;
@@ -150,6 +243,10 @@ static void disable_raster_effect(void) {
     NGInterruptSetTimerHandler(0);
     state->effect_enabled = 0;
 
+    NGGraphicSetVisible(state->strip, 0);
+    NGGraphicSetVisible(state->rain, 0);
+    fx_sprite_count = 0;
+
     /* Reset backdrop to solid color */
     NG_REG_BACKDROP = NG_COLOR_BLACK;
 }
@@ -162,6 +259,10 @@ static const char *get_effect_name(RasterEffect effect) {
             return "Water Reflect  ";
         case EFFECT_SCANLINE_DARK:
             return "Scanline Dark  ";
+        case EFFECT_HEAT_WAVE:
+            return "Heat Wave      ";
+        case EFFECT_RAIN:
+            return "Rain           ";
         default:
             return "Unknown        ";
     }
@@ -205,6 +306,37 @@ void RasterDemoInit(void) {
     state->effect_enabled = 0;
 
     NGPalSetBackdrop(NG_COLOR_BLACK);
+
+    /* Full-screen checkerboard: displaced by the heat wave effect and used
+     * as a static backdrop under the rain. Kept hidden until an effect is
+     * enabled; one texture repeat wider than the screen so displacement
+     * never exposes the backdrop at the edges. */
+    NGGraphicConfig strip_cfg = {
+        .width = STRIP_WIDTH,
+        .height = STRIP_HEIGHT,
+        .tile_mode = NG_GRAPHIC_TILE_REPEAT,
+        .layer = NG_GRAPHIC_LAYER_BACKGROUND,
+        .z_order = 0,
+    };
+    state->strip = NGGraphicCreate(&strip_cfg);
+    NGGraphicSetSource(state->strip, &NGVisualAsset_checkerboard,
+                       NGVisualAsset_checkerboard.palette);
+    NGGraphicSetPosition(state->strip, STRIP_X, 0);
+    NGGraphicSetVisible(state->strip, 0);
+
+    /* Transparent rain streak overlay, one texture repeat taller than the
+     * screen so the vertical scroll wrap is hidden */
+    NGGraphicConfig rain_cfg = {
+        .width = STRIP_WIDTH,
+        .height = RAIN_HEIGHT,
+        .tile_mode = NG_GRAPHIC_TILE_REPEAT,
+        .layer = NG_GRAPHIC_LAYER_FOREGROUND,
+        .z_order = 0,
+    };
+    state->rain = NGGraphicCreate(&rain_cfg);
+    NGGraphicSetSource(state->rain, &NGVisualAsset_rain_streaks, NGPAL_RAIN_STREAKS);
+    NGGraphicSetPosition(state->rain, STRIP_X, -64);
+    NGGraphicSetVisible(state->rain, 0);
 
     draw_info();
 
@@ -255,6 +387,46 @@ u8 RasterDemoUpdate(void) {
                 NG_REG_BACKDROP = 0x0666; /* Light gray */
                 NGTimerSetReload(NGTimerScanlineToReload(4));
                 break;
+            case EFFECT_HEAT_WAVE: {
+                heat_phase = (u8)(heat_phase + HEAT_PHASE_STEP);
+
+                /* Re-query the sprite range - the graphic system may
+                 * reallocate sprites whenever visible graphics change. */
+                u16 first;
+                u8 count;
+                if (NGGraphicGetSpriteRange(state->strip, &first, &count)) {
+                    fx_sprite_first = first;
+                    fx_sprite_count = count;
+                    /* Apply band 0 now (during VBlank); the first interrupt
+                     * fires at the band 1 boundary */
+                    NGSpriteXSetSpaced(first, count, (s16)(STRIP_X + heat_wave_offset(0)), 16);
+                } else {
+                    fx_sprite_count = 0; /* Not allocated until first draw */
+                }
+                raster_band = 1;
+                NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+            } break;
+            case EFFECT_RAIN: {
+                /* Slide the overlay along the streak direction: down by the
+                 * fall speed, right by the matching shear drift */
+                rain_x_phase = (u8)((rain_x_phase + RAIN_DRIFT) & RAIN_X_WRAP);
+                rain_y_phase = (u8)((rain_y_phase + RAIN_FALL) & RAIN_Y_WRAP);
+
+                u16 first;
+                u8 count;
+                if (NGGraphicGetSpriteRange(state->rain, &first, &count)) {
+                    fx_sprite_first = first;
+                    fx_sprite_count = count;
+                    /* Vertical scroll within one texture repeat (SCB3), then
+                     * band 0 X; the first interrupt fires at band 1 */
+                    NGSpriteYSetUniform(first, count, (s16)(rain_y_phase - 64), RAIN_ROWS);
+                    NGSpriteXSetSpaced(first, count, (s16)(STRIP_X + rain_x_phase), 16);
+                } else {
+                    fx_sprite_count = 0; /* Not allocated until first draw */
+                }
+                raster_band = 1;
+                NGTimerSetReload(NGTimerScanlineToReload(STRIP_BAND_LINES));
+            } break;
             default:
                 NG_REG_BACKDROP = NG_COLOR_BLACK;
                 break;
@@ -349,6 +521,9 @@ u8 RasterDemoUpdate(void) {
 void RasterDemoCleanup(void) {
     /* Disable raster effects */
     disable_raster_effect();
+
+    NGGraphicDestroy(state->rain);
+    NGGraphicDestroy(state->strip);
 
     /* Clear fix layer */
     NGFixClear(0, 0, 40, 28);

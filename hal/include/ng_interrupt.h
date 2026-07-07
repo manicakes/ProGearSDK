@@ -155,6 +155,39 @@ static inline void NGTimerSetScanline(u16 scanlines) {
     NGTimerSetReload(NGTimerScanlineToReload(scanlines));
 }
 
+/* ============================================================
+ * Interrupt Masking
+ * ========================================================== */
+
+/**
+ * Disable CPU interrupts (raise the 68k mask to level 7).
+ *
+ * Use around main-thread VRAM write sequences that must not interleave
+ * with a raster timer handler: VRAMADDR is shared and write-only, so an
+ * interrupt that moves it mid-sequence corrupts the remaining writes.
+ * Interrupts raised while masked stay pending and fire on restore.
+ *
+ * @return Previous status register value for NGInterruptRestore()
+ */
+static inline u16 NGInterruptDisable(void) {
+    u16 sr;
+    __asm__ volatile("move.w %%sr,%0\n"
+                     "\tori.w #0x0700,%%sr"
+                     : "=d"(sr)
+                     :
+                     : "cc");
+    return sr;
+}
+
+/**
+ * Restore the CPU interrupt mask saved by NGInterruptDisable().
+ *
+ * @param sr Status register value returned by NGInterruptDisable()
+ */
+static inline void NGInterruptRestore(u16 sr) {
+    __asm__ volatile("move.w %0,%%sr" : : "d"(sr) : "cc");
+}
+
 /** @} */ /* end of interrupt group */
 
 #endif /* NG_INTERRUPT_H */

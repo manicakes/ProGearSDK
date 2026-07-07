@@ -20,6 +20,9 @@
 #include <ng_palette.h>
 #include <ng_color.h>
 #include <ng_math.h>
+#include <ng_interrupt.h>
+#include <ng_sprite.h>
+#include <graphic.h>
 #include <engine.h>
 #include <lighting.h>
 #include <progear_assets.h>
@@ -51,9 +54,170 @@ typedef struct BallDemoState {
     NGLightingLayerHandle night_preset;
     u16 lightning_timer;
     u16 rng_state;
+
+    /* Raster effects */
+    NGGraphic *rain_overlay; /* Transparent streak overlay for storm mode */
 } BallDemoState;
 
 static BallDemoState *state;
+
+/* ============================================================
+ * Raster effects: heat wave (day) and rain (storm)
+ *
+ * A timer interrupt rewrites sprite X positions (SCB4) in bands of a few
+ * scanlines. The timer is re-armed at the very start of each frame (during
+ * VBlank) with a fuse long enough to clear the rest of VBlank and the
+ * scene's VRAM flush in NGEngineFrameEnd - an interrupt landing inside
+ * those writes would corrupt them. The top display lines above the first
+ * interrupt keep the scene's own positions.
+ * ============================================================ */
+
+#define FX_VBLANK_LINES 32 /* Approx scanlines from the VBlank IRQ to display line 0 */
+#define FX_FIRST_LINE   16 /* Target display line of the first interrupt */
+
+/* Heat wave: subtle sine displacement of the brick backdrop and logo
+ * (not the balls) that drifts each frame like air shimmering. */
+#define HEAT_BAND_LINES  8  /* Scanlines per displacement band */
+#define HEAT_BANDS       28 /* 224 screen lines / 8 */
+#define HEAT_AMPLITUDE   2  /* Max displacement in pixels (subtle) */
+#define HEAT_ANGLE_STEP  14 /* Wave angle advance per band (~1.5 waves down the screen) */
+#define HEAT_PHASE_STEP  3  /* Wave angle advance per frame (shimmer speed) */
+#define HEAT_TARGETS_MAX 3  /* brick_pattern, brick_shadow, brick logo */
+
+/* Rain: transparent streak overlay sheared into falling diagonal rain
+ * (same technique as the raster demo). */
+#define RAIN_BAND_LINES 4   /* Scanlines per shear band */
+#define RAIN_BANDS      56  /* 224 screen lines / 4 */
+#define RAIN_WIDTH      384 /* 32px margin each side of the 320px screen */
+#define RAIN_HEIGHT     288 /* Screen + one 64px texture repeat for vertical scroll */
+#define RAIN_X          -32
+#define RAIN_ROWS       18 /* RAIN_HEIGHT in 16px tiles (for SCB3 writes) */
+#define RAIN_SHEAR      1  /* Extra X pixels per band (slant of the streaks) */
+#define RAIN_FALL       8  /* Fall speed in pixels per frame */
+#define RAIN_DRIFT      2  /* X pixels per frame: RAIN_FALL * RAIN_SHEAR / RAIN_BAND_LINES */
+#define RAIN_X_WRAP     31 /* X offsets wrap at the 32px horizontal repeat */
+#define RAIN_Y_WRAP     63 /* Y offsets wrap at the 64px vertical repeat */
+
+typedef enum { FX_NONE, FX_HEAT, FX_RAIN } RasterFxMode;
+
+static volatile RasterFxMode fx_mode = FX_NONE;
+static volatile u8 raster_band = 0;
+
+static volatile NGGraphicRasterXInfo heat_targets[HEAT_TARGETS_MAX];
+static volatile u8 heat_target_count = 0;
+static volatile u8 heat_phase = 0;
+
+static volatile u16 rain_first = 0; /* Hardware sprites backing the overlay */
+static volatile u8 rain_count = 0;
+static volatile u8 rain_x_phase = 0;
+static u8 rain_y_phase = 0; /* Only read by the main thread */
+
+static s16 heat_wave_offset(u8 band) {
+    angle_t a = (angle_t)(heat_phase + band * HEAT_ANGLE_STEP);
+    return (s16)((NGSin(a) * HEAT_AMPLITUDE) >> FIX_SHIFT);
+}
+
+static void raster_fx_handler(void) {
+    switch (fx_mode) {
+        case FX_HEAT:
+            if (raster_band < HEAT_BANDS) {
+                s16 off = heat_wave_offset(raster_band);
+                for (u8 i = 0; i < heat_target_count; i++) {
+                    NGSpriteXSetSpaced(heat_targets[i].first_sprite, heat_targets[i].count,
+                                       (s16)(heat_targets[i].base_x + off),
+                                       heat_targets[i].spacing);
+                }
+                raster_band++;
+                if (raster_band < HEAT_BANDS) {
+                    NGTimerSetReload(NGTimerScanlineToReload(HEAT_BAND_LINES));
+                }
+            }
+            break;
+
+        case FX_RAIN:
+            /* Linear shear: each band shifts a little further right,
+             * turning the overlay's vertical dashes into diagonal streaks */
+            if (raster_band < RAIN_BANDS && rain_count > 0) {
+                s16 x = (s16)(RAIN_X + ((rain_x_phase + raster_band * RAIN_SHEAR) & RAIN_X_WRAP));
+                NGSpriteXSetSpaced(rain_first, rain_count, x, 16);
+                raster_band++;
+                if (raster_band < RAIN_BANDS) {
+                    NGTimerSetReload(NGTimerScanlineToReload(RAIN_BAND_LINES));
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* Called once per frame: pick the effect for the current mode, refresh the
+ * displacement targets, and arm the timer for this frame's bands. */
+static void update_raster_fx(void) {
+    if (state->is_night) {
+        if (fx_mode != FX_RAIN) {
+            fx_mode = FX_RAIN;
+            NGGraphicSetVisible(state->rain_overlay, 1);
+        }
+
+        /* Slide the overlay along the streak direction: down by the fall
+         * speed, right by the matching shear drift */
+        rain_x_phase = (u8)((rain_x_phase + RAIN_DRIFT) & RAIN_X_WRAP);
+        rain_y_phase = (u8)((rain_y_phase + RAIN_FALL) & RAIN_Y_WRAP);
+
+        u16 first;
+        u8 count;
+        if (NGGraphicGetSpriteRange(state->rain_overlay, &first, &count)) {
+            rain_first = first;
+            rain_count = count;
+            /* The overlay is not scene-managed, so its vertical scroll
+             * (SCB3) and top-of-frame X are written here during VBlank */
+            NGSpriteYSetUniform(first, count, (s16)(rain_y_phase - 64), RAIN_ROWS);
+            NGSpriteXSetSpaced(first, count, (s16)(RAIN_X + rain_x_phase), 16);
+        } else {
+            rain_count = 0; /* Not allocated until first draw */
+        }
+        raster_band = FX_FIRST_LINE / RAIN_BAND_LINES;
+    } else {
+        if (fx_mode != FX_HEAT) {
+            fx_mode = FX_HEAT;
+            NGGraphicSetVisible(state->rain_overlay, 0);
+        }
+
+        heat_phase = (u8)(heat_phase + HEAT_PHASE_STEP);
+
+        /* Block the handler while the target array is rebuilt */
+        heat_target_count = 0;
+
+        /* Suspend the wave during zoom transitions: the snapshot lags the
+         * animated scale by a frame, which would misplace columns. */
+        u8 n = 0;
+        if (!NGCameraIsZooming()) {
+            NGGraphic *targets[HEAT_TARGETS_MAX] = {
+                NGBackdropGetGraphic(state->brick_pattern),
+                NGBackdropGetGraphic(state->brick_shadow),
+                NGActorGetGraphic(state->brick),
+            };
+            NGGraphicRasterXInfo info;
+            for (u8 i = 0; i < HEAT_TARGETS_MAX; i++) {
+                if (NGGraphicGetRasterXInfo(targets[i], &info)) {
+                    heat_targets[n].first_sprite = info.first_sprite;
+                    heat_targets[n].count = info.count;
+                    heat_targets[n].base_x = info.base_x;
+                    heat_targets[n].spacing = info.spacing;
+                    n++;
+                }
+            }
+        }
+        heat_target_count = n;
+        raster_band = FX_FIRST_LINE / HEAT_BAND_LINES;
+    }
+
+    /* Writing the reload restarts the countdown, cancelling the short
+     * countdown the hardware auto-loaded at VBlank start */
+    NGTimerSetReload(NGTimerScanlineToReload(FX_VBLANK_LINES + FX_FIRST_LINE));
+}
 
 #define MENU_RESUME       0
 #define MENU_ADD_BALL     1
@@ -169,6 +333,30 @@ void BallDemoInit(void) {
     BallSpawn(state->balls);
     BallSpawn(state->balls);
 
+    /* Rain overlay for storm mode: transparent streaks over the whole
+     * scene, one texture repeat wider/taller than the screen so the
+     * displacement and vertical scroll wraps stay hidden */
+    NGGraphicConfig rain_cfg = {
+        .width = RAIN_WIDTH,
+        .height = RAIN_HEIGHT,
+        .tile_mode = NG_GRAPHIC_TILE_REPEAT,
+        .layer = NG_GRAPHIC_LAYER_FOREGROUND,
+        .z_order = 255,
+    };
+    state->rain_overlay = NGGraphicCreate(&rain_cfg);
+    NGGraphicSetSource(state->rain_overlay, &NGVisualAsset_rain_streaks, NGPAL_RAIN_STREAKS);
+    NGGraphicSetPosition(state->rain_overlay, RAIN_X, -64);
+    NGGraphicSetVisible(state->rain_overlay, 0);
+
+    /* Raster effects run for the demo's whole lifetime */
+    fx_mode = FX_NONE;
+    raster_band = 0;
+    heat_target_count = 0;
+    rain_count = 0;
+    NGInterruptSetTimerHandler(raster_fx_handler);
+    NGTimerSetReload(NGTimerScanlineToReload(FX_VBLANK_LINES + FX_FIRST_LINE));
+    NGTimerEnable();
+
     state->menu = NGMenuCreateDefault(&ng_arena_state, 12);
     NGMenuSetTitle(state->menu, "BALL DEMO");
     NGMenuAddItem(state->menu, "Resume");
@@ -191,6 +379,11 @@ void BallDemoInit(void) {
 }
 
 u8 BallDemoUpdate(void) {
+    /* First thing each frame: re-arm the raster timer while VBlank has
+     * barely started, so its stray auto-reloaded countdown can't fire
+     * during this frame's VRAM writes. Runs even when the menu is open. */
+    update_raster_fx();
+
     if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
         if (state->menu_open) {
             NGMenuHide(state->menu);
@@ -212,9 +405,16 @@ u8 BallDemoUpdate(void) {
                     break;
                 case MENU_ADD_BALL:
                     BallSpawn(state->balls);
+                    /* Sprite allocation shifts at the next draw; this
+                     * frame's target snapshot is stale, so skip its raster
+                     * writes rather than displace the wrong sprites */
+                    heat_target_count = 0;
+                    rain_count = 0;
                     break;
                 case MENU_CLEAR_BALLS:
                     while (BallDestroyLast(state->balls)) {}
+                    heat_target_count = 0;
+                    rain_count = 0;
                     break;
                 case MENU_TOGGLE_ZOOM: {
                     u8 target = NGCameraGetTargetZoom();
@@ -304,6 +504,13 @@ u8 BallDemoUpdate(void) {
 }
 
 void BallDemoCleanup(void) {
+    /* Stop raster effects before tearing down their target graphics */
+    NGTimerDisable();
+    NGInterruptSetTimerHandler(0);
+    fx_mode = FX_NONE;
+
+    NGGraphicDestroy(state->rain_overlay);
+
     NGMusicStop();
 
     /* Clean up lighting - instant pop (no fade) */

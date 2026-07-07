@@ -22,6 +22,7 @@
 #include <ng_sprite.h>
 #include <ng_palette.h>
 #include <ng_hardware.h>
+#include <ng_interrupt.h>
 
 /* ============================================================
  * Constants
@@ -1725,6 +1726,49 @@ s16 NGGraphicGetY(const NGGraphic *g) {
     return g ? g->screen_y : 0;
 }
 
+u8 NGGraphicGetSpriteRange(const NGGraphic *g, u16 *first_sprite, u8 *count) {
+    if (!g || !g->hw_allocated || g->hw_sprite_count == 0) {
+        return 0;
+    }
+    if (first_sprite) {
+        *first_sprite = g->hw_sprite_first;
+    }
+    if (count) {
+        *count = g->hw_sprite_count;
+    }
+    return 1;
+}
+
+u8 NGGraphicGetRasterXInfo(const NGGraphic *g, NGGraphicRasterXInfo *info) {
+    if (!g || !info || !g->hw_allocated || g->hw_sprite_count == 0) {
+        return 0;
+    }
+    info->first_sprite = g->hw_sprite_first;
+
+    if (g->layer == NG_GRAPHIC_LAYER_ENTITY) {
+        /* Chained columns: hardware positions followers after the head */
+        info->count = 1;
+        info->base_x = g->screen_x;
+        info->spacing = 0;
+        return 1;
+    }
+
+    s16 tile_width = (s16)((TILE_SIZE * g->scale) >> 8);
+    if (tile_width < 1) {
+        tile_width = 1;
+    }
+    if (g->tile_mode == NG_GRAPHIC_TILE_INFINITE) {
+        /* Circular buffer layout (see update_scroll_positions_limited) */
+        info->count = g->cache.last_visible_cols;
+        info->base_x = (s16)(SCROLL_INT(g->scroll_offset) - 2 * tile_width);
+    } else {
+        info->count = g->num_cols;
+        info->base_x = g->screen_x;
+    }
+    info->spacing = tile_width;
+    return 1;
+}
+
 /* ============================================================
  * System Functions
  * ============================================================ */
@@ -1754,6 +1798,11 @@ void NGGraphicSystemDraw(void) {
     if (render_order_dirty) {
         rebuild_render_order();
     }
+
+    /* Keep raster timer handlers from interleaving with the SCB write
+     * sequences below - VRAMADDR is shared and write-only, so an interrupt
+     * moving it mid-sequence would corrupt the remaining writes. */
+    u16 sr = NGInterruptDisable();
 
     /* Two-pool allocation: UI sprites from back, others from front.
      * This prevents UI graphics from being redrawn when entities change. */
@@ -1816,6 +1865,8 @@ void NGGraphicSystemDraw(void) {
         NGSpriteHideRange(ui_idx, (u16)(prev_ui_end - ui_idx));
     }
     prev_ui_end = ui_idx;
+
+    NGInterruptRestore(sr);
 }
 
 void NGGraphicSystemReset(void) {

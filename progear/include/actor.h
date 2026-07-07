@@ -143,6 +143,14 @@ fixed NGActorGetY(NGActorHandle actor);
  * @return Z-index
  */
 u8 NGActorGetZ(NGActorHandle actor);
+
+/**
+ * Get the graphic backing an actor.
+ * Advanced accessor for raster effects (see NGGraphicGetRasterXInfo).
+ * @param actor Actor handle
+ * @return Graphic, or NULL if the handle is invalid
+ */
+struct NGGraphic *NGActorGetGraphic(NGActorHandle actor);
 /** @} */
 
 /** @name Animation */
