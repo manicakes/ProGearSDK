@@ -124,6 +124,17 @@ void NGBackdropSetViewportPos(NGBackdropHandle backdrop, s16 viewport_x, s16 vie
  * @param z Z-index for render order
  */
 void NGBackdropSetZ(NGBackdropHandle backdrop, u8 z);
+
+/**
+ * Make the backdrop scroll on its own, independent of camera movement.
+ * Combines with the parallax rate: drifting cloud layers keep moving
+ * when the camera is still and gain the parallax offset when it pans.
+ * @param backdrop Backdrop handle
+ * @param vel_x Horizontal drift in pixels per frame (positive = content
+ *              moves left on screen, like wind blowing left)
+ * @param vel_y Vertical drift in pixels per frame
+ */
+void NGBackdropSetAutoScroll(NGBackdropHandle backdrop, fixed vel_x, fixed vel_y);
 /** @} */
 
 /** @name Appearance */

@@ -80,6 +80,16 @@ visual_assets:
   - name: rain_streaks
     source: assets/rain_streaks.png
 
+  # Parallax cloud layers (tilemap demo background)
+  - name: cloud_far
+    source: assets/cloud_far.png
+
+  - name: cloud_mid
+    source: assets/cloud_mid.png
+
+  - name: cloud_near
+    source: assets/cloud_near.png
+
   # Parallax scrolling layers (for scroll demo)
   - name: back_layer
     source: assets/back.png

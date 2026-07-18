@@ -16,6 +16,7 @@
 #include <ui.h>
 #include <ng_arena.h>
 #include <actor.h>
+#include <backdrop.h>
 #include <engine.h>
 #include <progear_assets.h>
 
@@ -35,6 +36,9 @@
 typedef struct TilemapDemoState {
     NGMenuHandle menu;
     NGActorHandle player;
+    NGBackdropHandle clouds_far;
+    NGBackdropHandle clouds_mid;
+    NGBackdropHandle clouds_near;
     u16 level_width;
     u16 level_height;
     fixed player_x;
@@ -63,9 +67,27 @@ void TilemapDemoInit(void) {
     NGCameraSetPos(0, 0);
     NGCameraSetZoom(NG_CAM_ZOOM_100);
 
-    NGPalSetBackdrop(NG_COLOR_DARK_BLUE);
+    NGPalSetBackdrop(NG_RGB8(96, 168, 232)); /* daytime sky blue */
 
     NGPalSet(NGPAL_TILES_SIMPLE, NGPal_tiles_simple);
+
+    /* Three overlapping cloud bands: each one both drifts on its own
+     * (wind) and tracks the camera at a different parallax rate, so the
+     * sky separates into depth planes as soon as anything moves. */
+    state->clouds_far = NGBackdropCreate(&NGVisualAsset_cloud_far, NG_BACKDROP_WIDTH_INFINITE, 0,
+                                         FIX(0.10), FIX(0.05));
+    NGBackdropSetAutoScroll(state->clouds_far, FIX(0.08), 0);
+    NGBackdropAddToScene(state->clouds_far, 0, 4, 0);
+
+    state->clouds_mid = NGBackdropCreate(&NGVisualAsset_cloud_mid, NG_BACKDROP_WIDTH_INFINITE, 0,
+                                         FIX(0.30), FIX(0.15));
+    NGBackdropSetAutoScroll(state->clouds_mid, FIX(0.22), 0);
+    NGBackdropAddToScene(state->clouds_mid, 0, 36, 1);
+
+    state->clouds_near = NGBackdropCreate(&NGVisualAsset_cloud_near, NG_BACKDROP_WIDTH_INFINITE,
+                                          0, FIX(0.60), FIX(0.30));
+    NGBackdropSetAutoScroll(state->clouds_near, FIX(0.45), 0);
+    NGBackdropAddToScene(state->clouds_near, 0, 62, 2);
 
     // Set the scene's terrain
     NGSceneSetTerrain(&NGTerrainAsset_tilemap_demo_level);
@@ -227,6 +249,13 @@ void TilemapDemoCleanup(void) {
     NGFixClear(0, 27, 40, 1);
 
     NGCameraStopTracking();
+
+    NGBackdropRemoveFromScene(state->clouds_near);
+    NGBackdropDestroy(state->clouds_near);
+    NGBackdropRemoveFromScene(state->clouds_mid);
+    NGBackdropDestroy(state->clouds_mid);
+    NGBackdropRemoveFromScene(state->clouds_far);
+    NGBackdropDestroy(state->clouds_far);
 
     NGActorRemoveFromScene(state->player);
     NGActorDestroy(state->player);

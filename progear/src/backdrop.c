@@ -18,6 +18,10 @@ typedef struct {
     u16 width, height;  // Display dimensions (0 = asset, 0xFFFF = infinite)
     fixed parallax_x;   // Horizontal movement rate (FIX_ONE = 1:1 with camera)
     fixed parallax_y;   // Vertical movement rate
+    fixed scroll_vel_x; // Auto-scroll drift per frame (independent of camera)
+    fixed scroll_vel_y;
+    fixed scroll_x;     // Accumulated auto-scroll offset
+    fixed scroll_y;
     s16 viewport_x;     // X offset from camera viewport
     s16 viewport_y;     // Y offset from camera viewport
     fixed anchor_cam_x; // Camera position when added (for parallax calc)
@@ -60,8 +64,8 @@ static void sync_backdrop_graphic(Backdrop *bd) {
     fixed cam_y = NGCameraGetY();
     fixed delta_x = cam_x - bd->anchor_cam_x;
     fixed delta_y = cam_y - bd->anchor_cam_y;
-    fixed parallax_offset_x = FIX_MUL(delta_x, bd->parallax_x);
-    fixed parallax_offset_y = FIX_MUL(delta_y, bd->parallax_y);
+    fixed parallax_offset_x = FIX_MUL(delta_x, bd->parallax_x) + bd->scroll_x;
+    fixed parallax_offset_y = FIX_MUL(delta_y, bd->parallax_y) + bd->scroll_y;
 
     s16 screen_x, screen_y;
     u8 infinite_width = (bd->width == NG_BACKDROP_WIDTH_INFINITE);
@@ -156,6 +160,10 @@ NGBackdropHandle NGBackdropCreate(const NGVisualAsset *asset, u16 width, u16 hei
     bd->height = height;
     bd->parallax_x = parallax_x;
     bd->parallax_y = parallax_y;
+    bd->scroll_vel_x = 0;
+    bd->scroll_vel_y = 0;
+    bd->scroll_x = 0;
+    bd->scroll_y = 0;
     bd->viewport_x = 0;
     bd->viewport_y = 0;
     bd->anchor_cam_x = 0;
@@ -244,6 +252,14 @@ void NGBackdropSetZ(NGBackdropHandle handle, u8 z) {
     }
 }
 
+void NGBackdropSetAutoScroll(NGBackdropHandle handle, fixed vel_x, fixed vel_y) {
+    Backdrop *bd = resolve_backdrop(handle);
+    if (!bd)
+        return;
+    bd->scroll_vel_x = vel_x;
+    bd->scroll_vel_y = vel_y;
+}
+
 void NGBackdropSetVisible(NGBackdropHandle handle, u8 visible) {
     Backdrop *bd = resolve_backdrop(handle);
     if (!bd)
@@ -282,6 +298,19 @@ void _NGBackdropSyncGraphics(void) {
     for (u8 i = 0; i < NG_BACKDROP_MAX; i++) {
         Backdrop *bd = &backdrop_layers[i];
         if (bd->active && bd->in_scene) {
+            bd->scroll_x += bd->scroll_vel_x;
+            bd->scroll_y += bd->scroll_vel_y;
+            /* Wrap at the asset's tiling period so the fixed-point
+             * accumulator never overflows on long sessions */
+            if (bd->asset) {
+                fixed period = FIX(bd->asset->width_pixels);
+                if (period > 0) {
+                    if (bd->scroll_x >= period)
+                        bd->scroll_x -= period;
+                    else if (bd->scroll_x <= -period)
+                        bd->scroll_x += period;
+                }
+            }
             sync_backdrop_graphic(bd);
         }
     }
