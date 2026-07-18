@@ -59,6 +59,15 @@ static TilemapDemoState *state;
 #define MENU_BALL_DEMO   1
 #define MENU_SCROLL_DEMO 2
 
+/* The menu panel, terrain and all three cloud layers can stack past the
+ * hardware's 96 sprites per scanline, which drops the highest-numbered
+ * sprites - the UI panel. Hide the widest cloud layer while the menu is
+ * open to stay under the limit. */
+static void set_menu_open(u8 open) {
+    state->menu_open = open;
+    NGBackdropSetVisible(state->clouds_near, !open);
+}
+
 void TilemapDemoInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, TilemapDemoState);
     state->switch_target = 0;
@@ -129,10 +138,10 @@ u8 TilemapDemoUpdate(void) {
     if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
         if (state->menu_open) {
             NGMenuHide(state->menu);
-            state->menu_open = 0;
+            set_menu_open(0);
         } else {
             NGMenuShow(state->menu);
-            state->menu_open = 1;
+            set_menu_open(1);
         }
     }
 
@@ -143,16 +152,16 @@ u8 TilemapDemoUpdate(void) {
             switch (NGMenuGetSelection(state->menu)) {
                 case MENU_RESUME:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     break;
                 case MENU_BALL_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_BALL;
                     break;
                 case MENU_SCROLL_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_SCROLL;
                     break;
             }
@@ -160,7 +169,7 @@ u8 TilemapDemoUpdate(void) {
 
         if (NGMenuCancelled(state->menu)) {
             NGMenuHide(state->menu);
-            state->menu_open = 0;
+            set_menu_open(0);
         }
     } else {
         state->player_vel_x = 0;
