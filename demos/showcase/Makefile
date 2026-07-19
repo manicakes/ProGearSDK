@@ -87,7 +87,7 @@ $(GEN_DIR): | $(BUILD_DIR)
 # Asset pipeline - process sprites from YAML
 assets: $(GEN_ASSETS_H)
 
-$(GEN_ASSETS_H): $(wildcard $(ASSETS_YAML)) $(SDK_ASSETS) $(TOOLS_PATH)/progear_assets.py | $(GEN_DIR)
+$(GEN_ASSETS_H): $(wildcard $(ASSETS_YAML)) $(wildcard assets/*) $(SDK_ASSETS) $(TOOLS_PATH)/progear_assets.py | $(GEN_DIR)
 	@if [ -f $(ASSETS_YAML) ]; then \
 		echo "Processing assets..."; \
 		$(PROGEAR_ASSETS) --sdk-assets $(SDK_ASSETS) $(ASSETS_YAML) -o $(GEN_DIR) --c1 sprites-c1.bin --c2 sprites-c2.bin --v1 audio-v1.bin --m1-tables audio-tables.bin -v; \
