@@ -15,8 +15,12 @@
 #include <ng_audio.h>
 #include <ui.h>
 #include <lighting.h>
+#include <ng_interrupt.h>
+#include "sdk_internal.h"
 
 static NGMenuHandle g_active_menu = 0;
+static u8 g_paused = 0;
+static u8 g_paused_timer_was_enabled = 0;
 
 // Weak default - games using progear_assets.py provide a strong definition that loads palette data
 __attribute__((weak)) void NGPalInitAssets(void) {}
@@ -34,6 +38,41 @@ void NGEngineInit(void) {
     NGPalInitAssets();
     NGPalSetBackdrop(NG_COLOR_BLACK);
     g_active_menu = 0;
+    g_paused = 0;
+    g_paused_timer_was_enabled = 0;
+}
+
+void NGEnginePause(void) {
+    if (g_paused)
+        return;
+    g_paused = 1;
+
+    /* Stop raster effects. Their handlers reprogram VRAMADDR/VRAMMOD, so
+     * leaving them armed would corrupt the menu's fix-layer and sprite writes
+     * as well as keeping the effect animating. */
+    g_paused_timer_was_enabled = NGTimerIsEnabled();
+    if (g_paused_timer_was_enabled) {
+        NGTimerDisable();
+    }
+
+    _NGGraphicApplyPause(1);
+}
+
+void NGEngineResume(void) {
+    if (!g_paused)
+        return;
+    g_paused = 0;
+
+    _NGGraphicApplyPause(0);
+
+    if (g_paused_timer_was_enabled) {
+        NGTimerEnable();
+        g_paused_timer_was_enabled = 0;
+    }
+}
+
+u8 NGEngineIsPaused(void) {
+    return g_paused;
 }
 
 void NGEngineFrameStart(void) {

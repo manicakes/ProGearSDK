@@ -65,6 +65,8 @@ struct NGGraphic {
     NGGraphicLayer layer;
     u8 z_order;
     u8 visible;
+    u8 pause_behavior; /* NG_PAUSE_KEEP or NG_PAUSE_HIDE */
+    u8 pause_hidden;   /* 1 while hidden by an engine pause */
 
     /* Source configuration */
     u16 base_tile;
@@ -1402,6 +1404,8 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
 
     g->dirty = DIRTY_ALL;
     g->active = 1;
+    g->pause_behavior = NG_PAUSE_KEEP;
+    g->pause_hidden = 0;
 
     /* Invalidate cache */
     g->cache.last_base_tile = 0xFFFF;
@@ -1678,10 +1682,41 @@ void NGGraphicSetVisible(NGGraphic *g, u8 visible) {
         /* While hidden the sprites may have been reused by another graphic */
         force_full_redraw(g);
     }
+
+    /* An explicit visibility change supersedes a pause-driven hide, so resuming
+     * does not undo what the game asked for while paused. */
+    g->pause_hidden = 0;
 }
 
 u8 NGGraphicIsVisible(const NGGraphic *g) {
     return g ? g->visible : 0;
+}
+
+void NGGraphicSetPauseBehavior(NGGraphic *g, u8 behavior) {
+    if (!g)
+        return;
+    g->pause_behavior = (behavior == NG_PAUSE_HIDE) ? NG_PAUSE_HIDE : NG_PAUSE_KEEP;
+}
+
+/**
+ * Hide or restore graphics marked NG_PAUSE_HIDE. Called by NGEnginePause() and
+ * NGEngineResume(); only graphics this actually hid are restored.
+ */
+void _NGGraphicApplyPause(u8 paused) {
+    for (u8 i = 0; i < NG_GRAPHIC_MAX; i++) {
+        NGGraphic *g = &graphics[i];
+        if (!g->active || g->pause_behavior != NG_PAUSE_HIDE)
+            continue;
+
+        if (paused) {
+            if (g->visible) {
+                NGGraphicSetVisible(g, 0);
+                g->pause_hidden = 1;
+            }
+        } else if (g->pause_hidden) {
+            NGGraphicSetVisible(g, 1);
+        }
+    }
 }
 
 /* ============================================================

@@ -554,7 +554,26 @@ void NGLightingExcludePalette(u8 palette) {
 void NGLightingIncludePalette(u8 palette) {
     u8 idx = (u8)(palette >> 3);
     u8 bit = (u8)(1 << (palette & 7));
+    if (!(g_lighting.exclude_mask[idx] & bit))
+        return;
     g_lighting.exclude_mask[idx] &= (u8)~bit;
+
+    /* The palette kept its own colors while it was exempt. If a pre-baked
+     * preset is running, re-apply it so the palette rejoins the preset at its
+     * current fade step instead of staying at full brightness. */
+    if (g_lighting.prebaked_handle != NG_LIGHTING_INVALID) {
+        apply_prebaked_step(g_lighting.prebaked_preset_id, g_lighting.prebaked_current_step);
+    }
+}
+
+u8 NGLightingIsPaletteExcluded(u8 palette) {
+    return (g_lighting.exclude_mask[palette >> 3] & (1 << (palette & 7))) ? 1 : 0;
+}
+
+void NGLightingApplyPalette(u8 palette, const u16 *colors) {
+    if (NGLightingIsPaletteExcluded(palette))
+        return;
+    NGPalSet(palette, colors);
 }
 
 static s16 clamp_tint(s16 val) {

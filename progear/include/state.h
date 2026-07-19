@@ -76,8 +76,7 @@ typedef void (*NGStateCleanupFn)(void);
  * @param update Update function (required)
  * @param cleanup Cleanup function, or NULL if none needed
  */
-void NGStateRegister(u8 id, NGStateInitFn init, NGStateUpdateFn update,
-                      NGStateCleanupFn cleanup);
+void NGStateRegister(u8 id, NGStateInitFn init, NGStateUpdateFn update, NGStateCleanupFn cleanup);
 /** @} */
 
 /** @name Lifecycle */

@@ -93,8 +93,8 @@ void TilemapDemoInit(void) {
     NGBackdropSetAutoScroll(state->clouds_mid, FIX(0.22), 0);
     NGBackdropAddToScene(state->clouds_mid, 0, 36, 1);
 
-    state->clouds_near = NGBackdropCreate(&NGVisualAsset_cloud_near, NG_BACKDROP_WIDTH_INFINITE,
-                                          0, FIX(0.60), FIX(0.30));
+    state->clouds_near = NGBackdropCreate(&NGVisualAsset_cloud_near, NG_BACKDROP_WIDTH_INFINITE, 0,
+                                          FIX(0.60), FIX(0.30));
     NGBackdropSetAutoScroll(state->clouds_near, FIX(0.45), 0);
     NGBackdropAddToScene(state->clouds_near, 0, 62, 2);
 

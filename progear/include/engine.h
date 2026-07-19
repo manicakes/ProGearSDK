@@ -66,6 +66,43 @@ void NGEngineFrameStart(void);
 void NGEngineFrameEnd(void);
 /** @} */
 
+/** @name Pause */
+/** @{ */
+
+/**
+ * Pause world simulation.
+ *
+ * Intended for pause menus and cutscenes. While paused the engine:
+ *  - disables the raster timer interrupt, stopping any handler installed with
+ *    NGInterruptSetTimerHandler(). Beyond freezing the effect, this protects
+ *    the fix layer and sprite VRAM: a raster handler that reprograms VRAMADDR
+ *    mid-write will corrupt whatever the main loop was writing, which shows up
+ *    as truncated text or misplaced sprites;
+ *  - stops advancing actor animation for world actors and backdrop auto-scroll
+ *    drift;
+ *  - hides graphics marked NG_PAUSE_HIDE (see NGGraphicSetPauseBehavior),
+ *    freeing their sprite budget.
+ *
+ * Screen-space actors, menu springs, and lighting fades keep running, so a menu
+ * can still slide in and dim the scene behind it.
+ *
+ * Nested calls are not counted: pausing while already paused does nothing.
+ */
+void NGEnginePause(void);
+
+/**
+ * Resume world simulation after NGEnginePause().
+ * Re-enables the raster timer only if it was enabled when the pause began, and
+ * restores graphics that the pause hid.
+ */
+void NGEngineResume(void);
+
+/**
+ * @return 1 if the engine is paused, 0 otherwise.
+ */
+u8 NGEngineIsPaused(void);
+/** @} */
+
 /** @name Active Menu */
 /** @{ */
 

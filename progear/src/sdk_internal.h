@@ -55,6 +55,9 @@ void NGGraphicSystemDraw(void);
 /** Reset graphics system, destroying all graphics (called on scene reset) */
 void NGGraphicSystemReset(void);
 
+/** Hide (paused=1) or restore (paused=0) graphics marked NG_PAUSE_HIDE */
+void _NGGraphicApplyPause(u8 paused);
+
 /* ------------------------------------------------------------------------ */
 /* Actor internals                                                          */
 /* ------------------------------------------------------------------------ */

@@ -115,6 +115,17 @@ typedef enum {
 } NGGraphicLayer;
 
 /**
+ * What happens to a graphic while the engine is paused.
+ * @see NGEnginePause
+ */
+typedef enum {
+    /** Keep drawing the graphic while paused (default) */
+    NG_PAUSE_KEEP = 0,
+    /** Hide the graphic while paused, restoring it on resume */
+    NG_PAUSE_HIDE = 1
+} NGGraphicPauseBehavior;
+
+/**
  * Configuration for creating a graphic.
  * All dimensions are in pixels.
  */
@@ -315,6 +326,24 @@ void NGGraphicSetVisible(NGGraphic *g, u8 visible);
  * @return 1 if visible, 0 if hidden
  */
 u8 NGGraphicIsVisible(const NGGraphic *g);
+
+/**
+ * Set what happens to this graphic while the engine is paused.
+ *
+ * Effect overlays that cost sprite budget - rain, fog, particle sheets - should
+ * be marked NG_PAUSE_HIDE. Freezing such an overlay is not enough on its own:
+ * its sprites still count against the hardware's 96-per-scanline limit, and the
+ * LSPC drops the highest-numbered sprites on an overloaded line, which is
+ * exactly where the UI sprite pool lives. Hiding it while paused keeps a menu
+ * from rendering with holes.
+ *
+ * The graphic's own visibility is restored on resume, so a graphic hidden by
+ * the game before pausing stays hidden after.
+ *
+ * @param g        Graphic
+ * @param behavior NG_PAUSE_KEEP (default) or NG_PAUSE_HIDE
+ */
+void NGGraphicSetPauseBehavior(NGGraphic *g, u8 behavior);
 /** @} */
 
 /** @name Rendering */
