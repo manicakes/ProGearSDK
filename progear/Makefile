@@ -46,7 +46,8 @@ C_SOURCES = $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/spring.c \
             $(SRC_DIR)/ui.c \
             $(SRC_DIR)/engine.c \
-            $(SRC_DIR)/terrain.c
+            $(SRC_DIR)/terrain.c \
+            $(SRC_DIR)/state.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 
