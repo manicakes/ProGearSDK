@@ -6,6 +6,7 @@
 
 #include <actor.h>
 #include <camera.h>
+#include <engine.h>
 #include <graphic.h>
 #include <ng_audio.h>
 #include <ng_string.h>
@@ -50,9 +51,15 @@ void _NGActorSystemInit(void) {
 }
 
 void _NGActorSystemUpdate(void) {
+    u8 paused = NGEngineIsPaused();
+
     for (u8 i = 0; i < NG_ACTOR_MAX; i++) {
         Actor *actor = &actors[i];
         if (!actor->active || !actor->in_scene || !actor->asset)
+            continue;
+        /* While paused the world freezes, but screen-space actors are UI
+         * (menu cursors and the like) and keep animating. */
+        if (paused && !actor->screen_space)
             continue;
         if (!actor->asset->anims || actor->anim_index >= actor->asset->anim_count)
             continue;

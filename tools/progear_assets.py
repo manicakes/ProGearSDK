@@ -1753,8 +1753,8 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append(f"    case {const_name}:")
             lines.append(f"        if (step > {fade_steps}) step = {fade_steps};")
             lines.append(f"        for (u8 i = 0; i < {entry_count}; i++) {{")
-            lines.append(f"            NGPalSet({entries_name}[i].palette_index,")
-            lines.append(f"                     {entries_name}[i].steps[step]);")
+            lines.append(f"            NGLightingApplyPalette({entries_name}[i].palette_index,")
+            lines.append(f"                                   {entries_name}[i].steps[step]);")
             lines.append("        }")
             lines.append("        break;")
 

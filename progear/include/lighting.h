@@ -153,11 +153,34 @@ void NGLightingExcludePalette(u8 palette);
 
 /**
  * Return a palette to lighting control (undo NGLightingExcludePalette).
- * Takes effect the next time the lighting system captures palettes.
+ * Takes effect the next time the lighting system captures palettes. If a
+ * pre-baked preset is active, the palette is immediately brought back in line
+ * with the preset's current fade step.
  *
  * @param palette Palette index (0-255)
  */
 void NGLightingIncludePalette(u8 palette);
+
+/**
+ * Report whether a palette is currently exempt from lighting.
+ *
+ * @param palette Palette index (0-255)
+ * @return 1 if excluded, 0 otherwise
+ */
+u8 NGLightingIsPaletteExcluded(u8 palette);
+
+/**
+ * Write colors to a palette unless it is exempt from lighting.
+ *
+ * This is the entry point pre-baked presets use instead of NGPalSet(), so that
+ * NGLightingExcludePalette() holds for pre-baked palette data the same way it
+ * does for runtime colour transforms. Generated asset code calls this; games
+ * rarely need it directly.
+ *
+ * @param palette Palette index (0-255)
+ * @param colors  16 colors to write
+ */
+void NGLightingApplyPalette(u8 palette, const u16 *colors);
 /** @} */
 
 /** @name Layer Management */

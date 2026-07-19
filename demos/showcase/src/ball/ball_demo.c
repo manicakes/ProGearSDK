@@ -231,6 +231,22 @@ static void update_raster_fx(void) {
 #define MENU_MVS_DEMO     9
 #define MENU_RASTER_DEMO  10
 
+/* Opening the menu pauses the world: the engine stops the raster timer, freezes
+ * world animation, and hides the rain overlay (NG_PAUSE_HIDE). */
+static void set_menu_open(u8 open) {
+    state->menu_open = open;
+    if (open) {
+        NGEnginePause();
+        /* The handler is disabled mid-frame, so the bands it already displaced
+         * keep their offsets; re-arm from a clean state on resume. */
+        fx_mode = FX_NONE;
+        heat_target_count = 0;
+        rain_count = 0;
+    } else {
+        NGEngineResume();
+    }
+}
+
 /* Simple pseudo-random number generator */
 static u16 ball_demo_rand(void) {
     state->rng_state = (u16)(state->rng_state * 25173 + 13849);
@@ -347,6 +363,9 @@ void BallDemoInit(void) {
     NGGraphicSetSource(state->rain_overlay, &NGVisualAsset_rain_streaks, NGPAL_RAIN_STREAKS);
     NGGraphicSetPosition(state->rain_overlay, RAIN_X, -64);
     NGGraphicSetVisible(state->rain_overlay, 0);
+    /* 24 sprites wide: with the backdrops and the menu panel this overruns the
+     * 96-per-scanline limit, so drop it while the pause menu is up */
+    NGGraphicSetPauseBehavior(state->rain_overlay, NG_PAUSE_HIDE);
 
     /* Raster effects run for the demo's whole lifetime */
     fx_mode = FX_NONE;
@@ -381,16 +400,19 @@ void BallDemoInit(void) {
 u8 BallDemoUpdate(void) {
     /* First thing each frame: re-arm the raster timer while VBlank has
      * barely started, so its stray auto-reloaded countdown can't fire
-     * during this frame's VRAM writes. Runs even when the menu is open. */
-    update_raster_fx();
+     * during this frame's VRAM writes. Skipped while paused - the timer is
+     * disabled and the rain overlay hidden, and re-arming would undo both. */
+    if (!NGEngineIsPaused()) {
+        update_raster_fx();
+    }
 
     if (NGInputPressed(NG_PLAYER_1, NG_BTN_START)) {
         if (state->menu_open) {
             NGMenuHide(state->menu);
-            state->menu_open = 0;
+            set_menu_open(0);
         } else {
             NGMenuShow(state->menu);
-            state->menu_open = 1;
+            set_menu_open(1);
         }
     }
 
@@ -401,7 +423,7 @@ u8 BallDemoUpdate(void) {
             switch (NGMenuGetSelection(state->menu)) {
                 case MENU_RESUME:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     break;
                 case MENU_ADD_BALL:
                     BallSpawn(state->balls);
@@ -435,27 +457,27 @@ u8 BallDemoUpdate(void) {
                     break;
                 case MENU_SCROLL_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_SCROLL;
                     break;
                 case MENU_BLANK_SCENE:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_BLANK_SCENE;
                     break;
                 case MENU_TILEMAP_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_TILEMAP;
                     break;
                 case MENU_MVS_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_MVS;
                     break;
                 case MENU_RASTER_DEMO:
                     NGMenuHide(state->menu);
-                    state->menu_open = 0;
+                    set_menu_open(0);
                     state->switch_target = DEMO_ID_RASTER;
                     break;
             }
@@ -463,7 +485,7 @@ u8 BallDemoUpdate(void) {
 
         if (NGMenuCancelled(state->menu)) {
             NGMenuHide(state->menu);
-            state->menu_open = 0;
+            set_menu_open(0);
         }
     }
 
@@ -504,6 +526,9 @@ u8 BallDemoUpdate(void) {
 }
 
 void BallDemoCleanup(void) {
+    /* Leave the engine unpaused for whatever state comes next */
+    NGEngineResume();
+
     /* Stop raster effects before tearing down their target graphics */
     NGTimerDisable();
     NGInterruptSetTimerHandler(0);

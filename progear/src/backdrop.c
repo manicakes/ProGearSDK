@@ -6,6 +6,7 @@
 
 #include <backdrop.h>
 #include <camera.h>
+#include <engine.h>
 #include <graphic.h>
 
 #include "sdk_internal.h"
@@ -295,11 +296,17 @@ struct NGGraphic *NGBackdropGetGraphic(NGBackdropHandle handle) {
  * Called by scene before graphic system draw.
  */
 void _NGBackdropSyncGraphics(void) {
+    /* Auto-scroll drift is world animation and stops while paused; the sync
+     * itself still runs so camera moves and visibility changes take effect. */
+    u8 drift = !NGEngineIsPaused();
+
     for (u8 i = 0; i < NG_BACKDROP_MAX; i++) {
         Backdrop *bd = &backdrop_layers[i];
         if (bd->active && bd->in_scene) {
-            bd->scroll_x += bd->scroll_vel_x;
-            bd->scroll_y += bd->scroll_vel_y;
+            if (drift) {
+                bd->scroll_x += bd->scroll_vel_x;
+                bd->scroll_y += bd->scroll_vel_y;
+            }
             /* Wrap at the asset's tiling period so the fixed-point
              * accumulator never overflows on long sessions */
             if (bd->asset) {
