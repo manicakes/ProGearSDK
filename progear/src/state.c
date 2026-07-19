@@ -16,8 +16,7 @@ typedef struct {
 static NGStateEntry g_states[NG_STATE_MAX];
 static u8 g_current = NG_STATE_ID_NONE;
 
-void NGStateRegister(u8 id, NGStateInitFn init, NGStateUpdateFn update,
-                      NGStateCleanupFn cleanup) {
+void NGStateRegister(u8 id, NGStateInitFn init, NGStateUpdateFn update, NGStateCleanupFn cleanup) {
     if (id == NG_STATE_ID_NONE || id >= NG_STATE_MAX) {
         return;
     }

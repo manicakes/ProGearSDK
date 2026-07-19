@@ -21,7 +21,7 @@ typedef struct {
     fixed parallax_y;   // Vertical movement rate
     fixed scroll_vel_x; // Auto-scroll drift per frame (independent of camera)
     fixed scroll_vel_y;
-    fixed scroll_x;     // Accumulated auto-scroll offset
+    fixed scroll_x; // Accumulated auto-scroll offset
     fixed scroll_y;
     s16 viewport_x;     // X offset from camera viewport
     s16 viewport_y;     // Y offset from camera viewport
