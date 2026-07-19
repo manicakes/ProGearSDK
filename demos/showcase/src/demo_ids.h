@@ -7,8 +7,8 @@
 #ifndef DEMO_IDS_H
 #define DEMO_IDS_H
 
-// Demo IDs for scene switching
-// 0 = no switch requested, 1+ = switch to that demo
+// Demo IDs, used as NGState ids (see <state.h>).
+// 0 is reserved (NG_STATE_ID_NONE = no switch requested).
 #define DEMO_ID_BALL        1
 #define DEMO_ID_SCROLL      2
 #define DEMO_ID_BLANK_SCENE 3

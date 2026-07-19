@@ -31,6 +31,7 @@
  * - @ref lighting - Palette-based lighting effects
  * - @ref ui - Menu system
  * - @ref spring - Spring physics animations
+ * - @ref state - Game state / screen switching
  */
 
 #ifndef NG_PROGEARSDK_H
@@ -65,5 +66,8 @@
 
 /* Engine lifecycle */
 #include <engine.h>
+
+/* Game state / screen switching */
+#include <state.h>
 
 #endif /* NG_PROGEARSDK_H */
