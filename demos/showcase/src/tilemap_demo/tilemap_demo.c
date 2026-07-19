@@ -18,6 +18,7 @@
 #include <actor.h>
 #include <backdrop.h>
 #include <engine.h>
+#include <ng_audio.h>
 #include <progear_assets.h>
 
 #define PLAYER_HALF_W FIX(6)
@@ -132,6 +133,9 @@ void TilemapDemoInit(void) {
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "TILEMAP DEMO");
     NGTextPrint(NGFixLayoutOffset(NG_ALIGN_LEFT, NG_ALIGN_BOTTOM, 1, -1), 0,
                 "DPAD:MOVE  A:JUMP  START:MENU");
+
+    /* Sequenced FM stage theme - note data in M1 ROM, not streamed samples */
+    NGSongPlay(NGSONG_DOWNTOWN);
 }
 
 u8 TilemapDemoUpdate(void) {
@@ -254,6 +258,8 @@ u8 TilemapDemoUpdate(void) {
 }
 
 void TilemapDemoCleanup(void) {
+    NGSongStop();
+
     NGFixClear(0, 3, 40, 1);
     NGFixClear(0, 27, 40, 1);
 

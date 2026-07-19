@@ -29,6 +29,8 @@
 #define CMD_SFX_STOP_CH    0x60 /* 0x60-0x65: Stop SFX channel 0-5 */
 #define CMD_STOP_ALL       0x70
 #define CMD_VOLUME_BASE    0x80 /* 0x80-0x8F: Volume 0-15 */
+#define CMD_SONG_BASE      0xA0 /* 0xA0-0xAF: Sequenced song 0-15 */
+#define CMD_SONG_STOP      0xB0
 #define CMD_SFX_LEFT_BASE  0xC0 /* 0xC0-0xCF: SFX 0-15 (left pan) */
 #define CMD_SFX_RIGHT_BASE 0xD0 /* 0xD0-0xDF: SFX 0-15 (right pan) */
 #define CMD_SFX_EXT_LEFT   0xE0 /* 0xE0-0xEF: SFX 16-31 (left pan) */
@@ -121,7 +123,26 @@ void NGSfxStopAll(void) {
     }
 }
 
+void NGSongPlay(u8 song_index) {
+    if (song_index >= NG_AUDIO_MAX_SONGS)
+        return;
+
+    /* A sequenced song and streamed ADPCM-B music both occupy "the music
+     * slot"; starting one stops the other so they cannot overlap. */
+    if (current_music_index != 0xFF) {
+        NGMusicStop();
+    }
+    NGAudioSendCommand(CMD_SONG_BASE + song_index);
+}
+
+void NGSongStop(void) {
+    NGAudioSendCommand(CMD_SONG_STOP);
+}
+
 void NGMusicPlay(u8 music_index) {
+    /* Streamed music takes over from any sequenced song */
+    NGSongStop();
+
     if (music_index >= NG_AUDIO_MAX_MUSIC)
         return;
 
