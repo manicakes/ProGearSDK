@@ -42,6 +42,59 @@ typedef struct {
 } NGAnimDef;
 /** @} */
 
+/** @name Collision Boxes */
+/** @{ */
+
+/**
+ * Box kinds.
+ *
+ * These are deliberately about geometry rather than genre: a box says what
+ * *region* it is, and the game decides what that means. A shmup typically uses
+ * BODY and HURT, a racer BODY and TRIGGER, an action game all of them. Four
+ * bits are left free for game-defined kinds.
+ */
+typedef enum {
+    NG_BOX_BODY = 0x01,    /**< Physical extent: pushing, ground contact, footprint */
+    NG_BOX_HURT = 0x02,    /**< Can be damaged here */
+    NG_BOX_HIT = 0x04,     /**< Damages others while this frame is showing */
+    NG_BOX_GUARD = 0x08,   /**< Intercepts incoming hits: blocks, parries, shields */
+    NG_BOX_TRIGGER = 0x10, /**< Sensor: pickups, aggro range, checkpoints */
+    NG_BOX_USER1 = 0x20,
+    NG_BOX_USER2 = 0x40,
+    NG_BOX_USER3 = 0x80
+} NGBoxKind;
+
+/**
+ * A box in frame-local pixels, measured from the frame's top-left corner.
+ *
+ * Frame-local rather than anchor-relative on purpose: an actor's anchor can
+ * change at runtime, and boxes must not move when it does. It also makes
+ * mirroring exact - a horizontally flipped box is (frame_width - x - w).
+ */
+typedef struct {
+    s16 x, y;
+    u16 w, h;
+    u8 kind;      /**< One NGBoxKind value */
+    u8 _reserved; /**< Padding; keeps the struct 10 bytes and 2-byte aligned */
+} NGBox;
+
+/**
+ * The boxes belonging to one animation frame.
+ *
+ * @c kinds is the union of every kind present in this frame, which lets a
+ * query answer "is anything dangerous here?" with a single mask test instead
+ * of walking the box list. Most frames of most animations have no active
+ * hitbox, so this is the difference between scanning boxes every frame and
+ * almost never touching them.
+ */
+typedef struct {
+    u8 first_box; /**< Index into NGVisualAsset::boxes */
+    u8 box_count; /**< Number of boxes for this frame */
+    u8 kinds;     /**< Union of NGBoxKind values present */
+    u8 _reserved; /**< Padding; keeps the struct 4 bytes */
+} NGFrameBoxes;
+/** @} */
+
 /** @name Visual Asset Structure */
 /** @{ */
 
@@ -66,6 +119,11 @@ typedef struct {
     u8 anim_count;          /**< Number of animations (0 if static) */
     u16 frame_count;        /**< Total frames (1 if static) */
     u16 tiles_per_frame;    /**< Tiles per animation frame */
+
+    /* Collision boxes (optional) */
+    const NGBox *boxes;              /**< Flat box array, or NULL if none */
+    const NGFrameBoxes *frame_boxes; /**< One entry per frame, or NULL if none */
+    u8 kinds;                        /**< Union of kinds across all frames */
 } NGVisualAsset;
 /** @} */
 

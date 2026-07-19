@@ -74,6 +74,18 @@ void _NGActorSyncGraphics(void);
 /** Collect palette indices used by actors into a bitmask */
 void _NGActorCollectPalettes(u8 *palette_mask);
 
+/** Visual asset backing an actor, or NULL */
+const NGVisualAsset *_NGActorGetAsset(NGActorHandle actor);
+
+/** Frame index within the actor's current animation */
+u16 _NGActorGetAnimFrame(NGActorHandle actor);
+
+/** Absolute frame index into the asset's frame list */
+u16 _NGActorGetAbsoluteFrame(NGActorHandle actor);
+
+/** Horizontal flip state (1 = mirrored) */
+u8 _NGActorGetHFlip(NGActorHandle actor);
+
 /* ------------------------------------------------------------------------ */
 /* Backdrop internals                                                       */
 /* ------------------------------------------------------------------------ */

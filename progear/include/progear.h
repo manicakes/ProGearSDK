@@ -57,6 +57,9 @@
 /* Physics */
 #include <physics.h>
 
+/* Per-frame collision boxes, overlap queries and strike resolution */
+#include <hitbox.h>
+
 /* Lighting effects */
 #include <lighting.h>
 

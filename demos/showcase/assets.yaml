@@ -90,6 +90,31 @@ visual_assets:
   - name: cloud_near
     source: assets/cloud_near.png
 
+  # --- Hitbox showcase (tilemap demo) ---
+
+  # Player bullet. One hitbox covering the pellet; nothing else, since a
+  # bullet is never hurt or stood on.
+  - name: bullet
+    source: assets/bullet.png
+    boxes:
+      default:
+        hit: [4, 5, 8, 6]
+
+  # Walking enemy. Its hurtbox is derived from the artwork, so it stays
+  # correct if the sprite is redrawn. The separate 'stomp' box across the
+  # shoulders is what the player lands on - keeping it distinct from the
+  # hurtbox is what lets a stomp read differently from a bullet.
+  - name: walker
+    source: assets/walker.png
+    frame_size: [32, 32]
+    animations:
+      walk: { frames: [0-1], speed: 12, loop: true }
+    boxes:
+      default:
+        hurt: auto
+        body: [6, 10, 20, 20]
+        user1: [6, 8, 20, 6]
+
   # Parallax scrolling layers (for scroll demo)
   - name: back_layer
     source: assets/back.png

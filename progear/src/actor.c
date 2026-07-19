@@ -25,6 +25,8 @@ typedef struct {
     u8 active;       // Slot in use?
     u8 screen_space; // If set, ignore camera (UI elements)
 
+    s16 anchor_x, anchor_y; // Anchor offset from the frame's top-left, in pixels
+
     u8 anim_index;
     u16 anim_frame;
     u8 anim_counter;
@@ -109,6 +111,21 @@ static void sync_actor_graphic(Actor *actor) {
         scale = NGCameraZoomToScale(NGCameraGetZoom());
     }
 
+    /* The graphic is placed by its top-left corner, so back the anchor off the
+     * actor's position. A shrunk sprite occupies proportionally fewer pixels,
+     * so the offset scales with it - that is what keeps a scaled sprite pinned
+     * to its anchor instead of drifting. The common unscaled case skips the
+     * multiply entirely. */
+    if (actor->anchor_x | actor->anchor_y) {
+        if (scale == NG_GRAPHIC_SCALE_ONE) {
+            screen_x = (s16)(screen_x - actor->anchor_x);
+            screen_y = (s16)(screen_y - actor->anchor_y);
+        } else {
+            screen_x = (s16)(screen_x - (s16)(((s32)actor->anchor_x * scale) >> 8));
+            screen_y = (s16)(screen_y - (s16)(((s32)actor->anchor_y * scale) >> 8));
+        }
+    }
+
     NGGraphicSetPosition(actor->graphic, screen_x, screen_y);
     NGGraphicSetScale(actor->graphic, scale);
 
@@ -171,6 +188,8 @@ NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
     actor->visible = 1;
     actor->h_flip = 0;
     actor->v_flip = 0;
+    actor->anchor_x = 0; /* top-left: positions mean what they always did */
+    actor->anchor_y = 0;
     actor->in_scene = 0;
     actor->active = 1;
     actor->screen_space = 0;
@@ -230,12 +249,107 @@ void NGActorDestroy(NGActorHandle handle) {
     actor->active = 0;
 }
 
+/* Display size the anchor is measured against (0 means "use the asset's"). */
+static u16 actor_display_w(const Actor *actor) {
+    return actor->width ? actor->width : actor->asset->width_pixels;
+}
+
+static u16 actor_display_h(const Actor *actor) {
+    return actor->height ? actor->height : actor->asset->height_pixels;
+}
+
+/* One axis of a 3x3 anchor: 0 = near edge, 1 = centre, 2 = far edge */
+static s16 anchor_axis(u16 size, u8 cell) {
+    if (cell == 0)
+        return 0;
+    if (cell == 1)
+        return (s16)(size >> 1);
+    return (s16)size;
+}
+
+static void resolve_anchor(const Actor *actor, NGAnchor anchor, s16 *out_x, s16 *out_y) {
+    /* Anchors are laid out row-major in a 3x3 grid, so column and row fall
+     * out of the index without a divide. */
+    static const u8 col[9] = {0, 1, 2, 0, 1, 2, 0, 1, 2};
+    static const u8 row[9] = {0, 0, 0, 1, 1, 1, 2, 2, 2};
+
+    u8 i = (u8)anchor;
+    if (i > NG_ANCHOR_BOTTOM_RIGHT)
+        i = NG_ANCHOR_TOP_LEFT;
+
+    *out_x = anchor_axis(actor_display_w(actor), col[i]);
+    *out_y = anchor_axis(actor_display_h(actor), row[i]);
+}
+
+void NGActorSetAnchor(NGActorHandle handle, NGAnchor anchor) {
+    Actor *actor = resolve_actor(handle);
+    if (!actor || !actor->asset)
+        return;
+    resolve_anchor(actor, anchor, &actor->anchor_x, &actor->anchor_y);
+}
+
+void NGActorSetAnchorPixels(NGActorHandle handle, s16 x, s16 y) {
+    Actor *actor = resolve_actor(handle);
+    if (!actor)
+        return;
+    actor->anchor_x = x;
+    actor->anchor_y = y;
+}
+
+const NGVisualAsset *_NGActorGetAsset(NGActorHandle handle) {
+    Actor *actor = resolve_actor(handle);
+    return actor ? actor->asset : 0;
+}
+
+u16 _NGActorGetAnimFrame(NGActorHandle handle) {
+    Actor *actor = resolve_actor(handle);
+    return actor ? actor->anim_frame : 0;
+}
+
+u16 _NGActorGetAbsoluteFrame(NGActorHandle handle) {
+    Actor *actor = resolve_actor(handle);
+    if (!actor || !actor->asset)
+        return 0;
+    /* Without animations the actor sits on the frame set by NGActorSetFrame */
+    if (!actor->asset->anims || actor->anim_index >= actor->asset->anim_count)
+        return actor->anim_frame;
+    return (u16)(actor->asset->anims[actor->anim_index].first_frame + actor->anim_frame);
+}
+
+u8 _NGActorGetHFlip(NGActorHandle handle) {
+    Actor *actor = resolve_actor(handle);
+    return actor ? actor->h_flip : 0;
+}
+
+NGVec2 NGActorGetAnchorPixels(NGActorHandle handle) {
+    NGVec2 v = {0, 0};
+    Actor *actor = resolve_actor(handle);
+    if (actor) {
+        v.x = actor->anchor_x;
+        v.y = actor->anchor_y;
+    }
+    return v;
+}
+
 void NGActorSetPos(NGActorHandle handle, fixed x, fixed y) {
     Actor *actor = resolve_actor(handle);
     if (!actor)
         return;
     actor->x = x;
     actor->y = y;
+}
+
+void NGActorSetPosAnchored(NGActorHandle handle, fixed x, fixed y, NGAnchor anchor) {
+    Actor *actor = resolve_actor(handle);
+    if (!actor || !actor->asset)
+        return;
+
+    /* Convert to the actor's own anchor so its stored position keeps meaning
+     * what it always did. */
+    s16 ax, ay;
+    resolve_anchor(actor, anchor, &ax, &ay);
+    actor->x = x + FIX(actor->anchor_x - ax);
+    actor->y = y + FIX(actor->anchor_y - ay);
 }
 
 void NGActorMove(NGActorHandle handle, fixed dx, fixed dy) {

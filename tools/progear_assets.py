@@ -503,6 +503,151 @@ def extract_frames(img, frame_width, frame_height, source_path):
         return frames, frame_count
 
 
+# Box kind names as they appear in assets.yaml -> NGBoxKind bit values
+BOX_KINDS = {
+    'body': 0x01,
+    'hurt': 0x02,
+    'hit': 0x04,
+    'guard': 0x08,
+    'trigger': 0x10,
+    'user1': 0x20,
+    'user2': 0x40,
+    'user3': 0x80,
+}
+
+
+def opaque_bounds(frame):
+    """
+    Tight bounding box of a frame's opaque pixels, as (x, y, w, h).
+
+    Uses the same alpha >= 128 rule as the tile encoder, so an auto hurtbox
+    matches exactly what the player can see. Returns None for a blank frame.
+    """
+    px = frame.load()
+    w, h = frame.size
+    min_x, min_y, max_x, max_y = w, h, -1, -1
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] >= 128:
+                if x < min_x:
+                    min_x = x
+                if x > max_x:
+                    max_x = x
+                if y < min_y:
+                    min_y = y
+                if y > max_y:
+                    max_y = y
+    if max_x < 0:
+        return None
+    return (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+
+
+def parse_box_value(asset_name, frame_index, kind_name, value, frame, frame_w, frame_h):
+    """
+    Normalise one box entry into a list of (x, y, w, h) tuples.
+
+    Accepts a single [x, y, w, h], a list of them, the string 'auto' (the
+    frame's opaque bounds) or 'none' (remove any inherited box of this kind).
+    """
+    if value is None or (isinstance(value, str) and value.lower() == 'none'):
+        return []
+
+    if isinstance(value, str):
+        if value.lower() != 'auto':
+            raise ProgearAssetsError(
+                f"Visual asset '{asset_name}' frame {frame_index}: box '{kind_name}' "
+                f"must be [x, y, w, h], 'auto' or 'none', got '{value}'")
+        bounds = opaque_bounds(frame)
+        if bounds is None:
+            return []
+        return [bounds]
+
+    # A bare [x, y, w, h] versus a list of them
+    if len(value) == 4 and all(isinstance(v, int) for v in value):
+        boxes = [tuple(value)]
+    else:
+        boxes = [tuple(v) for v in value]
+
+    for b in boxes:
+        if len(b) != 4:
+            raise ProgearAssetsError(
+                f"Visual asset '{asset_name}' frame {frame_index}: box '{kind_name}' "
+                f"needs 4 values [x, y, w, h], got {len(b)}")
+        x, y, bw, bh = b
+        if bw <= 0 or bh <= 0:
+            raise ProgearAssetsError(
+                f"Visual asset '{asset_name}' frame {frame_index}: box '{kind_name}' "
+                f"has non-positive size {bw}x{bh}")
+        # A box reaching outside the frame still mirrors correctly, but it is
+        # nearly always a typo, so say so rather than silently accepting it.
+        if x < 0 or y < 0 or x + bw > frame_w or y + bh > frame_h:
+            print(f"Warning: '{asset_name}' frame {frame_index} box '{kind_name}' "
+                  f"({x},{y},{bw},{bh}) extends outside the {frame_w}x{frame_h} frame",
+                  file=sys.stderr)
+    return boxes
+
+
+def build_boxes(asset_name, spec, frames, frame_count, frame_w, frame_h):
+    """
+    Compile a 'boxes:' section into a flat box array plus a per-frame index.
+
+    Boxes are stored in frame-local pixels from the frame's top-left corner.
+    That keeps them independent of the actor's runtime anchor and makes
+    mirroring exact (x' = frame_width - x - w).
+
+    Returns (boxes, frame_entries, kinds_union) where boxes is a list of
+    (x, y, w, h, kind) and frame_entries is one (first, count, kinds) per frame.
+    """
+    if not spec:
+        return [], [], 0
+
+    default_spec = spec.get('default', {}) or {}
+    per_frame = spec.get('frames', {}) or {}
+
+    for key in spec:
+        if key not in ('default', 'frames'):
+            raise ProgearAssetsError(
+                f"Visual asset '{asset_name}': unknown 'boxes' section '{key}' "
+                f"(expected 'default' or 'frames')")
+
+    boxes = []
+    frame_entries = []
+    kinds_union = 0
+
+    for frame_index in range(frame_count):
+        frame = frames[frame_index] if frame_index < len(frames) else frames[0]
+
+        # A frame's own entry overrides the default for that kind, so 'hurt:
+        # none' on one frame of an invincible roll works as written.
+        merged = dict(default_spec)
+        override = per_frame.get(frame_index, {}) or {}
+        for kind_name, value in override.items():
+            merged[kind_name] = value
+
+        first = len(boxes)
+        frame_kinds = 0
+        for kind_name, value in merged.items():
+            if kind_name not in BOX_KINDS:
+                raise ProgearAssetsError(
+                    f"Visual asset '{asset_name}': unknown box kind '{kind_name}' "
+                    f"(expected one of {', '.join(sorted(BOX_KINDS))})")
+            bit = BOX_KINDS[kind_name]
+            for (x, y, bw, bh) in parse_box_value(asset_name, frame_index, kind_name,
+                                                  value, frame, frame_w, frame_h):
+                boxes.append((x, y, bw, bh, bit))
+                frame_kinds |= bit
+
+        count = len(boxes) - first
+        if first > 255 or count > 255:
+            raise ProgearAssetsError(
+                f"Visual asset '{asset_name}': more than 255 boxes; "
+                f"split the asset or reduce box counts")
+        frame_entries.append((first, count, frame_kinds))
+        kinds_union |= frame_kinds
+
+    return boxes, frame_entries, kinds_union
+
+
 def build_palette_from_frames(frames, max_colors=16, asset_name=None):
     """
     Build a single palette from all frames.
@@ -781,6 +926,10 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
             'loop': 1 if loop else 0,
         })
 
+    # Collision boxes (optional)
+    box_list, frame_box_list, box_kinds = build_boxes(
+        name, asset_def.get('boxes'), frames, frame_count, frame_width, frame_height)
+
     # Determine palette to use
     palette_name = None  # Will be set if using a named palette
 
@@ -881,6 +1030,9 @@ def process_visual_asset(asset_def, yaml_dir, base_tile, palette_registry):
         'palette_name': palette_name,  # Reference to palette in registry
         'palette_idx': palette_idx,
         'tilemap': tilemap,
+        'boxes': box_list,
+        'frame_boxes': frame_box_list,
+        'box_kinds': box_kinds,
     }
 
     return bytes(all_c1_data), bytes(all_c2_data), palette, asset_info, total_tiles
@@ -1511,6 +1663,23 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
         lines.append("};")
         lines.append("")
 
+        # Collision box tables (frame-local pixels, top-left origin)
+        asset_boxes = asset.get('boxes') or []
+        asset_frame_boxes = asset.get('frame_boxes') or []
+        if asset_boxes:
+            kind_name_of = {v: k for k, v in BOX_KINDS.items()}
+            lines.append(f"static const NGBox _{name}_boxes[] = {{")
+            for (bx, by, bw, bh, kind) in asset_boxes:
+                lines.append(f"    {{ {bx}, {by}, {bw}, {bh}, 0x{kind:02X}, 0 }},"
+                             f"  // {kind_name_of.get(kind, '?')}")
+            lines.append("};")
+            lines.append("")
+            lines.append(f"static const NGFrameBoxes _{name}_frame_boxes[] = {{")
+            for (first, count, kinds) in asset_frame_boxes:
+                lines.append(f"    {{ {first}, {count}, 0x{kinds:02X}, 0 }},")
+            lines.append("};")
+            lines.append("")
+
         # NGVisualAsset struct - now with palette_data
         lines.append(f"static const NGVisualAsset NGVisualAsset_{name} = {{")
         lines.append(f"    .name = \"{name}\",")
@@ -1530,6 +1699,14 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append("    .anim_count = 0,")
         lines.append(f"    .frame_count = {asset['frame_count']},")
         lines.append(f"    .tiles_per_frame = {asset['tiles_per_frame']},")
+        if asset_boxes:
+            lines.append(f"    .boxes = _{name}_boxes,")
+            lines.append(f"    .frame_boxes = _{name}_frame_boxes,")
+            lines.append(f"    .kinds = 0x{asset.get('box_kinds', 0):02X},")
+        else:
+            lines.append("    .boxes = 0,")
+            lines.append("    .frame_boxes = 0,")
+            lines.append("    .kinds = 0,")
         lines.append("};")
         lines.append("")
 

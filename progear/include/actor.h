@@ -56,6 +56,68 @@ typedef s8 NGActorHandle;
 #define NG_ACTOR_INVALID (-1)
 /** @} */
 
+/** @name Anchor */
+/** @{ */
+
+/**
+ * The point within an actor's frame that its position refers to.
+ *
+ * The anchor declares what an actor's coordinates *mean*. Top-left is the
+ * default, which is what most static art wants. Other genres want other
+ * points: bottom-centre puts a character's feet on its position, so the same
+ * value both places it and sorts its depth; centre suits ships, bullets and
+ * explosions; a scaled sprite grows away from its anchor, which is what an
+ * object rising off a road plane needs.
+ *
+ * Values are laid out as a 3x3 grid (index = row * 3 + column), so the pixel
+ * offset is arithmetic rather than a lookup.
+ */
+typedef enum {
+    NG_ANCHOR_TOP_LEFT = 0,
+    NG_ANCHOR_TOP = 1,
+    NG_ANCHOR_TOP_RIGHT = 2,
+    NG_ANCHOR_LEFT = 3,
+    NG_ANCHOR_CENTER = 4,
+    NG_ANCHOR_RIGHT = 5,
+    NG_ANCHOR_BOTTOM_LEFT = 6,
+    NG_ANCHOR_BOTTOM = 7,
+    NG_ANCHOR_BOTTOM_RIGHT = 8
+} NGAnchor;
+
+/**
+ * Set the actor's anchor to one of the nine grid positions.
+ *
+ * Because the anchor defines what the actor's position means, changing it
+ * moves the sprite rather than rewriting the position. Set it once after
+ * creation, before placing the actor.
+ *
+ * @param actor Actor handle
+ * @param anchor Anchor position
+ */
+void NGActorSetAnchor(NGActorHandle actor, NGAnchor anchor);
+
+/**
+ * Set the actor's anchor to an arbitrary point, in unscaled frame pixels
+ * measured from the top-left of the frame.
+ *
+ * Use this when none of the nine grid positions is right - a character whose
+ * pivot is a hand or a hilt, say.
+ *
+ * @param actor Actor handle
+ * @param x Offset from the frame's left edge
+ * @param y Offset from the frame's top edge
+ */
+void NGActorSetAnchorPixels(NGActorHandle actor, s16 x, s16 y);
+
+/**
+ * Get the actor's anchor offset in unscaled frame pixels.
+ *
+ * @param actor Actor handle
+ * @return Offset from the frame's top-left corner
+ */
+NGVec2 NGActorGetAnchorPixels(NGActorHandle actor);
+/** @} */
+
 /** @name Lifecycle */
 /** @{ */
 
@@ -100,6 +162,21 @@ void NGActorDestroy(NGActorHandle actor);
  * @param y Scene Y position (fixed-point)
  */
 void NGActorSetPos(NGActorHandle actor, fixed x, fixed y);
+
+/**
+ * Position the actor so that @p anchor lands on (x, y), without changing the
+ * actor's own anchor.
+ *
+ * Useful for one-off placement in a different frame of reference than the
+ * actor normally uses - centring an explosion on an impact point, or dropping
+ * a pickup so its base sits on a platform.
+ *
+ * @param actor Actor handle
+ * @param x Scene X coordinate
+ * @param y Scene Y coordinate
+ * @param anchor Anchor to place at (x, y) for this call only
+ */
+void NGActorSetPosAnchored(NGActorHandle actor, fixed x, fixed y, NGAnchor anchor);
 
 /**
  * Move actor by offset.
