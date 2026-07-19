@@ -170,6 +170,8 @@ init_driver:
     ld      (pending_pan), a
     ld      (fm_active), a
     ld      (fm_request), a
+    ld      (seq_active), a
+    ld      (seq_ntracks), a
     ld      a, #0x3F
     ld      (master_volume), a
 
@@ -192,6 +194,11 @@ main_loop:
     ld      a, (fm_active)
     or      a
     call    nz, fm_poll
+
+    ;; Sequenced song: advance on each Timer B expiry
+    ld      a, (seq_active)
+    or      a
+    call    nz, seq_poll
 
     ;; Small delay to avoid hammering the YM2610
     ld      b, #0x20
@@ -369,14 +376,29 @@ _check_stop_all:
 _check_volume:
     ;; 0x80-0x8F: Set master volume
     cp      #0x80
-    jr      c, _check_sfx_left
+    jr      c, _check_seq_play
     cp      #0x90
-    jr      nc, _check_sfx_left
+    jr      nc, _check_seq_play
     and     #0x0F
     sla     a
     sla     a                   ; Volume 0-60 (in steps of 4)
     ld      (master_volume), a
     jp      set_master_volume
+
+_check_seq_play:
+    ;; 0xA0-0xAF: Play sequenced (FM) song 0-15
+    cp      #0xA0
+    jr      c, _check_seq_stop
+    cp      #0xB0
+    jr      nc, _check_seq_stop
+    and     #0x0F
+    jp      seq_start
+
+_check_seq_stop:
+    ;; 0xB0: Stop sequenced song
+    cp      #0xB0
+    jr      nz, _check_sfx_left
+    jp      seq_stop
 
 _check_sfx_left:
     ;; 0xC0-0xCF: Play SFX 0-15 panned LEFT
@@ -1334,9 +1356,692 @@ fm_track_init:
     .byte   0, 1, 6, 0x06, 0x02, 0x01, 0x1C, 0x01, 0
 
 
+;;; === Sequenced Song Engine (0x0C00) ===
+;;;
+;;; Plays multi-track FM + ADPCM-A songs compiled by tools/ngsong.py. Unlike
+;;; the ADPCM-B music path, which streams ~9.25 KB of V-ROM per second, a song
+;;; here is note data in M1 ROM: a few KB regardless of length.
+;;;
+;;; Driven by the same Timer B the boot jingle uses, so the two never play
+;;; together - seq_start stops the jingle first.
+;;;
+;;; Data blob layout (patched in at SONG_BASE by the Makefile):
+;;;   +0x0000  song table, 16 x 2-byte absolute pointers (0 = unused)
+;;;   +0x0020  instrument records, 32 bytes each (30 patch bytes + carrier mask)
+;;;   ...      song headers and event streams
+;;;
+;;; Song header: timer_b, n_tracks, then 7 bytes per track:
+;;;   type (0=FM, 1=drum), channel, instrument, stream word, loop word
+
+    .org    0x0C00
+
+    .equ    SONG_BASE,      0x2000
+    .equ    SONG_INST_BASE, SONG_BASE + 0x20
+    .equ    SEQ_MAX_TRACKS, 8
+
+;;; Per-track state (16 bytes so the index is a shift, not a multiply)
+    .equ    SEQ_ACTIVE,     0
+    .equ    SEQ_PTR_L,      1
+    .equ    SEQ_PTR_H,      2
+    .equ    SEQ_DUR,        3   ; ticks left on the current event
+    .equ    SEQ_TYPE,       4   ; 0 = FM, 1 = ADPCM-A drum
+    .equ    SEQ_CH,         5   ; FM 0-3, or ADPCM-A channel 0-5
+    .equ    SEQ_VOL,        6   ; carrier attenuation (0 loudest)
+    .equ    SEQ_LOOP_L,     7
+    .equ    SEQ_LOOP_H,     8
+    .equ    SEQ_KEYON,      9   ; FM key-on code (1/2/5/6)
+    .equ    SEQ_CHOFF,      10  ; FM register offset (1/2)
+    .equ    SEQ_PORT,       11  ; 0 = port A, 1 = port B
+    .equ    SEQ_CARMASK,    12  ; which TL slots are carriers
+    .equ    SEQ_SIZE,       16
+
+;;; Stream opcodes
+    .equ    SEQ_OP_REST,    0x60
+    .equ    SEQ_OP_INST,    0x61
+    .equ    SEQ_OP_VOL,     0x62
+    .equ    SEQ_OP_PAN,     0x63
+    .equ    SEQ_OP_TIE,     0x64
+    .equ    SEQ_OP_END,     0xFF
+
+;;; Write B=register, A=value to this track's port (IX = track state).
+;;; The boot jingle's fm_track_write does the same job but reads TRK_PORT at
+;;; offset 8, which is SEQ_LOOP_H here - it must not be used on seq tracks.
+seq_write:
+    push    af
+    ld      a, SEQ_PORT (ix)
+    or      a
+    jr      nz, _seq_write_b
+    pop     af
+    jp      ym_write_a
+_seq_write_b:
+    pop     af
+    jp      ym_write_b
+
+;;; FM channel index -> key-on code, register offset, port
+seq_fm_map:
+    .byte   0x01, 1, 0
+    .byte   0x02, 2, 0
+    .byte   0x05, 1, 1
+    .byte   0x06, 2, 1
+
+;;; Start song A (0-15). Main loop context.
+seq_start:
+    push    bc
+    push    de
+    push    hl
+
+    ld      (seq_song), a
+
+    ;; The jingle owns Timer B; make sure it is not also running
+    call    seq_stop_quiet
+    call    fm_stop
+
+    out     (PORT_DISABLE_NMI), a
+
+    ;; HL = song_table[A]
+    ld      l, a
+    ld      h, #0
+    add     hl, hl
+    ld      de, #SONG_BASE
+    add     hl, de
+    ld      e, (hl)
+    inc     hl
+    ld      d, (hl)
+    ld      a, d
+    or      e
+    jp      z, _seq_start_done      ; empty slot
+
+    ex      de, hl                  ; HL = song header
+
+    ld      a, (hl)                 ; tempo
+    ld      (seq_timer_b), a
+    inc     hl
+    ld      a, (hl)                 ; track count
+    inc     hl
+    cp      #SEQ_MAX_TRACKS + 1
+    jr      c, _seq_count_ok
+    ld      a, #SEQ_MAX_TRACKS
+_seq_count_ok:
+    ld      (seq_ntracks), a
+    ld      b, a
+
+    ld      ix, #seq_tracks
+_seq_init_track:
+    push    bc
+
+    ld      a, (hl)                 ; type
+    inc     hl
+    ld      SEQ_TYPE (ix), a
+    ld      a, (hl)                 ; channel
+    inc     hl
+    ld      SEQ_CH (ix), a
+    ld      c, (hl)                 ; instrument
+    inc     hl
+
+    ld      a, (hl)                 ; stream pointer
+    inc     hl
+    ld      SEQ_PTR_L (ix), a
+    ld      a, (hl)
+    inc     hl
+    ld      SEQ_PTR_H (ix), a
+    ld      a, (hl)                 ; loop pointer
+    inc     hl
+    ld      SEQ_LOOP_L (ix), a
+    ld      a, (hl)
+    inc     hl
+    ld      SEQ_LOOP_H (ix), a
+
+    ld      a, #1
+    ld      SEQ_ACTIVE (ix), a
+    xor     a
+    ld      SEQ_DUR (ix), a
+    ld      a, #0x20                ; a sane default until the stream sets one
+    ld      SEQ_VOL (ix), a
+
+    ld      a, SEQ_TYPE (ix)
+    or      a
+    jr      nz, _seq_init_next      ; drum tracks need no FM setup
+
+    ;; Resolve the FM channel map
+    push    hl
+    ld      a, SEQ_CH (ix)
+    ld      l, a
+    ld      h, #0
+    ld      d, h
+    ld      e, l
+    add     hl, hl                  ; * 2
+    add     hl, de                  ; * 3
+    ld      de, #seq_fm_map
+    add     hl, de
+    ld      a, (hl)
+    ld      SEQ_KEYON (ix), a
+    inc     hl
+    ld      a, (hl)
+    ld      SEQ_CHOFF (ix), a
+    inc     hl
+    ld      a, (hl)
+    ld      SEQ_PORT (ix), a
+    pop     hl
+
+    ld      a, c
+    call    seq_load_instrument
+
+_seq_init_next:
+    ld      de, #SEQ_SIZE
+    add     ix, de
+    pop     bc
+    djnz    _seq_init_track
+
+    ;; Start Timer B at the song's tempo
+    ld      b, #REG_TIMER_B_LOAD
+    ld      a, (seq_timer_b)
+    call    ym_write_a
+    ld      b, #REG_TIMER_FLAGS
+    ld      a, #0x3A                ; reset A+B flags, enable B, load B
+    call    ym_write_a
+
+    ld      a, #1
+    ld      (seq_active), a
+
+_seq_start_done:
+    out     (PORT_ENABLE_NMI), a
+    pop     hl
+    pop     de
+    pop     bc
+    ret
+
+;;; Load instrument A into the channel described by IX, caching its carrier mask
+seq_load_instrument:
+    push    bc
+    push    de
+    push    hl
+
+    ld      l, a
+    ld      h, #0
+    add     hl, hl
+    add     hl, hl
+    add     hl, hl
+    add     hl, hl
+    add     hl, hl                  ; * 32
+    ld      de, #SONG_INST_BASE
+    add     hl, de
+
+    push    hl
+    ld      de, #30
+    add     hl, de
+    ld      a, (hl)                 ; carrier mask trails the 30 patch bytes
+    ld      SEQ_CARMASK (ix), a
+    pop     hl
+
+    ld      c, SEQ_CHOFF (ix)
+    ld      a, SEQ_PORT (ix)
+    call    fm_load_patch
+
+    pop     hl
+    pop     de
+    pop     bc
+    ret
+
+;;; Write SEQ_VOL to every carrier TL register of the channel (IX = track)
+seq_apply_volume:
+    push    bc
+    push    de
+    ld      c, SEQ_CARMASK (ix)
+    ld      d, #0x40                ; TL slots: 0x40, 0x44, 0x48, 0x4C
+    ld      e, #4
+_seq_vol_slot:
+    rr      c
+    jr      nc, _seq_vol_skip
+    ld      a, d
+    add     a, SEQ_CHOFF (ix)
+    ld      b, a
+    ld      a, SEQ_VOL (ix)
+    call    seq_write
+_seq_vol_skip:
+    ld      a, d
+    add     a, #4
+    ld      d, a
+    dec     e
+    jr      nz, _seq_vol_slot
+    pop     de
+    pop     bc
+    ret
+
+;;; Poll Timer B and advance every track (main loop context)
+seq_poll:
+    in      a, (PORT_YM2610_A_ADDR)
+    bit     1, a                    ; Timer B expired?
+    ret     z
+
+    out     (PORT_DISABLE_NMI), a
+
+    ld      b, #REG_TIMER_FLAGS
+    ld      a, #0x2A                ; ack B, keep it enabled and loaded
+    call    ym_write_a
+
+    ld      a, (seq_ntracks)
+    or      a
+    jr      z, _seq_poll_done
+    ld      b, a
+    ld      ix, #seq_tracks
+_seq_poll_track:
+    push    bc
+    call    seq_track_tick
+    ld      de, #SEQ_SIZE
+    add     ix, de
+    pop     bc
+    djnz    _seq_poll_track
+
+_seq_poll_done:
+    out     (PORT_ENABLE_NMI), a
+    ret
+
+;;; Advance one track by one tick (IX = track state)
+seq_track_tick:
+    ld      a, SEQ_ACTIVE (ix)
+    or      a
+    ret     z
+
+    ld      a, SEQ_DUR (ix)
+    or      a
+    jr      z, _seq_fetch
+    dec     SEQ_DUR (ix)
+    ret     nz                      ; still sounding
+    ;; fall through: duration hit zero, fetch the next event
+
+_seq_fetch:
+    ld      l, SEQ_PTR_L (ix)
+    ld      h, SEQ_PTR_H (ix)
+
+_seq_fetch_loop:
+    ld      a, (hl)
+    inc     hl
+
+    cp      #SEQ_OP_END
+    jr      nz, _seq_not_end
+    ld      l, SEQ_LOOP_L (ix)      ; loop back and keep decoding
+    ld      h, SEQ_LOOP_H (ix)
+    jr      _seq_fetch_loop
+
+_seq_not_end:
+    cp      #SEQ_OP_REST
+    jr      nz, _seq_not_rest
+    ld      a, (hl)
+    inc     hl
+    ld      SEQ_DUR (ix), a
+    call    seq_note_off
+    jr      _seq_store_ptr
+
+_seq_not_rest:
+    cp      #SEQ_OP_INST
+    jr      nz, _seq_not_inst
+    ld      a, (hl)
+    inc     hl
+    push    hl
+    call    seq_load_instrument
+    call    seq_apply_volume
+    pop     hl
+    jr      _seq_fetch_loop
+
+_seq_not_inst:
+    cp      #SEQ_OP_VOL
+    jr      nz, _seq_not_vol
+    ld      a, (hl)
+    inc     hl
+    ld      SEQ_VOL (ix), a
+    ld      a, SEQ_TYPE (ix)
+    or      a
+    jr      nz, _seq_fetch_loop     ; drums carry volume in the trigger
+    push    hl
+    call    seq_apply_volume
+    pop     hl
+    jr      _seq_fetch_loop
+
+_seq_not_vol:
+    cp      #SEQ_OP_PAN
+    jr      nz, _seq_not_pan
+    ld      a, (hl)
+    inc     hl
+    push    hl
+    ld      c, a
+    ld      a, SEQ_TYPE (ix)
+    or      a
+    jr      nz, _seq_pan_done
+    ld      a, #REG_FM_LR_AMS_PMS
+    add     a, SEQ_CHOFF (ix)
+    ld      b, a
+    ld      a, c
+    call    seq_write
+_seq_pan_done:
+    pop     hl
+    jr      _seq_fetch_loop
+
+_seq_not_pan:
+    cp      #SEQ_OP_TIE
+    jr      nz, _seq_note
+    ld      a, (hl)                 ; hold the sounding note, no retrigger
+    inc     hl
+    ld      SEQ_DUR (ix), a
+    jr      _seq_store_ptr
+
+_seq_note:
+    ld      c, a                    ; C = note index
+    ld      a, (hl)
+    inc     hl
+    ld      SEQ_DUR (ix), a
+    push    hl
+    ld      a, SEQ_TYPE (ix)
+    or      a
+    jr      nz, _seq_note_drum
+    ld      a, c
+    call    seq_note_on
+    jr      _seq_note_done
+_seq_note_drum:
+    ld      a, c
+    call    seq_drum_trigger
+_seq_note_done:
+    pop     hl
+
+_seq_store_ptr:
+    ld      SEQ_PTR_L (ix), l
+    ld      SEQ_PTR_H (ix), h
+    ret
+
+;;; Key on note A on this track's FM channel (IX = track state)
+seq_note_on:
+    push    bc
+    push    de
+    push    hl
+
+    ;; Stash the note index first: seq_apply_volume clobbers A (it preserves
+    ;; BC, so C is a safe place to keep it).
+    ld      c, a
+
+    ;; Refresh carrier levels so a volume change lands on this note
+    call    seq_apply_volume
+
+    ;; Look up block|fnum_hi, fnum_lo
+    ld      l, c
+    ld      h, #0
+    add     hl, hl
+    ld      de, #seq_note_table
+    add     hl, de
+    ld      d, (hl)
+    inc     hl
+    ld      e, (hl)
+
+    ;; Retrigger: key off, then set the frequency, then key on
+    ld      b, #REG_FM_KEYON
+    ld      a, SEQ_KEYON (ix)
+    call    ym_write_a
+
+    ld      a, #REG_FM_FNUM_HI      ; must precede the low byte
+    add     a, SEQ_CHOFF (ix)
+    ld      b, a
+    ld      a, d
+    call    seq_write
+    ld      a, #REG_FM_FNUM_LO
+    add     a, SEQ_CHOFF (ix)
+    ld      b, a
+    ld      a, e
+    call    seq_write
+
+    ld      b, #REG_FM_KEYON
+    ld      a, SEQ_KEYON (ix)
+    or      #0xF0                   ; all four operators
+    call    ym_write_a
+
+    pop     hl
+    pop     de
+    pop     bc
+    ret
+
+;;; Key off this track's FM channel (IX = track state); drums ring out
+seq_note_off:
+    ld      a, SEQ_TYPE (ix)
+    or      a
+    ret     nz
+    push    bc
+    ld      b, #REG_FM_KEYON
+    ld      a, SEQ_KEYON (ix)
+    call    ym_write_a
+    pop     bc
+    ret
+
+;;; Trigger ADPCM-A sample A on this track's fixed channel (IX = track state)
+seq_drum_trigger:
+    push    bc
+    push    de
+    push    hl
+
+    ld      c, SEQ_CH (ix)
+
+    ;; HL = &sfx_table[sample]
+    ld      l, a
+    ld      h, #0
+    add     hl, hl
+    add     hl, hl
+    ld      de, #sfx_table
+    add     hl, de
+
+    ;; Stop the channel before repointing it
+    ld      a, c
+    call    seq_channel_bit         ; A = 1 << channel
+    or      #0x80
+    ld      b, #REG_ADPCM_A_CTRL
+    call    ym_write_b
+
+    ld      a, #REG_ADPCM_A1_START_L
+    add     a, c
+    ld      b, a
+    ld      a, (hl)
+    inc     hl
+    call    ym_write_b
+    ld      a, #REG_ADPCM_A1_START_H
+    add     a, c
+    ld      b, a
+    ld      a, (hl)
+    inc     hl
+    call    ym_write_b
+    ld      a, #REG_ADPCM_A1_STOP_L
+    add     a, c
+    ld      b, a
+    ld      a, (hl)
+    inc     hl
+    call    ym_write_b
+    ld      a, #REG_ADPCM_A1_STOP_H
+    add     a, c
+    ld      b, a
+    ld      a, (hl)
+    call    ym_write_b
+
+    ;; Pan centre, level from the track volume (ADPCM-A level is 0-31, and
+    ;; louder is a larger value - the inverse of FM attenuation)
+    ld      a, #REG_ADPCM_A1_PAN_VOL
+    add     a, c
+    ld      b, a
+    ld      a, SEQ_VOL (ix)
+    cp      #32
+    jr      c, _seq_drum_level
+    ld      a, #31
+_seq_drum_level:
+    or      #0xC0                   ; both speakers
+    call    ym_write_b
+
+    ld      a, c
+    call    seq_channel_bit
+    ld      b, #REG_ADPCM_A_CTRL
+    call    ym_write_b
+
+    pop     hl
+    pop     de
+    pop     bc
+    ret
+
+;;; A = channel 0-5 -> A = 1 << channel
+seq_channel_bit:
+    push    bc
+    ld      b, a
+    ld      a, #1
+_seq_bit_shift:
+    dec     b                       ; b = -1 (sign set) once the shift is done
+    jp      m, _seq_bit_done
+    add     a, a
+    jr      _seq_bit_shift
+_seq_bit_done:
+    pop     bc
+    ret
+
+;;; Stop the song and silence its channels
+seq_stop:
+    call    seq_stop_quiet
+    push    bc
+    ld      b, #REG_TIMER_FLAGS
+    ld      a, #0x30                ; reset flags, timers off
+    call    ym_write_a
+    pop     bc
+    ret
+
+;;; Silence tracks without touching the timer (used when restarting)
+seq_stop_quiet:
+    push    bc
+    push    de
+    ld      a, (seq_active)
+    or      a
+    jr      z, _seq_stopq_done
+
+    ld      a, (seq_ntracks)
+    or      a
+    jr      z, _seq_stopq_clear
+    ld      b, a
+    ld      ix, #seq_tracks
+_seq_stopq_track:
+    push    bc
+    call    seq_note_off
+    xor     a
+    ld      SEQ_ACTIVE (ix), a
+    ld      de, #SEQ_SIZE
+    add     ix, de
+    pop     bc
+    djnz    _seq_stopq_track
+
+_seq_stopq_clear:
+    xor     a
+    ld      (seq_active), a
+    ld      (seq_ntracks), a
+_seq_stopq_done:
+    pop     de
+    pop     bc
+    ret
+
+;;; Block|F-number-high, F-number-low for note indices 0..84 (C1..C8).
+;;; Generated by tools/ngsong.py: fnum = freq * 2^20 / (8MHz/144) / 2^(block-1)
+seq_note_table:
+    .byte   0x04, 0xD3          ;   0: C1
+    .byte   0x0A, 0x8E          ;   1: C+1
+    .byte   0x0A, 0xB5          ;   2: D1
+    .byte   0x0A, 0xDE          ;   3: D+1
+    .byte   0x0B, 0x0A          ;   4: E1
+    .byte   0x0B, 0x38          ;   5: F1
+    .byte   0x0B, 0x69          ;   6: F+1
+    .byte   0x0B, 0x9D          ;   7: G1
+    .byte   0x0B, 0xD4          ;   8: G+1
+    .byte   0x0C, 0x0E          ;   9: A1
+    .byte   0x0C, 0x4C          ;  10: A+1
+    .byte   0x0C, 0x8D          ;  11: B1
+    .byte   0x0C, 0xD3          ;  12: C2
+    .byte   0x12, 0x8E          ;  13: C+2
+    .byte   0x12, 0xB5          ;  14: D2
+    .byte   0x12, 0xDE          ;  15: D+2
+    .byte   0x13, 0x0A          ;  16: E2
+    .byte   0x13, 0x38          ;  17: F2
+    .byte   0x13, 0x69          ;  18: F+2
+    .byte   0x13, 0x9D          ;  19: G2
+    .byte   0x13, 0xD4          ;  20: G+2
+    .byte   0x14, 0x0E          ;  21: A2
+    .byte   0x14, 0x4C          ;  22: A+2
+    .byte   0x14, 0x8D          ;  23: B2
+    .byte   0x14, 0xD3          ;  24: C3
+    .byte   0x1A, 0x8E          ;  25: C+3
+    .byte   0x1A, 0xB5          ;  26: D3
+    .byte   0x1A, 0xDE          ;  27: D+3
+    .byte   0x1B, 0x0A          ;  28: E3
+    .byte   0x1B, 0x38          ;  29: F3
+    .byte   0x1B, 0x69          ;  30: F+3
+    .byte   0x1B, 0x9D          ;  31: G3
+    .byte   0x1B, 0xD4          ;  32: G+3
+    .byte   0x1C, 0x0E          ;  33: A3
+    .byte   0x1C, 0x4C          ;  34: A+3
+    .byte   0x1C, 0x8D          ;  35: B3
+    .byte   0x1C, 0xD3          ;  36: C4
+    .byte   0x22, 0x8E          ;  37: C+4
+    .byte   0x22, 0xB5          ;  38: D4
+    .byte   0x22, 0xDE          ;  39: D+4
+    .byte   0x23, 0x0A          ;  40: E4
+    .byte   0x23, 0x38          ;  41: F4
+    .byte   0x23, 0x69          ;  42: F+4
+    .byte   0x23, 0x9D          ;  43: G4
+    .byte   0x23, 0xD4          ;  44: G+4
+    .byte   0x24, 0x0E          ;  45: A4
+    .byte   0x24, 0x4C          ;  46: A+4
+    .byte   0x24, 0x8D          ;  47: B4
+    .byte   0x24, 0xD3          ;  48: C5
+    .byte   0x2A, 0x8E          ;  49: C+5
+    .byte   0x2A, 0xB5          ;  50: D5
+    .byte   0x2A, 0xDE          ;  51: D+5
+    .byte   0x2B, 0x0A          ;  52: E5
+    .byte   0x2B, 0x38          ;  53: F5
+    .byte   0x2B, 0x69          ;  54: F+5
+    .byte   0x2B, 0x9D          ;  55: G5
+    .byte   0x2B, 0xD4          ;  56: G+5
+    .byte   0x2C, 0x0E          ;  57: A5
+    .byte   0x2C, 0x4C          ;  58: A+5
+    .byte   0x2C, 0x8D          ;  59: B5
+    .byte   0x2C, 0xD3          ;  60: C6
+    .byte   0x32, 0x8E          ;  61: C+6
+    .byte   0x32, 0xB5          ;  62: D6
+    .byte   0x32, 0xDE          ;  63: D+6
+    .byte   0x33, 0x0A          ;  64: E6
+    .byte   0x33, 0x38          ;  65: F6
+    .byte   0x33, 0x69          ;  66: F+6
+    .byte   0x33, 0x9D          ;  67: G6
+    .byte   0x33, 0xD4          ;  68: G+6
+    .byte   0x34, 0x0E          ;  69: A6
+    .byte   0x34, 0x4C          ;  70: A+6
+    .byte   0x34, 0x8D          ;  71: B6
+    .byte   0x34, 0xD3          ;  72: C7
+    .byte   0x3A, 0x8E          ;  73: C+7
+    .byte   0x3A, 0xB5          ;  74: D7
+    .byte   0x3A, 0xDE          ;  75: D+7
+    .byte   0x3B, 0x0A          ;  76: E7
+    .byte   0x3B, 0x38          ;  77: F7
+    .byte   0x3B, 0x69          ;  78: F+7
+    .byte   0x3B, 0x9D          ;  79: G7
+    .byte   0x3B, 0xD4          ;  80: G+7
+    .byte   0x3C, 0x0E          ;  81: A7
+    .byte   0x3C, 0x4C          ;  82: A+7
+    .byte   0x3C, 0x8D          ;  83: B7
+    .byte   0x3C, 0xD3          ;  84: C8
+
+
 ;;; === Data Section ===
 ;;; Located in Z80 RAM (0xF800-0xFFFF)
     .area   _DATA
+
+seq_song:
+    .ds     1                   ; index of the song that was started
+
+seq_active:
+    .ds     1                   ; 1 while a sequenced song is playing
+
+seq_ntracks:
+    .ds     1
+
+seq_timer_b:
+    .ds     1
+
+seq_tracks:
+    .ds     SEQ_MAX_TRACKS * SEQ_SIZE
 
 current_cmd:
     .ds     1

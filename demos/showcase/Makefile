@@ -18,7 +18,10 @@ GEN_DIR = $(BUILD_DIR)/gen
 
 # Asset pipeline
 PROGEAR_ASSETS = python3 $(TOOLS_PATH)/progear_assets.py
+NGSONG = python3 $(TOOLS_PATH)/ngsong.py
 NEO_ROM = python3 $(TOOLS_PATH)/neo_rom.py
+SONG_YAML = assets/downtown.yaml
+GEN_SONG = $(GEN_DIR)/song.bin
 ASSETS_YAML = assets.yaml
 SDK_ASSETS = $(SDK_PATH)/assets/assets.yaml
 
@@ -137,13 +140,21 @@ $(P_ROM): $(ELF_FILE)
 	dd if=$@ of=$@ conv=notrunc,swab status=none
 	truncate -s 256K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=262144 count=0
 
-# M-ROM (Z80) with audio sample tables
-$(M_ROM): $(SDK_Z80_DRIVER) $(GEN_ASSETS_H) | $(BUILD_DIR)
+# Sequenced song data (Z80-resident note data, patched into M1 at 0x2000)
+$(GEN_SONG): $(SONG_YAML) $(GEN_ASSETS_H) $(TOOLS_PATH)/ngsong.py | $(GEN_DIR)
+	@echo "Compiling song $(SONG_YAML)..."
+	$(NGSONG) $(SONG_YAML) -o $@ --sfx-header $(GEN_ASSETS_H) --report
+
+# M-ROM (Z80) with audio sample tables and sequenced song data
+$(M_ROM): $(SDK_Z80_DRIVER) $(GEN_ASSETS_H) $(GEN_SONG) | $(BUILD_DIR)
 	$(Z80ASM) -o $(BUILD_DIR)/driver.rel $<
 	sdld -n -i $(BUILD_DIR)/driver.ihx -b _CODE=0x0000 -b _DATA=0xF800 $(BUILD_DIR)/driver.rel
 	sdobjcopy -I ihex -O binary $(BUILD_DIR)/driver.ihx $@
 	@if [ -f $(GEN_M1_TABLES) ]; then \
 		dd if=$(GEN_M1_TABLES) of=$@ bs=1 seek=2048 conv=notrunc status=none 2>/dev/null || true; \
+	fi
+	@if [ -f $(GEN_SONG) ]; then \
+		dd if=$(GEN_SONG) of=$@ bs=1 seek=8192 conv=notrunc status=none 2>/dev/null || true; \
 	fi
 	truncate -s 64K $@ 2>/dev/null || dd if=/dev/null of=$@ bs=1 seek=65536 count=0
 	rm -f $(BUILD_DIR)/driver.rel $(BUILD_DIR)/driver.ihx $(BUILD_DIR)/driver.sym $(BUILD_DIR)/driver.map $(BUILD_DIR)/driver.noi

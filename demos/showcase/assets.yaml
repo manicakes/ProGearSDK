@@ -105,6 +105,23 @@ sound_effects:
   - name: ball_hit
     source: assets/ball_hit.wav
 
+  # Drum kit for the sequenced song in the tilemap demo (tools/gen_drums.py).
+  # The whole kit is ~6 KB of V-ROM; the same 26-second loop streamed as
+  # ADPCM-B would be ~240 KB.
+  - name: kick
+    source: assets/kick.wav
+  - name: snare
+    source: assets/snare.wav
+  - name: hihat_closed
+    source: assets/hihat_closed.wav
+  - name: hihat_open
+    source: assets/hihat_open.wav
+
+# Sequenced songs (YM2610 FM + SSG, note data in M1 ROM)
+songs:
+  - name: downtown
+    source: assets/downtown.yaml
+
 # Background music (ADPCM-B)
 music:
   - name: ball_scene_music

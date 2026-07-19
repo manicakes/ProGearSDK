@@ -1,0 +1,178 @@
+# "Downtown" - looping stage theme for the tilemap demo.
+#
+# 16-bit era beat-em-up rock in the Final Fight vein: driving sixteenth-note
+# bass, offbeat power-chord stabs, a lead over an arpeggiated counter line, and
+# a straight backbeat. E minor, i-VI-III-VII (Em C G D), 148 BPM.
+#
+# Compiled by tools/ngsong.py into Z80 sequence data - a few KB in M1 ROM
+# rather than megabytes of streamed ADPCM in V-ROM.
+
+name: downtown
+tempo: 148
+ticks_per_beat: 24    # 24 ticks per quarter note -> a sixteenth is 6 ticks
+
+instruments:
+  # Fat two-stack bass. Short-ish sustain so the sixteenths stay articulate
+  # instead of blurring into a drone.
+  bass:
+    alg: 4
+    fb: 5
+    ops:
+      - {mul: 1,  tl: 26, ar: 31, dr: 12, sr: 4, sl: 4, rr: 9}    # modulator
+      - {mul: 1,  tl: 0,  ar: 31, dr: 10, sr: 5, sl: 2, rr: 9}    # carrier
+      - {mul: 2,  tl: 34, ar: 31, dr: 14, sr: 5, sl: 4, rr: 9}    # modulator
+      - {mul: 1,  tl: 0,  ar: 31, dr: 11, sr: 4, sl: 2, rr: 9}    # carrier
+
+  # Distorted power-chord stab: heavy feedback for the buzz, fast decay so
+  # each hit punches and gets out of the way.
+  guitar:
+    alg: 4
+    fb: 7
+    ops:
+      - {mul: 2,  tl: 22, ar: 31, dr: 16, sr: 8, sl: 6, rr: 10, dt: 3}
+      - {mul: 1,  tl: 0,  ar: 31, dr: 14, sr: 7, sl: 4, rr: 10}
+      - {mul: 4,  tl: 30, ar: 31, dr: 18, sr: 9, sl: 6, rr: 10, dt: 7}
+      - {mul: 1,  tl: 0,  ar: 31, dr: 15, sr: 7, sl: 4, rr: 10}
+
+  # Bright sustained lead with a touch of detune between the two stacks for
+  # chorus - the classic FM "sync lead" colour.
+  lead:
+    alg: 4
+    fb: 4
+    ops:
+      - {mul: 3,  tl: 28, ar: 31, dr: 8,  sr: 2, sl: 2, rr: 6, dt: 3}
+      - {mul: 1,  tl: 0,  ar: 31, dr: 5,  sr: 1, sl: 1, rr: 7}
+      - {mul: 2,  tl: 32, ar: 31, dr: 9,  sr: 2, sl: 2, rr: 6, dt: 7}
+      - {mul: 1,  tl: 0,  ar: 31, dr: 6,  sr: 1, sl: 1, rr: 7}
+
+  # Additive organ (all four operators are carriers) for the arpeggio line.
+  organ:
+    alg: 7
+    fb: 0
+    ops:
+      - {mul: 1,  tl: 12, ar: 31, dr: 6,  sr: 3, sl: 3, rr: 8}
+      - {mul: 2,  tl: 20, ar: 31, dr: 7,  sr: 3, sl: 3, rr: 8}
+      - {mul: 4,  tl: 28, ar: 31, dr: 8,  sr: 4, sl: 4, rr: 8}
+      - {mul: 8,  tl: 36, ar: 31, dr: 9,  sr: 4, sl: 4, rr: 8}
+
+# Drum letters -> ADPCM-A sample. Names are resolved against the NGSFX_*
+# constants in the generated asset header, so adding sound effects elsewhere
+# cannot silently renumber the kit.
+drums:
+  k: kick
+  s: snare
+  h: hihat_closed
+  o: hihat_open
+
+tracks:
+  # --- Bass: chugging sixteenths with a walk-up at the end of each bar ------
+  - name: bass
+    channel: fm0
+    instrument: bass
+    volume: 18
+    pan: center
+    mml: |
+      [
+        e16 e16 e8 e16 e16 e8 e16 e16 e8 g8 a8
+        c16 c16 c8 c16 c16 c8 c16 c16 c8 e8 g8
+        g16 g16 g8 g16 g16 g8 g16 g16 g8 a8 b8
+        d16 d16 d8 d16 d16 d8 d16 d16 d8 f+8 a8
+      ]2
+      c16 c16 c8 c16 c16 c8 c16 c16 c8 c8 c8
+      d16 d16 d8 d16 d16 d8 d16 d16 d8 d8 d8
+      e16 e16 e8 e16 e16 e8 e16 e16 e8 e8 e8
+      e16 e16 e8 e16 e16 e8 e16 e16 e8 g8 a8
+      e16 e16 e8 e16 e16 e8 e16 e16 e8 g8 a8
+      c16 c16 c8 c16 c16 c8 c16 c16 c8 e8 g8
+      g16 g16 g8 g16 g16 g8 g16 g16 g8 a8 b8
+      d16 d16 d8 d16 d16 d8 d8 d8 d8 d8
+    octave: 2
+
+  # --- Power chords: offbeat stabs, the backbone of the groove -------------
+  - name: guitar
+    channel: fm1
+    instrument: guitar
+    volume: 26
+    pan: center
+    mml: |
+      [
+        r8 e8 r8 e8 r8 e8 r8 e8
+        r8 c8 r8 c8 r8 c8 r8 c8
+        r8 g8 r8 g8 r8 g8 r8 g8
+        r8 d8 r8 d8 r8 d8 r8 d8
+      ]2
+      r8 c8 r8 c8 r8 c8 r8 c8
+      r8 d8 r8 d8 r8 d8 r8 d8
+      r8 e8 r8 e8 r8 e8 r8 e8
+      r8 e8 r8 e8 e8 e8 e8 e8
+      r8 e8 r8 e8 r8 e8 r8 e8
+      r8 c8 r8 c8 r8 c8 r8 c8
+      r8 g8 r8 g8 r8 g8 r8 g8
+      r8 d8 r8 d8 d8 d8 d8 d8
+
+  # --- Lead melody --------------------------------------------------------
+  - name: lead
+    channel: fm2
+    instrument: lead
+    volume: 16
+    pan: center
+    mml: |
+      e8 g8 b8 g8 a8 g8 e8 r8
+      c8 e8 g8 e8 g8 e8 c8 r8
+      d8 g8 b8 g8 a8 b8 d8 r8
+      a8 f+8 d8 f+8 a8 f+8 d8 r8
+      e8 g8 b8 >e8 <b8 g8 e8 r8
+      c8 e8 g8 >c8 <g8 e8 c8 r8
+      d8 g8 b8 >d8 <b8 g8 d8 r8
+      a8 f+8 d8 f+8 a4 r4
+      >c4 <b4 g4 e4
+      d4 f+4 a4 b4
+      >e4 d4 b4 g4
+      a8 b8 >c8 d8 e4 r4
+      e8 g8 b8 g8 a8 g8 e8 r8
+      c8 e8 g8 e8 g8 e8 c8 r8
+      d8 g8 b8 g8 a8 b8 d8 r8
+      a8 f+8 d8 f+8 e4 r4
+    octave: 4
+
+  # --- Organ counter line: arpeggiated sixteenths -------------------------
+  - name: organ
+    channel: fm3
+    instrument: organ
+    volume: 34
+    pan: center
+    mml: |
+      [
+        [e16 g16 b16 g16]4
+        [c16 e16 g16 e16]4
+        [g16 b16 >d16 <b16]4
+        [d16 f+16 a16 f+16]4
+      ]2
+      [c16 e16 g16 e16]4
+      [d16 f+16 a16 f+16]4
+      [e16 g16 b16 g16]4
+      [e16 g16 b16 >e16 <]4
+      [e16 g16 b16 g16]4
+      [c16 e16 g16 e16]4
+      [g16 b16 >d16 <b16]4
+      [d16 f+16 a16 f+16]4
+    octave: 4
+
+  # --- Drums: kick, snare and hats each get their own ADPCM-A channel ------
+  - name: kick
+    channel: drum0
+    mml: |
+      [k4 r4 k8 k8 r4]15
+      k4 r4 k8 k8 k8 k8
+
+  - name: snare
+    channel: drum1
+    mml: |
+      [r4 s4 r4 s4]15
+      r4 s4 r4 s8 s8
+
+  - name: hat
+    channel: drum2
+    mml: |
+      [h8 h8 h8 h8 h8 h8 h8 h8]15
+      h8 h8 h8 h8 h8 h8 o4

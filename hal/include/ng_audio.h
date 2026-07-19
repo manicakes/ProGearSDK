@@ -44,6 +44,7 @@
 /* Maximum number of sound effects and music tracks */
 #define NG_AUDIO_MAX_SFX      32
 #define NG_AUDIO_MAX_MUSIC    32
+#define NG_AUDIO_MAX_SONGS    16
 #define NG_AUDIO_MAX_CHANNELS 6 /* ADPCM-A channels for SFX */
 
 /* Audio types for scene/actor binding */
@@ -137,6 +138,25 @@ void NGSfxStopAll(void);
  *
  * @param music_index Music index (0-31)
  */
+/**
+ * Play a sequenced song on the YM2610's FM channels.
+ *
+ * Sequenced songs are note data held in M1 ROM (a few KB per song, regardless
+ * of length) rather than streamed samples, so they cost essentially no V-ROM.
+ * Compile them with tools/ngsong.py; drums still come from ADPCM-A samples.
+ *
+ * Starting a song stops any streamed music and vice versa - both use the
+ * YM2610 timer and the same conceptual "music" slot.
+ *
+ * @param song_index Song index (0 to NG_AUDIO_MAX_SONGS-1)
+ */
+void NGSongPlay(u8 song_index);
+
+/**
+ * Stop the sequenced song, if one is playing.
+ */
+void NGSongStop(void);
+
 void NGMusicPlay(u8 music_index);
 
 /**

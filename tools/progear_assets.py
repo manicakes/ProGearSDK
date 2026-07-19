@@ -1402,7 +1402,7 @@ def generate_z80_sample_tables(sfx_info_list, music_info_list):
 
 
 def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap_info,
-                    lighting_presets, output_path):
+                    lighting_presets, output_path, songs=None):
     """Generate C header file with asset definitions."""
     # Check if SDK UI assets are present (needed to decide on includes)
     asset_names = {asset['name'] for asset in assets_info}
@@ -1581,6 +1581,17 @@ def generate_header(assets_info, palette_registry, sfx_info, music_info, tilemap
             lines.append(f"    .index = {music['index']},")
             lines.append("};")
             lines.append("")
+
+    # === Sequenced Songs ===
+    # Note data compiled separately by tools/ngsong.py into M1 ROM; the header
+    # only needs the index each song was assigned, in declaration order.
+    songs = songs or []
+    if songs:
+        lines.append("// === Sequenced songs (YM2610 FM) ===")
+        lines.append("")
+        for index, song in enumerate(songs):
+            lines.append(f"#define NGSONG_{song['name'].upper()} {index}")
+        lines.append("")
 
     # === Terrain Assets (from tilemaps section in YAML) ===
     if tilemap_info:
@@ -1889,6 +1900,7 @@ def merge_configs(base_config, additional_config):
         'visual_assets': [],
         'sound_effects': [],
         'music': [],
+        'songs': [],
         'tilemaps': [],
         'lighting_presets': {},
     }
@@ -1914,10 +1926,23 @@ def merge_configs(base_config, additional_config):
         base_config.get('music', []) +
         additional_config.get('music', [])
     )
+    merged['songs'] = (
+        base_config.get('songs', []) +
+        additional_config.get('songs', [])
+    )
     merged['tilemaps'] = (
         base_config.get('tilemaps', []) +
         additional_config.get('tilemaps', [])
     )
+
+    # This merge is a whitelist: a key that is not copied above is silently
+    # dropped from the user's YAML. Fail loudly instead, so adding a new asset
+    # category to assets.yaml cannot go missing without explanation.
+    unknown = (set(base_config) | set(additional_config)) - set(merged)
+    if unknown:
+        raise ValueError(
+            "unsupported assets.yaml section(s): " + ", ".join(sorted(unknown)) +
+            " - add them to merge_configs() if they are meant to be processed")
 
     return merged
 
@@ -2176,7 +2201,8 @@ def main():
     # Generate header
     header_path = output_dir / args.header
     generate_header(assets_info, palette_registry, sfx_info_list, music_info_list,
-                    tilemap_info_list, lighting_presets, header_path)
+                    tilemap_info_list, lighting_presets, header_path,
+                    songs=config.get('songs', []))
 
     # Count palettes (excluding internal keys)
     palette_count = len([k for k in palette_registry.keys() if not k.startswith('_')])
