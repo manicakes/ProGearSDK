@@ -78,8 +78,8 @@ static BrawlerState *state;
 #define MENU_BALL    2
 
 static void draw_hud(void) {
-    NGTextPrintf(NGFixLayoutOffset(NG_ALIGN_RIGHT, NG_ALIGN_TOP, -1, 1), 0, "KO %d",
-                 state->defeated);
+    NGTextPrintf(NGFixLayoutOffset(NG_ALIGN_RIGHT, NG_ALIGN_TOP, -1, 1), 0, "KO %d E%d",
+                 state->defeated, NGPoolCount(&state->enemies));
 }
 
 /* Spawn an enemy at a random-ish spot on the floor. */
@@ -134,6 +134,7 @@ void BrawlerInit(void) {
         .capacity = MAX_ENEMIES,
         .asset = &NGVisualAsset_walker,
         .anchor = NG_ANCHOR_BOTTOM,
+        .depth_from_y = 1, /* enemies sort against the player and each other */
     };
     NGPoolInit(&state->enemies, &enemies);
 
@@ -294,6 +295,7 @@ u8 BrawlerUpdate(void) {
         }
     }
 
+    draw_hud();
     NGDebugDrawHUD(26);
     return state->switch_target;
 }

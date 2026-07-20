@@ -97,6 +97,7 @@ typedef struct {
     const NGVisualAsset *asset; /**< Actor asset, or NULL for data only */
     u8 z;                       /**< Z-order for created actors */
     NGAnchor anchor;            /**< Anchor for created actors */
+    u8 depth_from_y;            /**< Sort actors by screen Y (see NGActorSetDepthFromY) */
 } NGPoolConfig;
 
 /** @name Lifecycle */

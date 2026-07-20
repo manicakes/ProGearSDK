@@ -73,6 +73,7 @@ u8 NGPoolInit(NGPool *pool, const NGPoolConfig *cfg) {
             return i > 0;
         }
         NGActorSetAnchor(a, cfg->anchor);
+        NGActorSetDepthFromY(a, cfg->depth_from_y);
         NGActorAddToScene(a, 0, 0, cfg->z);
         NGActorSetVisible(a, 0);
     }

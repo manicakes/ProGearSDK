@@ -2001,8 +2001,9 @@ void NGGraphicSystemDraw(void) {
         /* Allocate sprites */
         u8 sprite_moved = (g->hw_sprite_first != sprite_idx);
         u8 count_changed = (g->hw_sprite_count != needed);
+        u8 reallocated = (sprite_moved || count_changed || !g->hw_allocated);
 
-        if (sprite_moved || count_changed || !g->hw_allocated) {
+        if (reallocated) {
             g->hw_sprite_first = sprite_idx;
             g->hw_sprite_count = needed;
             g->hw_allocated = 1;
@@ -2014,7 +2015,11 @@ void NGGraphicSystemDraw(void) {
          * allocation is kept so entering and leaving the screen does not
          * shuffle every later graphic's sprite indices. */
         if (graphic_is_offscreen(g)) {
-            if (!g->culled) {
+            /* Hide on becoming culled, and again whenever the allocation
+             * moves. A culled graphic writes nothing, so a range it has just
+             * been handed still holds whatever the previous owner drew there -
+             * which appears as a sprite nobody owns and nothing ever clears. */
+            if (!g->culled || reallocated) {
                 NGSpriteHideRange(g->hw_sprite_first, g->hw_sprite_count);
                 g->culled = 1;
             }
