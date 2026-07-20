@@ -633,6 +633,19 @@ void TilemapDemoCleanup(void) {
     NGActorRemoveFromScene(state->player);
     NGActorDestroy(state->player);
 
+    /* Hand-managed arrays have to be torn down by hand. Leaving these alive
+     * kept their actors in the scene after the demo ended, so they carried on
+     * drawing over whatever ran next. This is the bookkeeping NGPool exists to
+     * take over - the brawler's equivalents need no teardown at all. */
+    for (u8 i = 0; i < MAX_BULLETS; i++) {
+        NGActorRemoveFromScene(state->bullets[i].actor);
+        NGActorDestroy(state->bullets[i].actor);
+    }
+    for (u8 i = 0; i < MAX_WALKERS; i++) {
+        NGActorRemoveFromScene(state->walkers[i].actor);
+        NGActorDestroy(state->walkers[i].actor);
+    }
+
     // Clear the scene's terrain
     NGSceneClearTerrain();
 
