@@ -1971,15 +1971,6 @@ void NGGraphicSystemDraw(void) {
     for (u8 i = 0; i < render_count; i++) {
         NGGraphic *g = &graphics[render_order[i]];
 
-        if (!g->visible) {
-            /* Hide previously allocated sprites */
-            if (g->hw_allocated && g->hw_sprite_count > 0) {
-                NGSpriteHideRange(g->hw_sprite_first, g->hw_sprite_count);
-                g->hw_allocated = 0;
-            }
-            continue;
-        }
-
         u8 needed = g->num_cols;
         u16 sprite_idx;
 
@@ -2008,6 +1999,33 @@ void NGGraphicSystemDraw(void) {
             g->hw_sprite_count = needed;
             g->hw_allocated = 1;
             force_full_redraw(g);
+        }
+
+        /* Hidden graphics keep their allocation.
+         *
+         * Releasing it would be tidier but is much more expensive: indices are
+         * handed out sequentially in render order, so a released range shifts
+         * every graphic after it, and each shift forces a full redraw - which
+         * re-pads a sprite column to 32 tiles, around 60 VRAM words per
+         * column. Hiding one entity in a busy scene therefore rewrote hundreds
+         * of words inside VBlank, spilling into active display as flicker and
+         * torn sprites. That is the common case for a pool: entities are
+         * hidden and shown constantly.
+         *
+         * A hidden graphic's sprites were already hidden by NGGraphicSetVisible
+         * and cost nothing per scanline, so holding the indices is cheap. They
+         * are released for good when the graphic is destroyed.
+         *
+         * The old code also hid using this graphic's previous range, which -
+         * once depth sorting started reordering things - could belong to a
+         * visible graphic already drawn this frame, blanking it for a frame. */
+        if (!g->visible) {
+            if (reallocated) {
+                /* A range just handed over still holds the previous owner's
+                 * pixels, so it does need clearing once. */
+                NGSpriteHideRange(g->hw_sprite_first, g->hw_sprite_count);
+            }
+            continue;
         }
 
         /* Off-screen: hide the sprites rather than writing them, or the 9-bit
