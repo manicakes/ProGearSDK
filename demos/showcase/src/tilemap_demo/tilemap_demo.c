@@ -46,8 +46,32 @@
 #define BULLET_SPEED    FIX(4)
 #define BULLET_LIFETIME 70
 #define WALKER_SPEED    FIX(0.4)
-#define WALKER_RANGE    FIX(48)
-#define STOMP_BOUNCE    FIX(-4.0)
+/* Patrol half-width. The walkers sit on the x 192-367 ground run and are
+ * 32px wide, so 20 keeps even the outermost one (330) fully on it:
+ * 330 + 20 + 16 = 366. They have no terrain collision, so this is what
+ * stops them walking out over the edges. */
+#define WALKER_RANGE FIX(20)
+/* Feel: a stomp launches you higher than a normal jump, and higher still if
+ * you are holding the jump button as you land - the Mario rule. */
+#define STOMP_BOUNCE      FIX(-6.0)
+#define STOMP_BOUNCE_HELD FIX(-8.5)
+
+#define WALKER_HP        3 /* bullets needed to finish one off */
+#define HIT_KNOCKBACK    FIX(7)
+#define HIT_FLASH_FRAMES 5  /* white frames on impact */
+#define DEATH_FRAMES     30 /* blink-out on defeat */
+
+/* Body contact shoves the player away. The timer overrides walk input for a
+ * few frames so the shove reads as a shove rather than being cancelled by the
+ * stick on the very next frame. */
+#define PUSHBACK_SPEED  FIX(3.0)
+#define PUSHBACK_LIFT   FIX(-1.75)
+#define PUSHBACK_FRAMES 10
+
+/* Spawn: column 1 (x 16-31) is one of only four columns clear from the top of
+ * the map to the ground, and it keeps the camera clamped at x=0. */
+#define SPAWN_X 24
+#define SPAWN_Y 120
 
 typedef struct {
     NGActorHandle actor;
@@ -62,7 +86,11 @@ typedef struct {
     fixed x, y;
     fixed home_x;
     s8 dir;
-    u8 alive;
+    u8 alive; /* slot in use (includes the death animation) */
+    u8 hp;
+    u8 flash; /* frames left of the white impact flash */
+    u8 dying; /* death animation running; no longer collidable */
+    u8 die_timer;
 } Walker;
 
 typedef struct TilemapDemoState {
@@ -84,6 +112,8 @@ typedef struct TilemapDemoState {
     u8 jump_buffer;
     u8 jumping;
     s8 facing;
+    u8 pushback; /* frames of shove remaining */
+    s8 pushback_dir;
     Bullet bullets[MAX_BULLETS];
     Walker walkers[MAX_WALKERS];
     u8 defeated;
@@ -145,11 +175,40 @@ static void update_bullets(void) {
     }
 }
 
+/* Impact flash: swap to a white palette for a few frames, then back. Cheap
+ * feedback that needs no extra animation frames. */
+static void walker_flash(Walker *w) {
+    w->flash = HIT_FLASH_FRAMES;
+    NGActorSetPalette(w->actor, NGPAL_BALL_WHITE);
+}
+
+/* Death: blink out over half a second, accelerating, then leave the scene.
+ * The walker stops moving and stops colliding the moment it starts dying. */
+static void walker_update_death(Walker *w) {
+    w->die_timer--;
+    u8 period = (w->die_timer > DEATH_FRAMES / 2) ? 4 : 2;
+    NGActorSetVisible(w->actor, (u8)((w->die_timer / period) & 1));
+    if (w->die_timer == 0) {
+        NGActorRemoveFromScene(w->actor);
+        w->alive = 0;
+    }
+}
+
 static void update_walkers(void) {
     for (u8 i = 0; i < MAX_WALKERS; i++) {
         Walker *w = &state->walkers[i];
         if (!w->alive)
             continue;
+
+        if (w->dying) {
+            walker_update_death(w);
+            continue;
+        }
+
+        if (w->flash && --w->flash == 0) {
+            NGActorSetPalette(w->actor, NGPAL_WALKER);
+        }
+
         w->x += w->dir > 0 ? WALKER_SPEED : -WALKER_SPEED;
         if (w->x > w->home_x + WALKER_RANGE) {
             w->dir = -1;
@@ -167,12 +226,31 @@ static void draw_hud(void) {
 }
 
 static void defeat_walker(Walker *w) {
-    w->alive = 0;
-    NGActorSetVisible(w->actor, 0);
-    NGActorRemoveFromScene(w->actor);
+    w->dying = 1;
+    w->die_timer = DEATH_FRAMES;
+    NGActorSetPalette(w->actor, NGPAL_BALL_WHITE);
     state->defeated++;
     NGSfxPlay(NGSFX_BALL_HIT);
     draw_hud();
+}
+
+/* One bullet's worth of damage: knock the walker back, flash it, and finish
+ * it on the third hit. The knockback is clamped to the patrol span so a hit
+ * cannot shove it off the ledge it lives on. */
+static void walker_take_hit(Walker *w, s8 dir) {
+    w->x += dir > 0 ? HIT_KNOCKBACK : -HIT_KNOCKBACK;
+    if (w->x > w->home_x + WALKER_RANGE)
+        w->x = w->home_x + WALKER_RANGE;
+    else if (w->x < w->home_x - WALKER_RANGE)
+        w->x = w->home_x - WALKER_RANGE;
+    NGActorSetPos(w->actor, w->x, w->y);
+
+    if (--w->hp == 0) {
+        defeat_walker(w);
+        return;
+    }
+    walker_flash(w);
+    NGSfxPlay(NGSFX_BALL_HIT);
 }
 
 /*
@@ -199,33 +277,54 @@ static void resolve_hits(void) {
             if (!b->alive)
                 continue;
             if (NGCombatStrike(b->actor, w->actor, 0) == NG_STRIKE_HIT) {
-                defeat_walker(w);
+                walker_take_hit(w, b->dir);
                 retire_bullet(b);
                 break;
             }
         }
-        if (!w->alive)
+        if (w->dying)
             continue;
 
-        /* Only while falling: rising into a walker from below should not
-         * count, or a jump under a platform would kill it. */
-        if (state->player_vel_y <= 0)
-            continue;
-
+        /* Stomp, only while falling: rising into a walker from below must not
+         * count, or a jump under a platform would kill it. A stomp always
+         * finishes a walker regardless of remaining hit points. */
         NGRect stomp;
-        if (!NGActorGetBox(w->actor, NG_BOX_USER1, 0, &stomp))
+        if (state->player_vel_y > 0 && NGActorGetBox(w->actor, NG_BOX_USER1, 0, &stomp)) {
+            NGRect feet;
+            feet.x = (s16)(FIX_INT(state->player_x) - 6);
+            feet.y = (s16)(FIX_INT(state->player_y) + 4);
+            feet.w = 12;
+            feet.h = 10;
+
+            if (NGRectOverlap(&feet, &stomp, 0)) {
+                defeat_walker(w);
+                state->player_vel_y =
+                    NGInputHeld(NG_PLAYER_1, NG_BTN_B) ? STOMP_BOUNCE_HELD : STOMP_BOUNCE;
+                state->jumping = 1;
+                continue;
+            }
+        }
+
+        /* Body contact: shove the player away from the walker's centre.
+         * Uses the walker's NG_BOX_BODY rather than its hurtbox, so brushing
+         * the sprite's edges does not shove you. */
+        NGRect body;
+        if (!NGActorGetBox(w->actor, NG_BOX_BODY, 0, &body))
             continue;
 
-        NGRect feet;
-        feet.x = (s16)(FIX_INT(state->player_x) - 6);
-        feet.y = (s16)(FIX_INT(state->player_y) + 4);
-        feet.w = 12;
-        feet.h = 10;
+        NGRect player;
+        player.x = (s16)(FIX_INT(state->player_x) - 6);
+        player.y = (s16)(FIX_INT(state->player_y) - 12);
+        player.w = 12;
+        player.h = 24;
 
-        if (NGRectOverlap(&feet, &stomp, 0)) {
-            defeat_walker(w);
-            state->player_vel_y = STOMP_BOUNCE;
-            state->jumping = 1;
+        if (NGRectOverlap(&player, &body, 0)) {
+            s16 body_centre = (s16)(body.x + (s16)(body.w >> 1));
+            state->pushback_dir = (FIX_INT(state->player_x) < body_centre) ? -1 : 1;
+            state->pushback = PUSHBACK_FRAMES;
+            if (state->on_ground) {
+                state->player_vel_y = PUSHBACK_LIFT;
+            }
         }
     }
 }
@@ -264,11 +363,12 @@ void TilemapDemoInit(void) {
     NGSceneSetTerrain(&NGTerrainAsset_tilemap_demo_level);
     NGSceneGetTerrainBounds(&state->level_width, &state->level_height);
 
-    /* Open stretch of ground (x 432-607) with nothing overhead, so the
-     * player and the walkers share a plane and both defeat routes are
-     * reachable within a few seconds of walking. */
-    state->player_x = FIX(445);
-    state->player_y = FIX(120);
+    /* Column 29 (x 464-479) is clear from the top of the map down to the
+     * ground at row 12, so the player lands on the same plane the walkers
+     * patrol on. Neighbouring columns carry ledges at rows 5 and 7; spawning
+     * inside one leaves the player embedded in solid terrain. */
+    state->player_x = FIX(SPAWN_X);
+    state->player_y = FIX(SPAWN_Y);
     state->player_vel_x = 0;
     state->player_vel_y = 0;
     state->on_ground = 0;
@@ -296,6 +396,8 @@ void TilemapDemoInit(void) {
     /* Bullets: anchored centre so a shot is positioned by where it *is*,
      * not by a corner. Parked off-screen until fired. */
     state->facing = 1;
+    state->pushback = 0;
+    state->pushback_dir = 1;
     for (u8 i = 0; i < MAX_BULLETS; i++) {
         Bullet *b = &state->bullets[i];
         b->actor = NGActorCreate(&NGVisualAsset_bullet, 0, 0);
@@ -307,7 +409,7 @@ void TilemapDemoInit(void) {
 
     /* Walkers patrol a short beat on the ground. Anchored bottom-centre, so
      * their position is their feet and they sit on the floor line directly. */
-    static const s16 walker_x[MAX_WALKERS] = {505, 550, 592};
+    static const s16 walker_x[MAX_WALKERS] = {230, 280, 330};
     state->defeated = 0;
     for (u8 i = 0; i < MAX_WALKERS; i++) {
         Walker *w = &state->walkers[i];
@@ -316,9 +418,13 @@ void TilemapDemoInit(void) {
         NGActorSetAnimByName(w->actor, "walk");
         w->home_x = FIX(walker_x[i]);
         w->x = w->home_x;
-        w->y = FIX(192); /* ground line */
+        w->y = FIX(192); /* ground line, row 12 */
         w->dir = (i & 1) ? -1 : 1;
         w->alive = 1;
+        w->hp = WALKER_HP;
+        w->flash = 0;
+        w->dying = 0;
+        w->die_timer = 0;
         NGActorAddToScene(w->actor, w->x, w->y, 9);
     }
 
@@ -372,11 +478,17 @@ u8 TilemapDemoUpdate(void) {
     } else {
         state->player_vel_x = 0;
 
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_LEFT)) {
-            state->player_vel_x = -PLAYER_SPEED;
-        }
-        if (NGInputHeld(NG_PLAYER_1, NG_BTN_RIGHT)) {
-            state->player_vel_x = PLAYER_SPEED;
+        if (state->pushback > 0) {
+            /* Being shoved: ignore the stick so the knock reads clearly */
+            state->pushback--;
+            state->player_vel_x = state->pushback_dir > 0 ? PUSHBACK_SPEED : -PUSHBACK_SPEED;
+        } else {
+            if (NGInputHeld(NG_PLAYER_1, NG_BTN_LEFT)) {
+                state->player_vel_x = -PLAYER_SPEED;
+            }
+            if (NGInputHeld(NG_PLAYER_1, NG_BTN_RIGHT)) {
+                state->player_vel_x = PLAYER_SPEED;
+            }
         }
 
         if (state->player_vel_x < 0)
@@ -449,8 +561,10 @@ u8 TilemapDemoUpdate(void) {
         }
 
         if (state->player_y > FIX(250)) {
-            state->player_x = FIX(80);
-            state->player_y = FIX(100);
+            /* Reuse the verified-clear spawn column; the old fallback of
+             * x=80 sits under the row-5 ledge. */
+            state->player_x = FIX(SPAWN_X);
+            state->player_y = FIX(SPAWN_Y);
             state->player_vel_y = 0;
         }
 
