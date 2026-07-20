@@ -60,7 +60,8 @@
 typedef enum {
     WAVE_FIGHTING, /* camera locked, group alive */
     WAVE_CLEARED,  /* beat after the last enemy falls */
-    WAVE_ADVANCE   /* lock released; walk right to the next arena */
+    WAVE_ADVANCE,  /* lock released; walk right to the next arena */
+    STAGE_CLEAR    /* final arena beaten; the stage is over */
 } WavePhase;
 
 /* Pool entities begin with their actor handle - the pool fills it in. */
@@ -257,7 +258,10 @@ static void update_wave(void) {
                     state->phase = WAVE_ADVANCE;
                     state->arrow_timer = 0;
                 } else {
-                    begin_wave(state->arena); /* last arena keeps them coming */
+                    /* Beating the final arena ends the stage. A run that never
+                     * finishes is not a demo of pacing, it is a treadmill. */
+                    state->phase = STAGE_CLEAR;
+                    NGSfxPlay(NGSFX_PROGEARSDK_UI_SELECT);
                 }
             }
             break;
@@ -267,6 +271,9 @@ static void update_wave(void) {
             if (NGCameraGetX() >= arena_camera_x((u8)(state->arena + 1))) {
                 begin_wave((u8)(state->arena + 1));
             }
+            break;
+
+        case STAGE_CLEAR:
             break;
     }
 }
@@ -446,7 +453,7 @@ u8 BrawlerUpdate(void) {
         if (state->punch_timer == 0) {
             NGActorSetAnimByName(state->player, "idle");
         }
-    } else if (NGInputPressed(NG_PLAYER_1, NG_BTN_A)) {
+    } else if (state->phase != STAGE_CLEAR && NGInputPressed(NG_PLAYER_1, NG_BTN_A)) {
         state->punch_timer = PUNCH_FRAMES;
         NGActorSetAnimByName(state->player, "punch");
         NGCombatBeginAttack(state->player);
@@ -469,6 +476,11 @@ u8 BrawlerUpdate(void) {
     u8 show_arrow = (state->phase == WAVE_ADVANCE) && (u8)((state->arrow_timer / ARROW_BLINK) & 1);
     NGTextPrint(NGFixLayoutOffset(NG_ALIGN_RIGHT, NG_ALIGN_MIDDLE, -2, 0), 0,
                 show_arrow ? ">>>" : "   ");
+
+    if (state->phase == STAGE_CLEAR) {
+        NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_MIDDLE), 0, "STAGE CLEAR");
+        NGTextPrint(NGFixLayoutOffset(NG_ALIGN_CENTER, NG_ALIGN_MIDDLE, 0, 2), 0, "START FOR MENU");
+    }
 
     NGDebugDrawHUD(26);
     return state->switch_target;

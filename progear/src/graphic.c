@@ -309,6 +309,17 @@ static void get_tile_column_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u
     u8 src_tiles_w = g->src_tiles_w;
     u8 src_tiles_h = g->src_tiles_h;
 
+    /* Mirror the graphic by reading its columns (or rows) in reverse and
+     * flipping each tile. Without this a tilemap-backed actor cannot face the
+     * other way: only the per-tile flip bits baked into the tilemap applied,
+     * and NGGraphicSetFlip did nothing at all. */
+    if (g->flip & NG_GRAPHIC_FLIP_H) {
+        col = (u8)(g->num_cols - 1 - col);
+    }
+    if (g->flip & NG_GRAPHIC_FLIP_V) {
+        row = (u8)(g->num_rows - 1 - row);
+    }
+
     /* Apply source offset (in tiles) with proper negative handling */
     s16 offset_col = g->src_offset_x >> TILE_SHIFT;
     s16 offset_row = g->src_offset_y >> TILE_SHIFT;
@@ -359,6 +370,17 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
 
     u8 src_tiles_w = g->src_tiles_w;
     u8 src_tiles_h = g->src_tiles_h;
+
+    /* Mirror the graphic by reading its columns (or rows) in reverse and
+     * flipping each tile. Without this a tilemap-backed actor cannot face the
+     * other way: only the per-tile flip bits baked into the tilemap applied,
+     * and NGGraphicSetFlip did nothing at all. */
+    if (g->flip & NG_GRAPHIC_FLIP_H) {
+        col = (u8)(g->num_cols - 1 - col);
+    }
+    if (g->flip & NG_GRAPHIC_FLIP_V) {
+        row = (u8)(g->num_rows - 1 - row);
+    }
 
     /* Apply source offset (in tiles) with proper negative handling */
     s16 offset_col = g->src_offset_x >> TILE_SHIFT;
@@ -419,6 +441,13 @@ static void get_tile_row_major(NGGraphic *g, u8 col, u8 row, u16 *out_tile, u16 
         attr |= 0x01; /* NG_TILE_HFLIP -> hw h_flip */
     if (entry & 0x4000)
         attr |= 0x02; /* NG_TILE_VFLIP -> hw v_flip */
+
+    /* Then the graphic's own flip, toggling rather than setting so a tile
+     * already mirrored in the tilemap ends up the right way round. */
+    if (g->flip & NG_GRAPHIC_FLIP_H)
+        attr ^= 0x01;
+    if (g->flip & NG_GRAPHIC_FLIP_V)
+        attr ^= 0x02;
 
     *out_tile = tile;
     *out_attr = attr;
@@ -562,7 +591,8 @@ static void flush_tiles_standard(NGGraphic *g) {
     /* Fast path: 16-bit tilemaps without offsets or per-tile palettes.
      * The row-major lookup ignores g->flip (only tilemap entry flip flags
      * apply), so flipped graphics take this path with identical output. */
-    if (g->tilemap && !g->tile_to_palette && g->src_offset_x == 0 && g->src_offset_y == 0) {
+    if (g->tilemap && !g->tile_to_palette && g->src_offset_x == 0 && g->src_offset_y == 0 &&
+        g->flip == NG_GRAPHIC_FLIP_NONE) {
         flush_tiles_tilemap_fast(g);
         return;
     }
