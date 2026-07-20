@@ -65,6 +65,7 @@ struct NGGraphic {
     NGGraphicLayer layer;
     u8 z_order;
     u8 visible;
+    u8 culled;         /* sprites hidden because the graphic is off-screen */
     u8 pause_behavior; /* NG_PAUSE_KEEP or NG_PAUSE_HIDE */
     u8 pause_hidden;   /* 1 while hidden by an engine pause */
 
@@ -195,6 +196,39 @@ static u16 tiles_to_pixels(u8 tiles) {
  * NeoGeo shrink: 255 = full size, 0 = invisible
  * Our scale: 256 = 1.0x, so shrink = scale - 1 (clamped)
  */
+/**
+ * Is the graphic entirely outside the visible screen?
+ *
+ * Hardware sprite coordinates are 9-bit, so an off-screen sprite does not stay
+ * off-screen: a graphic 200-500 pixels left of the camera has its X masked to
+ * 0-511 and reappears on the right of the display. Its boxes and world
+ * position are unaffected, so it looks solid but cannot be touched. Anything
+ * fully outside the screen must have its sprites hidden rather than written.
+ *
+ * Infinite-scroll layers are exempt: they are screen-covering by construction
+ * and position their columns individually.
+ */
+static u8 graphic_is_offscreen(const NGGraphic *g) {
+    if (g->tile_mode == NG_GRAPHIC_TILE_INFINITE) {
+        return 0;
+    }
+
+    s16 tile_w = (s16)((TILE_SIZE * g->scale) >> 8);
+    if (tile_w < 1) {
+        tile_w = 1;
+    }
+    s16 w = (s16)((s16)g->num_cols * tile_w);
+    s16 h = (s16)((s16)g->num_rows * tile_w);
+
+    if (g->screen_x >= (s16)SCREEN_WIDTH || (s16)(g->screen_x + w) <= 0) {
+        return 1;
+    }
+    if (g->screen_y >= (s16)SCREEN_HEIGHT || (s16)(g->screen_y + h) <= 0) {
+        return 1;
+    }
+    return 0;
+}
+
 static u8 scale_to_shrink(u16 scale) {
     if (scale >= 256)
         return 255;
@@ -1443,6 +1477,7 @@ NGGraphic *NGGraphicCreate(const NGGraphicConfig *config) {
     g->active = 1;
     g->pause_behavior = NG_PAUSE_KEEP;
     g->pause_hidden = 0;
+    g->culled = 0;
 
     /* Invalidate cache */
     g->cache.last_base_tile = 0xFFFF;
@@ -1919,6 +1954,23 @@ void NGGraphicSystemDraw(void) {
             g->hw_sprite_first = sprite_idx;
             g->hw_sprite_count = needed;
             g->hw_allocated = 1;
+            force_full_redraw(g);
+        }
+
+        /* Off-screen: hide the sprites rather than writing them, or the 9-bit
+         * coordinate wrap puts the graphic back on the opposite edge. The
+         * allocation is kept so entering and leaving the screen does not
+         * shuffle every later graphic's sprite indices. */
+        if (graphic_is_offscreen(g)) {
+            if (!g->culled) {
+                NGSpriteHideRange(g->hw_sprite_first, g->hw_sprite_count);
+                g->culled = 1;
+            }
+            continue;
+        }
+        if (g->culled) {
+            /* Coming back: the sprites were hidden, so rewrite everything */
+            g->culled = 0;
             force_full_redraw(g);
         }
 
