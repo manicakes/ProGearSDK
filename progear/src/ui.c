@@ -94,6 +94,20 @@ static u8 find_first_selectable(NGMenu *menu) {
     return 0;
 }
 
+/*
+ * Put the cursor on the first selectable item with no travel. Used whenever
+ * the item list is new to the player - opening the menu, or swapping in a
+ * different page - where animating from the old row's position would just be
+ * the cursor sliding in from somewhere meaningless.
+ */
+static void reset_selection(NGMenu *menu) {
+    menu->selection = find_first_selectable(menu);
+
+    s16 offset = get_item_y_offset(menu->selection) + MENU_CURSOR_OFFSET_Y;
+    NGSpringSnap(&menu->cursor_y_spring, FIX(offset));
+    NGSpringSetTarget(&menu->cursor_y_spring, FIX(offset));
+}
+
 static u8 find_next_selectable(NGMenu *menu, u8 current) {
     for (u8 i = current + 1; i < menu->item_count; i++) {
         if (menu->item_selectable[i])
@@ -318,6 +332,29 @@ u8 NGMenuAddSeparator(NGMenuHandle menu, const char *label) {
     return index;
 }
 
+void NGMenuClearItems(NGMenuHandle menu) {
+    if (!menu)
+        return;
+
+    /* Erase first: once item_count drops, clear_menu_text no longer covers
+     * the rows the old contents occupied and they would stay on screen. */
+    if (menu->text_visible) {
+        clear_menu_text(menu);
+        menu->text_visible = 0;
+    }
+
+    /* The panel is sized from the item count, so it has to be rebuilt. */
+    if (menu->panel_graphic) {
+        NGGraphicDestroy(menu->panel_graphic);
+        menu->panel_graphic = NULL;
+    }
+
+    menu->item_count = 0;
+    menu->selection = 0;
+    menu->blink_count = 0;
+    menu->text_dirty = 1;
+}
+
 void NGMenuSetItemText(NGMenuHandle menu, u8 index, const char *label) {
     if (!menu || index >= menu->item_count)
         return;
@@ -341,13 +378,9 @@ void NGMenuShow(NGMenuHandle menu) {
     menu->confirmed = 0;
     menu->cancelled = 0;
 
-    menu->selection = find_first_selectable(menu);
+    reset_selection(menu);
 
     NGSpringSetTarget(&menu->panel_y_spring, FIX(menu->viewport_y));
-
-    s16 cursor_offset = get_item_y_offset(menu->selection) + MENU_CURSOR_OFFSET_Y;
-    NGSpringSnap(&menu->cursor_y_spring, FIX(cursor_offset));
-    NGSpringSetTarget(&menu->cursor_y_spring, FIX(cursor_offset));
 
     /* Create lighting layer for dimming effect */
     if (menu->dim_amount > 0 && menu->dim_layer == NG_LIGHTING_INVALID) {
@@ -409,6 +442,18 @@ void NGMenuHide(NGMenuHandle menu) {
 void NGMenuUpdate(NGMenuHandle menu) {
     if (!menu)
         return;
+
+    /* Rebuilt after NGMenuClearItems: recreate the panel at the new size and
+     * put it back where the spring has it. */
+    if (menu->showing && !menu->panel_graphic) {
+        setup_panel_graphic(menu);
+        update_panel_position(menu, NGSpringGetInt(&menu->panel_y_spring));
+        show_panel_graphic(menu);
+
+        /* The new items are in place by now, so this is the first point at
+         * which the first selectable row is actually known. */
+        reset_selection(menu);
+    }
 
     NGSpringUpdate(&menu->panel_y_spring);
     NGSpringUpdate(&menu->cursor_y_spring);

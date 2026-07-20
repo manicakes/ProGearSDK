@@ -79,4 +79,7 @@
 /* Game state / screen switching */
 #include <state.h>
 
+/* Pause menu with built-in navigation to every registered scene */
+#include <scenemenu.h>
+
 #endif /* NG_PROGEARSDK_H */

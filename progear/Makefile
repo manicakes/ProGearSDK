@@ -50,7 +50,8 @@ C_SOURCES = $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/state.c \
             $(SRC_DIR)/hitbox.c \
             $(SRC_DIR)/debug.c \
-            $(SRC_DIR)/pool.c
+            $(SRC_DIR)/pool.c \
+            $(SRC_DIR)/scenemenu.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 

@@ -71,12 +71,42 @@ typedef void (*NGStateCleanupFn)(void);
 
 /**
  * Register a state.
+ *
+ * The name is what a scene-selection menu shows, so a game gets one for free
+ * from the registration it already has to do (see NGSceneMenu).
+ *
  * @param id State id (1..NG_STATE_MAX-1; 0 is reserved for NG_STATE_ID_NONE)
+ * @param name Display name, or NULL if the state is never listed
  * @param init Init function (required)
  * @param update Update function (required)
  * @param cleanup Cleanup function, or NULL if none needed
  */
-void NGStateRegister(u8 id, NGStateInitFn init, NGStateUpdateFn update, NGStateCleanupFn cleanup);
+void NGStateRegister(u8 id, const char *name, NGStateInitFn init, NGStateUpdateFn update,
+                     NGStateCleanupFn cleanup);
+/** @} */
+
+/** @name Enumeration */
+/** @{ */
+
+/**
+ * Display name of a registered state.
+ * @param id State id
+ * @return Name, or NULL if unregistered or registered without one
+ */
+const char *NGStateGetName(u8 id);
+
+/**
+ * Number of registered states, for walking the list.
+ * @return Count
+ */
+u8 NGStateCount(void);
+
+/**
+ * Id of the n-th registered state, in registration order.
+ * @param index 0 to NGStateCount()-1
+ * @return State id, or NG_STATE_ID_NONE if out of range
+ */
+u8 NGStateIdAt(u8 index);
 /** @} */
 
 /** @name Lifecycle */

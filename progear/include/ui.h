@@ -116,6 +116,17 @@ u8 NGMenuAddItem(NGMenuHandle menu, const char *label);
 u8 NGMenuAddSeparator(NGMenuHandle menu, const char *label);
 
 /**
+ * Remove every item, so the menu can be repopulated.
+ *
+ * Erases the text currently on the fix layer and drops the panel graphic, so
+ * the panel is rebuilt at whatever size the new contents need. Used to page a
+ * menu through more entries than fit at once (see NGSceneMenu).
+ *
+ * @param menu Menu handle
+ */
+void NGMenuClearItems(NGMenuHandle menu);
+
+/**
  * Change a menu item's text.
  * @param menu Menu handle
  * @param index Item index (0-based)
