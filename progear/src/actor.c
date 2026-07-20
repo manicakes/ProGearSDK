@@ -26,6 +26,7 @@ typedef struct {
     u8 screen_space; // If set, ignore camera (UI elements)
 
     s16 anchor_x, anchor_y; // Anchor offset from the frame's top-left, in pixels
+    u8 depth_from_y;        // Derive z from screen Y each frame
 
     u8 anim_index;
     u16 anim_frame;
@@ -129,6 +130,19 @@ static void sync_actor_graphic(Actor *actor) {
     NGGraphicSetPosition(actor->graphic, screen_x, screen_y);
     NGGraphicSetScale(actor->graphic, scale);
 
+    /* Depth from position: further down the screen draws in front. Screen Y
+     * rather than world Y, so the value always fits the z-order byte and the
+     * camera cannot push actors out of range. Vertical camera movement shifts
+     * every actor equally, so relative order is unaffected. */
+    if (actor->depth_from_y) {
+        s16 depth = screen_y;
+        if (depth < 0)
+            depth = 0;
+        else if (depth > 255)
+            depth = 255;
+        NGGraphicSetZOrder(actor->graphic, (u8)depth);
+    }
+
     // Update flip flags
     NGGraphicFlip flip = NG_GRAPHIC_FLIP_NONE;
     if (actor->h_flip)
@@ -190,6 +204,7 @@ NGActorHandle NGActorCreate(const NGVisualAsset *asset, u16 width, u16 height) {
     actor->v_flip = 0;
     actor->anchor_x = 0; /* top-left: positions mean what they always did */
     actor->anchor_y = 0;
+    actor->depth_from_y = 0;
     actor->in_scene = 0;
     actor->active = 1;
     actor->screen_space = 0;
@@ -279,6 +294,13 @@ static void resolve_anchor(const Actor *actor, NGAnchor anchor, s16 *out_x, s16 
 
     *out_x = anchor_axis(actor_display_w(actor), col[i]);
     *out_y = anchor_axis(actor_display_h(actor), row[i]);
+}
+
+void NGActorSetDepthFromY(NGActorHandle handle, u8 enabled) {
+    Actor *actor = resolve_actor(handle);
+    if (!actor)
+        return;
+    actor->depth_from_y = enabled ? 1 : 0;
 }
 
 void NGActorSetAnchor(NGActorHandle handle, NGAnchor anchor) {

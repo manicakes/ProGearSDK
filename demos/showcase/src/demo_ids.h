@@ -15,5 +15,6 @@
 #define DEMO_ID_TILEMAP     4
 #define DEMO_ID_MVS         5
 #define DEMO_ID_RASTER      6
+#define DEMO_ID_BRAWLER     7
 
 #endif // DEMO_IDS_H

@@ -60,6 +60,9 @@
 /* Per-frame collision boxes, overlap queries and strike resolution */
 #include <hitbox.h>
 
+/* Fixed-capacity entity pools with optional per-slot actors */
+#include <pool.h>
+
 /* Frame-budget and sprite-budget diagnostics */
 #include <debug.h>
 

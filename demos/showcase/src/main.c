@@ -15,6 +15,7 @@
 #include "tilemap_demo/tilemap_demo.h"
 #include "mvs_demo/mvs_demo.h"
 #include "raster_demo/raster_demo.h"
+#include "brawler/brawler.h"
 
 int main(void) {
     NGEngineInit();
@@ -25,6 +26,7 @@ int main(void) {
     NGStateRegister(DEMO_ID_TILEMAP, TilemapDemoInit, TilemapDemoUpdate, TilemapDemoCleanup);
     NGStateRegister(DEMO_ID_MVS, MVSDemoInit, MVSDemoUpdate, MVSDemoCleanup);
     NGStateRegister(DEMO_ID_RASTER, RasterDemoInit, RasterDemoUpdate, RasterDemoCleanup);
+    NGStateRegister(DEMO_ID_BRAWLER, BrawlerInit, BrawlerUpdate, BrawlerCleanup);
 
     NGStateStart(DEMO_ID_BALL);
 

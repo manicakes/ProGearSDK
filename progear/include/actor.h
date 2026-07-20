@@ -118,6 +118,28 @@ void NGActorSetAnchorPixels(NGActorHandle actor, s16 x, s16 y);
 NGVec2 NGActorGetAnchorPixels(NGActorHandle actor);
 /** @} */
 
+/** @name Depth */
+/** @{ */
+
+/**
+ * Derive the actor's z-order from its position each frame.
+ *
+ * In a game with a floor - a beat-em-up, an isometric room, an overhead RPG -
+ * what is "in front" is whatever is further down the screen. With this on, the
+ * actor sorts itself: move it and its depth follows, with nothing to keep in
+ * step by hand.
+ *
+ * Pairs with NG_ANCHOR_BOTTOM, where the actor's position is already its feet,
+ * so the same coordinate places it and sorts it.
+ *
+ * Sorting is within the actor's layer, so backgrounds and UI are unaffected.
+ *
+ * @param actor Actor handle
+ * @param enabled 1 to sort by screen Y, 0 to keep the z set by NGActorSetZ
+ */
+void NGActorSetDepthFromY(NGActorHandle actor, u8 enabled);
+/** @} */
+
 /** @name Lifecycle */
 /** @{ */
 

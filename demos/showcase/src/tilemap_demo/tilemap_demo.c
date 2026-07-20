@@ -125,6 +125,7 @@ static TilemapDemoState *state;
 #define MENU_RESUME      0
 #define MENU_BALL_DEMO   1
 #define MENU_SCROLL_DEMO 2
+#define MENU_BRAWLER     3
 
 /* The menu panel, terrain and all three cloud layers can stack past the
  * hardware's 96 sprites per scanline, which drops the highest-numbered
@@ -391,6 +392,7 @@ void TilemapDemoInit(void) {
     NGMenuAddItem(state->menu, "Resume");
     NGMenuAddItem(state->menu, "Ball Demo");
     NGMenuAddItem(state->menu, "Scroll Demo");
+    NGMenuAddItem(state->menu, "Brawler");
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -476,6 +478,11 @@ u8 TilemapDemoUpdate(void) {
                     NGMenuHide(state->menu);
                     set_menu_open(0);
                     state->switch_target = DEMO_ID_SCROLL;
+                    break;
+                case MENU_BRAWLER:
+                    NGMenuHide(state->menu);
+                    set_menu_open(0);
+                    state->switch_target = DEMO_ID_BRAWLER;
                     break;
             }
         }
@@ -605,7 +612,13 @@ u8 TilemapDemoUpdate(void) {
 void TilemapDemoCleanup(void) {
     NGSongStop();
 
+    /* Anything this demo put on the fix layer has to go, or it bleeds through
+     * into whatever comes next - the layer is not part of the scene and is not
+     * cleared by resetting it. */
+    NGDebugClearBoxes();
     NGFixClear(0, 3, 40, 1);
+    NGFixClear(0, 4, 40, 1);
+    NGFixClear(0, 26, 40, 1);
     NGFixClear(0, 27, 40, 1);
 
     NGCameraStopTracking();

@@ -42,7 +42,8 @@ GAME_SOURCES = src/main.c \
                src/blank_scene/blank_scene.c \
                src/tilemap_demo/tilemap_demo.c \
                src/mvs_demo/mvs_demo.c \
-               src/raster_demo/raster_demo.c
+               src/raster_demo/raster_demo.c \
+               src/brawler/brawler.c
 
 # Object files
 GAME_OBJECTS = $(BUILD_DIR)/main.o \
@@ -52,7 +53,8 @@ GAME_OBJECTS = $(BUILD_DIR)/main.o \
                $(BUILD_DIR)/blank_scene.o \
                $(BUILD_DIR)/tilemap_demo.o \
                $(BUILD_DIR)/mvs_demo.o \
-               $(BUILD_DIR)/raster_demo.o
+               $(BUILD_DIR)/raster_demo.o \
+               $(BUILD_DIR)/brawler.o
 
 # === ROM Output Files ===
 P_ROM = $(BUILD_DIR)/$(GAME_NAME)-p1.bin
@@ -127,6 +129,9 @@ $(BUILD_DIR)/mvs_demo.o: src/mvs_demo/mvs_demo.c $(GEN_ASSETS_H) | $(BUILD_DIR)
 
 $(BUILD_DIR)/raster_demo.o: src/raster_demo/raster_demo.c $(GEN_ASSETS_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Isrc/raster_demo -c $< -o $@
+
+$(BUILD_DIR)/brawler.o: src/brawler/brawler.c $(GEN_ASSETS_H) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Isrc/brawler -c $< -o $@
 
 # === Link ELF ===
 $(ELF_FILE): $(GAME_OBJECTS) $(SDK_LIBS) $(SDK_CRT0)
