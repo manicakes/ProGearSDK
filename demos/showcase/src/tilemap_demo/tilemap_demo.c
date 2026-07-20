@@ -438,6 +438,11 @@ void TilemapDemoInit(void) {
     NGDebugSetEnabled(1);
     NGDebugResetPeaks();
 
+    /* Distinct fix palettes so hitboxes and hurtboxes read apart at a glance */
+    NGDebugSetBoxPalette(NG_BOX_HIT, NGPAL_BALL_RED);
+    NGDebugSetBoxPalette(NG_BOX_HURT, NGPAL_BALL_GREEN);
+    NGDebugSetBoxPalette(NG_BOX_USER1, NGPAL_BALL_YELLOW);
+
     /* Sequenced FM stage theme - note data in M1 ROM, not streamed samples */
     NGSongPlay(NGSONG_DOWNTOWN);
 }
@@ -573,6 +578,19 @@ u8 TilemapDemoUpdate(void) {
         }
 
         NGActorSetPos(state->player, state->player_x - FIX(16), state->player_y - FIX(16));
+
+        /* Box overlay: clear last frame's cells, then redraw */
+        NGDebugClearBoxes();
+        for (u8 i = 0; i < MAX_WALKERS; i++) {
+            if (state->walkers[i].alive && !state->walkers[i].dying) {
+                NGDebugDrawBoxes(state->walkers[i].actor, NG_BOX_HURT | NG_BOX_USER1);
+            }
+        }
+        for (u8 i = 0; i < MAX_BULLETS; i++) {
+            if (state->bullets[i].alive) {
+                NGDebugDrawBoxes(state->bullets[i].actor, NG_BOX_HIT);
+            }
+        }
 
         NGDebugDrawHUD(26);
 

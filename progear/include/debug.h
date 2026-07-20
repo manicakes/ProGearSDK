@@ -32,6 +32,7 @@
 #define NG_DEBUG_H
 
 #include <ng_types.h>
+#include <actor.h>
 
 /**
  * @defgroup debug Debug
@@ -89,6 +90,27 @@ u16 NGDebugFrameLines(void);
  * @return Scanlines
  */
 u16 NGDebugPeakFrameLines(void);
+
+/**
+ * Did the last frame miss its VBlank?
+ *
+ * The scanline measurement saturates at one frame, so a frame that overran
+ * wraps and reads just under the limit - indistinguishable from one that
+ * fitted. This asks the hardware instead: the VBlank flag is clear for the
+ * duration of a frame's work, so finding it set at the end means the frame
+ * was late. Trust this over the line count when deciding whether you are
+ * within budget.
+ *
+ * @return 1 if the last frame ran past its VBlank
+ */
+u8 NGDebugFrameOverran(void);
+
+/**
+ * Number of late frames since the last NGDebugResetPeaks().
+ *
+ * @return Overrun count
+ */
+u16 NGDebugOverrunCount(void);
 /** @} */
 
 /** @name Sprite Budget */
@@ -118,6 +140,52 @@ u16 NGDebugPeakSpriteLine(void);
  * @return 1 if the last frame exceeded the per-scanline sprite limit.
  */
 u8 NGDebugSpritesOverBudget(void);
+/** @} */
+
+/** @name Box Overlay */
+/** @{ */
+
+/**
+ * Draw the outline of an actor's collision boxes for the current frame.
+ *
+ * Combat cannot be tuned by reading YAML - "does this punch actually reach?"
+ * and "why did that parry whiff?" are questions about geometry you have to
+ * see. This draws each matching box as an outline on the fix layer.
+ *
+ * Deliberately drawn on the fix layer rather than with sprites: an overlay
+ * that consumed sprites would distort the sprite budget this same module
+ * exists to measure, and could itself push a busy scene over the
+ * per-scanline limit. The cost is granularity - the fix layer is an 8x8 grid,
+ * so outlines snap outward to the nearest cell. Good enough to see reach and
+ * timing; not a substitute for the exact numbers, which come from the asset.
+ *
+ * Call NGDebugClearBoxes() once before drawing the frame's boxes.
+ *
+ * @param actor Actor whose boxes to draw
+ * @param kinds One or more NGBoxKind values, OR-ed together
+ */
+void NGDebugDrawBoxes(NGActorHandle actor, u8 kinds);
+
+/**
+ * Erase the outlines drawn by the previous NGDebugDrawBoxes() calls.
+ *
+ * Only the cells actually written are cleared, so surrounding text and HUD
+ * output are left intact.
+ */
+void NGDebugClearBoxes(void);
+
+/**
+ * Set the fix-layer palette used for one box kind.
+ *
+ * Defaults to palette 0 for every kind, which is the text palette and so is
+ * always legible without depending on any particular asset. Give each kind
+ * its own colour when you have palettes to spare - telling a hitbox from a
+ * hurtbox at a glance is most of the value.
+ *
+ * @param kind One NGBoxKind value
+ * @param palette Fix-layer palette index (0-15)
+ */
+void NGDebugSetBoxPalette(u8 kind, u8 palette);
 /** @} */
 
 /** @name Reporting */
