@@ -35,12 +35,13 @@ palettes:
     colors: [0x8000, 0x7FFF, 0x5DDD, 0x3AAA, 0x0000, 0x0000, 0x0000, 0x0000,
              0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
 
-  # Enemy recolour of the fighter. The art's colours order by pixel count as
-  # body > outline > skin, so these entries follow that order rather than the
-  # brightest-to-darkest convention the ball palettes use.
+  # Enemy recolour of the fighter: armour swung to rust red, skin left as it is
+  # so the enemy still reads as a person. Emitted by tools/gen_fighter.py
+  # --report, in the descending-pixel-count order the pipeline assigns indices
+  # in - regenerate it there rather than editing entries by hand.
   fighter_enemy:
-    colors: [0x8000, 0x7C33, 0x7112, 0x3FB8, 0x0000, 0x0000, 0x0000, 0x0000,
-             0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000]
+    colors: [0x8000, 0x0000, 0x1521, 0x1310, 0x6411, 0x6311, 0x3932, 0x0100,
+             0x4311, 0x3621, 0x0311, 0x5965, 0x5DA8, 0x3B76, 0x0000, 0x0000]
 
   # Dithered shadow palette - index 0 transparent, index 1 black
   dithered_shadow:
@@ -99,22 +100,25 @@ visual_assets:
 
   # --- Brawler ---
 
-  # Boxy humanoid: head, torso, two fists, two legs. Frame 3 throws a punch,
-  # which is where its hitbox lives. Enemies are the same tiles under
-  # fighter_enemy.
+  # Armoured figure, 16-frame walk from assets/fighter_walk.gif (see
+  # tools/gen_fighter.py). Frames 16 and 17 are the idle and punch poses, kept
+  # off the walk cycle so the punch hitbox is not armed by walking. Enemies are
+  # the same tiles under fighter_enemy.
   - name: fighter
     source: assets/fighter.png
-    frame_size: [32, 48]
+    frame_size: [64, 128]
     animations:
-      idle:  { frame: 0 }
-      walk:  { frames: [1-2], speed: 8, loop: true }
-      punch: { frames: [3], speed: 6, loop: false }
+      idle:  { frame: 16 }
+      walk:  { frames: [0-15], speed: 3, loop: true }
+      punch: { frames: [17], speed: 6, loop: false }
     boxes:
       default:
         hurt: auto
-        body: [9, 30, 14, 18]
+        body: [18, 80, 28, 46]
       frames:
-        3: { hit: [22, 16, 10, 9] }
+        # Placeholder reach: frame 17 has no punch art yet, so this is where a
+        # thrown fist would land rather than anything visible on the sprite.
+        17: { hit: [46, 52, 16, 14] }
 
   # Repeating paving for the floor plane
   - name: ground

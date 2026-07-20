@@ -17,6 +17,7 @@
 
 #include "mvs_demo.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <ng_hardware.h>
 #include <ng_fix.h>
 #include <ng_input.h>
@@ -29,6 +30,7 @@
 
 typedef struct MVSDemoState {
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     u8 menu_open;
     u8 switch_target;
     u16 frame_counter;
@@ -36,10 +38,9 @@ typedef struct MVSDemoState {
 
 static MVSDemoState *state;
 
-#define MENU_RESUME      0
-#define MENU_PULSE_COIN1 1
-#define MENU_PULSE_COIN2 2
-#define MENU_BALL_DEMO   3
+#define ACT_RESUME 0
+#define ACT_COIN1  1
+#define ACT_COIN2  2
 
 /* Display positions */
 #define INFO_X   2
@@ -144,11 +145,11 @@ void MVSDemoInit(void) {
 
     /* Create menu */
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "MVS DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Pulse Coin Counter 1");
-    NGMenuAddItem(state->menu, "Pulse Coin Counter 2");
-    NGMenuAddItem(state->menu, "Back to Ball Demo");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "MVS DEMO");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_COIN1, "Pulse Coin Counter 1");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_COIN2, "Pulse Coin Counter 2");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 }
@@ -186,6 +187,7 @@ u8 MVSDemoUpdate(void) {
             restore_fix_content();
         } else {
             clear_fix_content();
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             state->menu_open = 1;
         }
@@ -194,32 +196,31 @@ u8 MVSDemoUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    restore_fix_content();
-                    break;
-                case MENU_PULSE_COIN1:
-                    NGCoinCounterP1();
-                    break;
-                case MENU_PULSE_COIN2:
-                    NGCoinCounterP2();
-                    break;
-                case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    restore_fix_content();
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
-            }
-        }
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
 
-        if (NGMenuCancelled(state->menu)) {
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
             restore_fix_content();
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+            restore_fix_content();
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    restore_fix_content();
+                    break;
+                case ACT_COIN1:
+                    NGCoinCounterP1();
+                    break;
+                case ACT_COIN2:
+                    NGCoinCounterP2();
+                    break;
+            }
         }
     }
 

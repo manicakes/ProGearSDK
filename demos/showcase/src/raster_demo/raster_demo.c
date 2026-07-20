@@ -18,6 +18,7 @@
 
 #include "raster_demo.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <ng_hardware.h>
 #include <ng_fix.h>
 #include <ng_input.h>
@@ -44,6 +45,7 @@ typedef enum {
 
 typedef struct RasterDemoState {
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     u8 menu_open;
     u8 switch_target;
     RasterEffect current_effect;
@@ -55,10 +57,9 @@ typedef struct RasterDemoState {
 
 static RasterDemoState *state;
 
-#define MENU_RESUME      0
-#define MENU_TOGGLE_FX   1
-#define MENU_NEXT_EFFECT 2
-#define MENU_BALL_DEMO   3
+#define ACT_RESUME    0
+#define ACT_TOGGLE_FX 1
+#define ACT_NEXT_FX   2
 
 /* Scanlines per band for gradient (224 / 8 = 28 scanlines per band) */
 #define SCANLINES_PER_BAND 28
@@ -341,11 +342,11 @@ void RasterDemoInit(void) {
     draw_info();
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "RASTER DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Toggle Effect");
-    NGMenuAddItem(state->menu, "Next Effect");
-    NGMenuAddItem(state->menu, "Back to Ball Demo");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "RASTER DEMO");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_TOGGLE_FX, "Toggle Effect");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_NEXT_FX, "Next Effect");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 }
@@ -466,6 +467,7 @@ u8 RasterDemoUpdate(void) {
             restore_fix_content();
         } else {
             clear_fix_content();
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             state->menu_open = 1;
         }
@@ -474,21 +476,32 @@ u8 RasterDemoUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
+
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+            restore_fix_content();
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+            restore_fix_content();
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
                     NGMenuHide(state->menu);
                     state->menu_open = 0;
                     restore_fix_content();
                     break;
-                case MENU_TOGGLE_FX:
+                case ACT_TOGGLE_FX:
                     if (state->effect_enabled) {
                         disable_raster_effect();
                     } else {
                         enable_raster_effect();
                     }
                     break;
-                case MENU_NEXT_EFFECT: {
+                case ACT_NEXT_FX: {
                     u8 was_enabled = state->effect_enabled;
                     if (was_enabled) {
                         disable_raster_effect();
@@ -499,19 +512,7 @@ u8 RasterDemoUpdate(void) {
                         enable_raster_effect();
                     }
                 } break;
-                case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    restore_fix_content();
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
             }
-        }
-
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
-            state->menu_open = 0;
-            restore_fix_content();
         }
     }
 

@@ -6,6 +6,7 @@
 
 #include "blank_scene.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <ng_hardware.h>
 #include <ng_fix.h>
 #include <ng_input.h>
@@ -17,16 +18,14 @@
 
 typedef struct BlankSceneState {
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     u8 menu_open;
     u8 switch_target;
 } BlankSceneState;
 
 static BlankSceneState *state;
 
-#define MENU_RESUME       0
-#define MENU_BALL_DEMO    1
-#define MENU_SCROLL_DEMO  2
-#define MENU_TILEMAP_DEMO 3
+#define ACT_RESUME 0
 
 void BlankSceneInit(void) {
     state = NG_ARENA_ALLOC(&ng_arena_state, BlankSceneState);
@@ -36,11 +35,9 @@ void BlankSceneInit(void) {
     NGPalSetBackdrop(NG_COLOR_BLACK);
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "BLANK SCENE");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Ball Demo");
-    NGMenuAddItem(state->menu, "Scroll Demo");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "BLANK SCENE");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -53,6 +50,7 @@ u8 BlankSceneUpdate(void) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
         } else {
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             state->menu_open = 1;
         }
@@ -61,33 +59,22 @@ u8 BlankSceneUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    break;
-                case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
-                case MENU_SCROLL_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_SCROLL;
-                    break;
-                case MENU_TILEMAP_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_TILEMAP;
-                    break;
-            }
-        }
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
 
-        if (NGMenuCancelled(state->menu)) {
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    break;
+            }
         }
     }
 

@@ -19,6 +19,7 @@
 
 #include "brawler.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <backdrop.h>
 #include <camera.h>
 #include <debug.h>
@@ -41,6 +42,17 @@
 #define FLOOR_BOTTOM FIX(196)
 #define GROUND_Y     132 /* top edge of the paving, in screen pixels */
 
+/*
+ * Distances that follow from the fighter's proportions rather than from taste.
+ * The sprite is 64x128 anchored at the feet, about 28px of it solid body, with
+ * the chest a little over half way up - see the 'fighter' boxes in assets.yaml.
+ */
+#define FIGHTER_HALF_W FIX(32) /* to the frame edge, for off-screen spawns */
+#define STANDOFF       FIX(52) /* where a closing enemy stops: bodies + reach */
+#define CHEST_Y        FIX(64) /* above the feet; where impacts read from */
+#define HIT_PUSHBACK   FIX(12)
+#define PUNCH_DEPTH    FIX(12) /* floor depth two fighters must share to trade */
+
 #define WALK_SPEED   FIX(1.6)
 #define ENEMY_SPEED  FIX(0.45)
 #define PUNCH_FRAMES 10
@@ -51,7 +63,7 @@
 
 /* Arenas: where the camera locks and a wave is fought */
 #define ARENA_COUNT  3
-#define ARENA_MARGIN 24 /* how close to the screen edge the player may get */
+#define ARENA_MARGIN 40 /* how close to the screen edge the player may get */
 
 #define WAVE_CLEAR_PAUSE 45
 #define WAVE_ENTER_STEP  20
@@ -80,6 +92,7 @@ typedef struct {
 
 typedef struct BrawlerState {
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     NGActorHandle player;
     NGBackdropHandle sky_far, sky_near, ground;
 
@@ -105,9 +118,7 @@ typedef struct BrawlerState {
 
 static BrawlerState *state;
 
-#define MENU_RESUME  0
-#define MENU_TILEMAP 1
-#define MENU_BALL    2
+#define ACT_RESUME 0
 
 /* Left edge of an arena's camera lock */
 static fixed arena_camera_x(u8 arena) {
@@ -129,7 +140,7 @@ static void spawn_enemy(u16 seed) {
     /* Walk on from one side of the current arena */
     fixed cam = arena_camera_x(state->arena);
     u8 from_left = (u8)(seed & 1);
-    e->x = cam + (from_left ? FIX(-16) : FIX(336));
+    e->x = cam + (from_left ? -FIGHTER_HALF_W : FIX(320) + FIGHTER_HALF_W);
     e->y = FLOOR_TOP + FIX((seed * 37) % 52);
     e->dir = from_left ? 1 : -1;
     e->hp = ENEMY_HP;
@@ -175,7 +186,7 @@ static void update_enemies(void) {
         /* Close on the player rather than patrolling blindly */
         e->dir = (e->x < state->player_x) ? 1 : -1;
         fixed gap = (e->x > state->player_x) ? e->x - state->player_x : state->player_x - e->x;
-        if (gap > FIX(26)) {
+        if (gap > STANDOFF) {
             e->x += e->dir > 0 ? ENEMY_SPEED : -ENEMY_SPEED;
         }
         if (e->y < state->player_y - FIX(2)) {
@@ -214,18 +225,18 @@ static void resolve_punch(void) {
             continue;
         }
         fixed dy = (e->y > state->player_y) ? e->y - state->player_y : state->player_y - e->y;
-        if (dy > FIX(12) || !NGRectOverlap(&fist, &hurt, 0)) {
+        if (dy > PUNCH_DEPTH || !NGRectOverlap(&fist, &hurt, 0)) {
             continue;
         }
         if (NGCombatStrike(state->player, e->actor, 0) != NG_STRIKE_HIT) {
             continue;
         }
 
-        spawn_spark(e->x, e->y - FIX(26));
+        spawn_spark(e->x, e->y - CHEST_Y);
         NGSfxPlay(NGSFX_BALL_HIT);
         e->flash = 4;
         NGActorSetPalette(e->actor, NGPAL_BALL_WHITE);
-        e->x += (state->facing > 0) ? FIX(8) : FIX(-8);
+        e->x += (state->facing > 0) ? HIT_PUSHBACK : -HIT_PUSHBACK;
 
         if (--e->hp == 0) {
             NGPoolRetire(&state->enemies, e);
@@ -342,10 +353,9 @@ void BrawlerInit(void) {
     begin_wave(0);
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "BRAWLER");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuAddItem(state->menu, "Ball Demo");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "BRAWLER");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -362,6 +372,7 @@ u8 BrawlerUpdate(void) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
         } else {
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             state->menu_open = 1;
         }
@@ -370,27 +381,22 @@ u8 BrawlerUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    break;
-                case MENU_TILEMAP:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_TILEMAP;
-                    break;
-                case MENU_BALL:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
-            }
-        }
-        if (NGMenuCancelled(state->menu)) {
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
+
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
+                    NGMenuHide(state->menu);
+                    state->menu_open = 0;
+                    break;
+            }
         }
         return state->switch_target;
     }

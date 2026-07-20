@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """
-gen_fighter.py - Placeholder brawler art: a boxy humanoid and a ground tile.
+gen_fighter.py - Brawler art: the player walk cycle, and the ground tile.
 
-Deliberately plain. The figure is built from rectangles - head, torso, two
-fists, two legs - so a punch reads clearly at a glance and the walk cycle is
-obvious without any real animation work.
+The walk cycle comes from assets/fighter_walk.gif, a 16-frame animation drawn
+at 4x. This script recovers the native 64x128 pixels (a plain nearest-neighbour
+downscale - every 4x4 block in the source is a solid colour, so nothing is
+resampled) and fits it to the hardware.
 
-Three opaque colours only, and the pipeline assigns palette indices by
-descending pixel frequency, so the ordering is tuned the same way as the ball:
+Two things need doing beyond the downscale:
 
-    torso/limbs (most) -> 1, outline -> 2, skin (fewest) -> 3
+Colour. The source has 139 colours and a NeoGeo palette holds 15 plus
+transparent. The asset pipeline's own reducer keeps the 15 *most frequent*
+colours and snaps everything else to the nearest survivor, which on artwork
+this smoothly shaded would spend the whole palette on near-identical mid-greys
+and lose the highlights and skin entirely. So the reduction happens here, with
+median cut over the colours actually present, and the result is written out
+already snapped to the 5-bit channels the hardware stores. The pipeline then
+finds exactly 15 colours and passes them through untouched.
 
-The recolour palettes in assets.yaml are authored to match that order, so an
-enemy is a palette swap of the same tiles rather than separate art.
-
-Frames: 0 idle, 1 walk A, 2 walk B, 3 punch.
+Enemies. They are the same tiles under a different palette, so the recolour has
+to be authored against the pipeline's index assignment, which is by descending
+pixel count. This script derives it from the quantised palette and prints it in
+that order, ready to paste into assets.yaml. Armour (near-grey) is tinted; skin
+(warm, saturated) is left alone so an enemy still reads as a person.
 
 Usage:
     python3 gen_fighter.py -o demos/showcase/assets --report
@@ -24,59 +32,132 @@ import argparse
 import os
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageSequence
 
-W, H = 32, 48
-CLEAR = (0, 0, 0, 0)
+SRC_GIF = "fighter_walk.gif"
+SRC_SCALE = 4  # the GIF is drawn at 4x
+FRAME_W, FRAME_H = 64, 128
+PALETTE_SIZE = 15  # plus transparent
 
-BODY = (72, 108, 200, 255)    # most pixels -> palette index 1
-LINE = (24, 24, 40, 255)       # -> index 2
-SKIN = (240, 190, 140, 255)    # fewest -> index 3
+# The GIF is 16 frames of walk and nothing else, but idle and punch need frame
+# indices of their own: boxes are declared per frame, so a punch sharing a walk
+# frame's index would arm its hitbox every time the player took a step. Both are
+# copies of the passing pose - the one frame with the legs together, so it reads
+# as a stance rather than a step - until there is real art for them.
+WALK_FRAMES = 16
+NEUTRAL_FRAME = 10
+
+# Skin is the only warm thing on the figure - the armour is neutral or slightly
+# cool - so red minus blue separates them cleanly. It is about 3% of the pixels,
+# far too little to survive a median cut run over everything at once, so it gets
+# its own share of the palette.
+SKIN_WARMTH = 30
+SKIN_COLORS = 3
+ARMOR_COLORS = 12
+
+# Enemy recolour. Scaling a colour's brightness along this ramp keeps the
+# original shading intact - black stays black, highlights stay bright - and only
+# swings the hue, which a straight blend towards a tint colour would not do
+# (it washes the darks out to muddy red).
+ENEMY_RAMP = (1.0, 0.42, 0.30)
 
 
-def figure(frame):
-    """One 32x48 frame. Boxes only, outlined so shapes stay legible."""
-    img = Image.new("RGBA", (W, H), CLEAR)
-    d = ImageDraw.Draw(img)
+def snap5(c):
+    """Snap a channel to the 5 bits the hardware keeps, as the pipeline does."""
+    return (c >> 3) << 3
 
-    def box(x0, y0, x1, y1, fill):
-        d.rectangle([x0, y0, x1, y1], fill=fill, outline=LINE)
 
-    walk_a = (frame == 1)
-    walk_b = (frame == 2)
-    punch = (frame == 3)
+def native_frames(path):
+    """The GIF's 16 frames at their true pixel size."""
+    gif = Image.open(path)
+    frames = []
+    for f in ImageSequence.Iterator(gif):
+        rgba = f.convert("RGBA")
+        w, h = rgba.size
+        frames.append(rgba.resize((w // SRC_SCALE, h // SRC_SCALE), Image.NEAREST))
+    return frames
 
-    # Head, with a slight bob on one walk frame so the cycle reads
-    head_y = 3 + (1 if walk_b else 0)
-    box(11, head_y, 20, head_y + 9, SKIN)
 
-    # Torso
-    box(9, head_y + 10, 22, head_y + 26, BODY)
+def is_skin(rgb):
+    return rgb[0] - rgb[2] > SKIN_WARMTH
 
-    # Arms. The punching arm extends forward with a bigger fist; the other
-    # stays tucked, so the difference is unmistakable.
-    arm_y = head_y + 13
-    if punch:
-        box(23, arm_y - 1, 30, arm_y + 6, SKIN)   # extended fist
-        box(22, arm_y + 1, 24, arm_y + 4, BODY)   # forearm
-        box(5, arm_y + 2, 9, arm_y + 7, SKIN)     # rear fist
-    else:
-        box(5, arm_y + 2, 9, arm_y + 7, SKIN)
-        box(22, arm_y + 2, 26, arm_y + 7, SKIN)
 
-    # Legs. Split apart on walk A, together on walk B and idle.
-    leg_top = head_y + 27
-    if walk_a:
-        box(8, leg_top, 13, H - 2, BODY)
-        box(18, leg_top, 23, H - 2, BODY)
-    elif walk_b:
-        box(10, leg_top, 15, H - 2, BODY)
-        box(16, leg_top, 21, H - 2, BODY)
-    else:
-        box(10, leg_top, 14, H - 2, BODY)
-        box(17, leg_top, 21, H - 2, BODY)
+def median_cut(pixels, budget):
+    """The `budget` colours that best represent `pixels`, snapped to 5 bits."""
+    if not pixels or budget <= 0:
+        return []
+    flat = Image.new("RGB", (len(pixels), 1))
+    flat.putdata(pixels)
+    raw = flat.quantize(colors=budget, method=Image.MEDIANCUT).getpalette()
+    return [tuple(snap5(c) for c in raw[i * 3:i * 3 + 3]) for i in range(budget)]
 
-    return img
+
+def quantise(frames):
+    """
+    Reduce every opaque pixel across all frames to at most PALETTE_SIZE colours.
+
+    Only opaque pixels are considered, so the transparent majority of the canvas
+    cannot skew the split, and skin and armour are cut separately against fixed
+    budgets so the face is not averaged away into the armour it is outnumbered by.
+    """
+    opaque = [px[:3] for f in frames for px in f.getdata() if px[3] >= 128]
+    skin = [p for p in opaque if is_skin(p)]
+    armor = [p for p in opaque if not is_skin(p)]
+
+    palette = median_cut(skin, SKIN_COLORS) + median_cut(armor, ARMOR_COLORS)
+
+    # Snapping to 5 bits can collapse two entries onto each other; dropping the
+    # duplicate is fine, it just means the art needed fewer colours.
+    seen, unique = set(), []
+    for c in palette:
+        if c not in seen:
+            seen.add(c)
+            unique.append(c)
+    return unique
+
+
+def nearest(color, palette):
+    """
+    Closest palette entry, matched within the colour's own class.
+
+    Plain nearest-neighbour would let a dark skin pixel land on a grey, since
+    the shadowed side of the face sits closer to the armour in RGB than to the
+    lit side of the face. Keeping skin on skin holds the face together.
+    """
+    same = [p for p in palette if is_skin(p) == is_skin(color)] or palette
+    return min(same, key=lambda p: sum((a - b) ** 2 for a, b in zip(color, p)))
+
+
+def remap(frame, palette, cache):
+    """Redraw a frame using only palette colours, preserving alpha."""
+    out = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+    pixels = []
+    for px in frame.getdata():
+        if px[3] < 128:
+            pixels.append((0, 0, 0, 0))
+            continue
+        key = px[:3]
+        if key not in cache:
+            cache[key] = nearest(key, palette)
+        pixels.append(cache[key] + (255,))
+    out.putdata(pixels)
+    return out
+
+
+def enemy_color(rgb):
+    """Swing armour along the enemy ramp; leave skin alone so it still reads."""
+    if is_skin(rgb):
+        return rgb
+    r, g, b = rgb
+    level = (r * 77 + g * 151 + b * 28) >> 8  # perceived brightness
+    return tuple(snap5(min(255, int(level * k))) for k in ENEMY_RAMP)
+
+
+def to_neogeo(rgb):
+    """5-bit RGB packed the way the hardware wants it (see progear_assets.py)."""
+    r, g, b = (c >> 3 for c in rgb)
+    return ((r & 1) << 14 | (g & 1) << 13 | (b & 1) << 12
+            | (r >> 1) << 8 | (g >> 1) << 4 | (b >> 1))
 
 
 def ground_tile():
@@ -90,36 +171,70 @@ def ground_tile():
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate brawler placeholder art")
+    ap = argparse.ArgumentParser(description="Generate brawler art")
     ap.add_argument("-o", "--outdir", required=True)
     ap.add_argument("--report", action="store_true")
     args = ap.parse_args()
 
-    frames = [figure(i) for i in range(4)]
-    strip = Image.new("RGBA", (W * len(frames), H), CLEAR)
+    src = os.path.join(args.outdir, SRC_GIF)
+    frames = native_frames(src)
+
+    if len(frames) != WALK_FRAMES:
+        print(f"ERROR: expected {WALK_FRAMES} walk frames, got {len(frames)}",
+              file=sys.stderr)
+        return 1
+
+    if frames[0].size != (FRAME_W, FRAME_H):
+        print(f"ERROR: expected {FRAME_W}x{FRAME_H} native frames, got "
+              f"{frames[0].size[0]}x{frames[0].size[1]}", file=sys.stderr)
+        return 1
+
+    palette = quantise(frames)
+    cache = {}
+    frames = [remap(f, palette, cache) for f in frames]
+
+    # 0..15 walk, 16 idle, 17 punch
+    frames.append(frames[NEUTRAL_FRAME].copy())
+    frames.append(frames[NEUTRAL_FRAME].copy())
+
+    strip = Image.new("RGBA", (FRAME_W * len(frames), FRAME_H), (0, 0, 0, 0))
     for i, f in enumerate(frames):
-        strip.paste(f, (i * W, 0), f)
+        strip.paste(f, (i * FRAME_W, 0), f)
     strip.save(os.path.join(args.outdir, "fighter.png"))
     ground_tile().save(os.path.join(args.outdir, "ground.png"))
 
+    # Rank by pixel count: this is the order the pipeline assigns indices in,
+    # so the enemy palette has to be emitted the same way.
     counts = {}
     for px in strip.getdata():
         if px[3] >= 128:
             counts[px[:3]] = counts.get(px[:3], 0) + 1
-    order = sorted(counts.items(), key=lambda kv: -kv[1])
+    order = [c for c, _ in sorted(counts.items(), key=lambda kv: -kv[1])]
+
+    if len(order) > PALETTE_SIZE:
+        print(f"ERROR: {len(order)} colours survived, hardware allows "
+              f"{PALETTE_SIZE}", file=sys.stderr)
+        return 1
 
     if args.report:
-        names = {BODY[:3]: "body", LINE[:3]: "outline", SKIN[:3]: "skin"}
-        print(f"fighter.png {strip.size[0]}x{strip.size[1]} ({len(frames)} frames)")
-        for i, (c, n) in enumerate(order, start=1):
-            print(f"  palette index {i} = {names.get(c, '?'):8s} rgb{c}  {n} px")
-        print("ground.png  16x16")
+        print(f"fighter.png {strip.size[0]}x{strip.size[1]} "
+              f"({len(frames)} frames of {FRAME_W}x{FRAME_H}: "
+              f"0-{WALK_FRAMES - 1} walk, {WALK_FRAMES} idle, "
+              f"{WALK_FRAMES + 1} punch)")
+        print(f"palette: {len(order)} colours\n")
+        for i, c in enumerate(order, start=1):
+            kind = "skin " if is_skin(c) else "armor"
+            print(f"  {i:2d} {kind} rgb{c!s:<18} {counts[c]:6d} px  "
+                  f"-> enemy rgb{enemy_color(c)}")
+        print("\nfighter_enemy palette for assets.yaml:")
+        vals = [0x8000] + [to_neogeo(enemy_color(c)) for c in order]
+        vals += [0x0000] * (16 - len(vals))
+        for row in range(2):
+            line = ", ".join(f"0x{v:04X}" for v in vals[row * 8:row * 8 + 8])
+            prefix = "    colors: [" if row == 0 else "             "
+            print(f"{prefix}{line}" + ("," if row == 0 else "]"))
+        print("\nground.png  16x16")
 
-    if [c for c, _ in order] != [BODY[:3], LINE[:3], SKIN[:3]]:
-        print("ERROR: frequency order changed; the recolour palettes in assets.yaml "
-              "are authored for body > outline > skin and would be wrong.",
-              file=sys.stderr)
-        return 1
     return 0
 
 

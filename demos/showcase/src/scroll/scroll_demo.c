@@ -6,6 +6,7 @@
 
 #include "scroll_demo.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <ng_hardware.h>
 #include <ng_fix.h>
 #include <scene.h>
@@ -25,6 +26,7 @@ typedef struct ScrollDemoState {
     NGBackdropHandle middle;
     NGBackdropHandle front;
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     s16 scroll_x;
     s8 scroll_dir;
     u8 bob_phase;
@@ -34,9 +36,9 @@ typedef struct ScrollDemoState {
 
 static ScrollDemoState *state;
 
-#define MENU_RESUME       0
-#define MENU_TOGGLE_ZOOM  1
-#define MENU_RESET_CAMERA 2
+#define ACT_RESUME       0
+#define ACT_TOGGLE_ZOOM  1
+#define ACT_RESET_CAMERA 2
 // Index 3 is separator
 #define MENU_BALL_DEMO    4
 #define MENU_BLANK_SCENE  5
@@ -66,14 +68,11 @@ void ScrollDemoInit(void) {
 
     // Menu uses palette fade, no sprite limit issues
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "SCROLL DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Toggle Zoom");
-    NGMenuAddItem(state->menu, "Reset Camera");
-    NGMenuAddSeparator(state->menu, "--------");
-    NGMenuAddItem(state->menu, "Ball Demo");
-    NGMenuAddItem(state->menu, "Blank Scene");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "SCROLL DEMO");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_TOGGLE_ZOOM, "Toggle Zoom");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESET_CAMERA, "Reset Camera");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -86,6 +85,7 @@ u8 ScrollDemoUpdate(void) {
             NGMenuHide(state->menu);
             state->menu_open = 0;
         } else {
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             state->menu_open = 1;
         }
@@ -94,48 +94,34 @@ u8 ScrollDemoUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
+
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            state->menu_open = 0;
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
                     NGMenuHide(state->menu);
                     state->menu_open = 0;
                     break;
-                case MENU_TOGGLE_ZOOM: {
+                case ACT_TOGGLE_ZOOM: {
                     u8 target = NGCameraGetTargetZoom();
-                    if (target == NG_CAM_ZOOM_100) {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
-                    } else {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
-                    }
+                    NGCameraSetTargetZoom(target == NG_CAM_ZOOM_100 ? NG_CAM_ZOOM_75
+                                                                    : NG_CAM_ZOOM_100);
                 } break;
-                case MENU_RESET_CAMERA:
+                case ACT_RESET_CAMERA:
                     NGCameraSetPos(0, 0);
                     NGCameraSetZoom(NG_CAM_ZOOM_100);
                     state->scroll_x = 0;
                     state->scroll_dir = 1;
                     state->bob_phase = 0;
                     break;
-                case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
-                case MENU_BLANK_SCENE:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_BLANK_SCENE;
-                    break;
-                case MENU_TILEMAP_DEMO:
-                    NGMenuHide(state->menu);
-                    state->menu_open = 0;
-                    state->switch_target = DEMO_ID_TILEMAP;
-                    break;
             }
-        }
-
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
-            state->menu_open = 0;
         }
     } else {
         state->scroll_x = (s16)(state->scroll_x + state->scroll_dir * SCROLL_SPEED);

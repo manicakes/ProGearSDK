@@ -6,6 +6,7 @@
 
 #include "tilemap_demo.h"
 #include "../demo_ids.h"
+#include <scenemenu.h>
 #include <ng_hardware.h>
 #include <ng_fix.h>
 #include <ng_input.h>
@@ -96,6 +97,7 @@ typedef struct {
 
 typedef struct TilemapDemoState {
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     NGActorHandle player;
     NGBackdropHandle clouds_far;
     NGBackdropHandle clouds_mid;
@@ -122,10 +124,7 @@ typedef struct TilemapDemoState {
 
 static TilemapDemoState *state;
 
-#define MENU_RESUME      0
-#define MENU_BALL_DEMO   1
-#define MENU_SCROLL_DEMO 2
-#define MENU_BRAWLER     3
+#define ACT_RESUME 0
 
 /* The menu panel, terrain and all three cloud layers can stack past the
  * hardware's 96 sprites per scanline, which drops the highest-numbered
@@ -388,11 +387,9 @@ void TilemapDemoInit(void) {
     NGCameraSetBounds(state->level_width, state->level_height);
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 10);
-    NGMenuSetTitle(state->menu, "TILEMAP DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Ball Demo");
-    NGMenuAddItem(state->menu, "Scroll Demo");
-    NGMenuAddItem(state->menu, "Brawler");
+    NGSceneMenuInit(&state->scene_menu, state->menu, "TILEMAP DEMO");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuBuild(&state->scene_menu);
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
 
@@ -455,6 +452,7 @@ u8 TilemapDemoUpdate(void) {
             NGMenuHide(state->menu);
             set_menu_open(0);
         } else {
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             set_menu_open(1);
         }
@@ -463,33 +461,22 @@ u8 TilemapDemoUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    break;
-                case MENU_BALL_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_BALL;
-                    break;
-                case MENU_SCROLL_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_SCROLL;
-                    break;
-                case MENU_BRAWLER:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_BRAWLER;
-                    break;
-            }
-        }
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
 
-        if (NGMenuCancelled(state->menu)) {
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
             NGMenuHide(state->menu);
             set_menu_open(0);
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            set_menu_open(0);
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
+                    NGMenuHide(state->menu);
+                    set_menu_open(0);
+                    break;
+            }
         }
     } else {
         state->player_vel_x = 0;

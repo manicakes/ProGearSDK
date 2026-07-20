@@ -25,6 +25,7 @@
 #include <graphic.h>
 #include <engine.h>
 #include <lighting.h>
+#include <scenemenu.h>
 #include <progear_assets.h>
 
 #define CAM_CIRCLE_SPEED   1
@@ -43,6 +44,7 @@ typedef struct BallDemoState {
     NGBackdropHandle brick_shadow;
     BallSystemHandle balls;
     NGMenuHandle menu;
+    NGSceneMenu scene_menu;
     angle_t cam_angle;
     fixed cam_circle_radius;
     u8 menu_open;
@@ -219,17 +221,13 @@ static void update_raster_fx(void) {
     NGTimerSetReload(NGTimerScanlineToReload(FX_VBLANK_LINES + FX_FIRST_LINE));
 }
 
-#define MENU_RESUME       0
-#define MENU_ADD_BALL     1
-#define MENU_CLEAR_BALLS  2
-#define MENU_TOGGLE_ZOOM  3
-#define MENU_TOGGLE_MUSIC 4
-// Index 5 is separator
-#define MENU_SCROLL_DEMO  6
-#define MENU_BLANK_SCENE  7
-#define MENU_TILEMAP_DEMO 8
-#define MENU_MVS_DEMO     9
-#define MENU_RASTER_DEMO  10
+/* Actions this scene offers. Reaching the other scenes is NGSceneMenu's job,
+ * so there is nothing here about them. */
+#define ACT_RESUME       0
+#define ACT_ADD_BALL     1
+#define ACT_CLEAR_BALLS  2
+#define ACT_TOGGLE_ZOOM  3
+#define ACT_TOGGLE_MUSIC 4
 
 /* Opening the menu pauses the world: the engine stops the raster timer, freezes
  * world animation, and hides the rain overlay (NG_PAUSE_HIDE). */
@@ -377,20 +375,16 @@ void BallDemoInit(void) {
     NGTimerEnable();
 
     state->menu = NGMenuCreateDefault(&ng_arena_state, 12);
-    NGMenuSetTitle(state->menu, "BALL DEMO");
-    NGMenuAddItem(state->menu, "Resume");
-    NGMenuAddItem(state->menu, "Add Ball");
-    NGMenuAddItem(state->menu, "Clear Balls");
-    NGMenuAddItem(state->menu, "Toggle Zoom");
-    NGMenuAddItem(state->menu, "Pause Music");
-    NGMenuAddSeparator(state->menu, "--------");
-    NGMenuAddItem(state->menu, "Scroll Demo");
-    NGMenuAddItem(state->menu, "Blank Scene");
-    NGMenuAddItem(state->menu, "Tilemap Demo");
-    NGMenuAddItem(state->menu, "MVS Features");
-    NGMenuAddItem(state->menu, "Raster Effects");
     NGMenuSetDefaultSounds(state->menu);
     NGEngineSetActiveMenu(state->menu);
+
+    NGSceneMenuInit(&state->scene_menu, state->menu, "BALL DEMO");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_RESUME, "Resume");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_ADD_BALL, "Add Ball");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_CLEAR_BALLS, "Clear Balls");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_TOGGLE_ZOOM, "Toggle Zoom");
+    NGSceneMenuAddAction(&state->scene_menu, ACT_TOGGLE_MUSIC, "Pause Music");
+    NGSceneMenuBuild(&state->scene_menu);
 
     NGTextPrint(NGFixLayoutAlign(NG_ALIGN_CENTER, NG_ALIGN_TOP), 0, "PRESS START FOR MENU");
 
@@ -411,6 +405,7 @@ u8 BallDemoUpdate(void) {
             NGMenuHide(state->menu);
             set_menu_open(0);
         } else {
+            NGSceneMenuReset(&state->scene_menu);
             NGMenuShow(state->menu);
             set_menu_open(1);
         }
@@ -419,73 +414,47 @@ u8 BallDemoUpdate(void) {
     NGMenuUpdate(state->menu);
 
     if (state->menu_open) {
-        if (NGMenuConfirmed(state->menu)) {
-            switch (NGMenuGetSelection(state->menu)) {
-                case MENU_RESUME:
+        NGSceneMenuEvent ev = NGSceneMenuUpdate(&state->scene_menu);
+
+        if (ev.kind == NG_SCENE_MENU_SWITCH) {
+            NGMenuHide(state->menu);
+            set_menu_open(0);
+            state->switch_target = ev.scene;
+        } else if (ev.kind == NG_SCENE_MENU_CLOSED) {
+            NGMenuHide(state->menu);
+            set_menu_open(0);
+        } else if (ev.kind == NG_SCENE_MENU_ACTION) {
+            switch (ev.action) {
+                case ACT_RESUME:
                     NGMenuHide(state->menu);
                     set_menu_open(0);
                     break;
-                case MENU_ADD_BALL:
+                case ACT_ADD_BALL:
                     BallSpawn(state->balls);
-                    /* Sprite allocation shifts at the next draw; this
-                     * frame's target snapshot is stale, so skip its raster
-                     * writes rather than displace the wrong sprites */
+                    /* Sprite allocation shifts at the next draw; this frame's
+                     * target snapshot is stale, so skip its raster writes
+                     * rather than displace the wrong sprites */
                     heat_target_count = 0;
                     rain_count = 0;
                     break;
-                case MENU_CLEAR_BALLS:
+                case ACT_CLEAR_BALLS:
                     while (BallDestroyLast(state->balls)) {}
                     heat_target_count = 0;
                     rain_count = 0;
                     break;
-                case MENU_TOGGLE_ZOOM: {
+                case ACT_TOGGLE_ZOOM: {
                     u8 target = NGCameraGetTargetZoom();
-                    if (target == NG_CAM_ZOOM_100) {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_75);
-                    } else {
-                        NGCameraSetTargetZoom(NG_CAM_ZOOM_100);
-                    }
+                    NGCameraSetTargetZoom(target == NG_CAM_ZOOM_100 ? NG_CAM_ZOOM_75
+                                                                    : NG_CAM_ZOOM_100);
                 } break;
-                case MENU_TOGGLE_MUSIC:
+                case ACT_TOGGLE_MUSIC:
                     if (NGMusicIsPaused()) {
                         NGMusicResume();
-                        NGMenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Pause Music");
                     } else {
                         NGMusicPause();
-                        NGMenuSetItemText(state->menu, MENU_TOGGLE_MUSIC, "Resume Music");
                     }
                     break;
-                case MENU_SCROLL_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_SCROLL;
-                    break;
-                case MENU_BLANK_SCENE:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_BLANK_SCENE;
-                    break;
-                case MENU_TILEMAP_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_TILEMAP;
-                    break;
-                case MENU_MVS_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_MVS;
-                    break;
-                case MENU_RASTER_DEMO:
-                    NGMenuHide(state->menu);
-                    set_menu_open(0);
-                    state->switch_target = DEMO_ID_RASTER;
-                    break;
             }
-        }
-
-        if (NGMenuCancelled(state->menu)) {
-            NGMenuHide(state->menu);
-            set_menu_open(0);
         }
     }
 

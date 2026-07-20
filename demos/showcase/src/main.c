@@ -20,13 +20,17 @@
 int main(void) {
     NGEngineInit();
 
-    NGStateRegister(DEMO_ID_BALL, BallDemoInit, BallDemoUpdate, BallDemoCleanup);
-    NGStateRegister(DEMO_ID_SCROLL, ScrollDemoInit, ScrollDemoUpdate, ScrollDemoCleanup);
-    NGStateRegister(DEMO_ID_BLANK_SCENE, BlankSceneInit, BlankSceneUpdate, BlankSceneCleanup);
-    NGStateRegister(DEMO_ID_TILEMAP, TilemapDemoInit, TilemapDemoUpdate, TilemapDemoCleanup);
-    NGStateRegister(DEMO_ID_MVS, MVSDemoInit, MVSDemoUpdate, MVSDemoCleanup);
-    NGStateRegister(DEMO_ID_RASTER, RasterDemoInit, RasterDemoUpdate, RasterDemoCleanup);
-    NGStateRegister(DEMO_ID_BRAWLER, BrawlerInit, BrawlerUpdate, BrawlerCleanup);
+    NGStateRegister(DEMO_ID_BALL, "Ball Demo", BallDemoInit, BallDemoUpdate, BallDemoCleanup);
+    NGStateRegister(DEMO_ID_SCROLL, "Scroll Demo", ScrollDemoInit, ScrollDemoUpdate,
+                    ScrollDemoCleanup);
+    NGStateRegister(DEMO_ID_BLANK_SCENE, "Blank Scene", BlankSceneInit, BlankSceneUpdate,
+                    BlankSceneCleanup);
+    NGStateRegister(DEMO_ID_TILEMAP, "Tilemap Demo", TilemapDemoInit, TilemapDemoUpdate,
+                    TilemapDemoCleanup);
+    NGStateRegister(DEMO_ID_MVS, "MVS Features", MVSDemoInit, MVSDemoUpdate, MVSDemoCleanup);
+    NGStateRegister(DEMO_ID_RASTER, "Raster Effects", RasterDemoInit, RasterDemoUpdate,
+                    RasterDemoCleanup);
+    NGStateRegister(DEMO_ID_BRAWLER, "Brawler", BrawlerInit, BrawlerUpdate, BrawlerCleanup);
 
     NGStateStart(DEMO_ID_BALL);
 
