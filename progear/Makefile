@@ -48,7 +48,8 @@ C_SOURCES = $(SRC_DIR)/lighting.c \
             $(SRC_DIR)/engine.c \
             $(SRC_DIR)/terrain.c \
             $(SRC_DIR)/state.c \
-            $(SRC_DIR)/hitbox.c
+            $(SRC_DIR)/hitbox.c \
+            $(SRC_DIR)/debug.c
 
 H_SOURCES = $(wildcard $(INC_DIR)/*.h)
 

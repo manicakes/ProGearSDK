@@ -1791,6 +1791,58 @@ void _NGGraphicApplyPause(u8 paused) {
     }
 }
 
+/**
+ * Peak number of sprites on any one scanline, for NGDebug.
+ *
+ * Each visible graphic contributes hw_sprite_count sprites across the
+ * scanlines it covers. Accumulating that with a difference array costs one
+ * pass over the graphics plus one over the scanlines, rather than marking
+ * every scanline of every graphic.
+ */
+void _NGGraphicPeakSpriteLoad(u16 *out_peak, u16 *out_line) {
+    static s16 delta[SCREEN_HEIGHT + 1];
+
+    for (u16 i = 0; i <= SCREEN_HEIGHT; i++) {
+        delta[i] = 0;
+    }
+
+    for (u8 i = 0; i < render_count; i++) {
+        NGGraphic *g = &graphics[render_order[i]];
+        if (!g->active || !g->visible || g->culled || !g->hw_allocated)
+            continue;
+
+        s16 tile_h = (s16)((TILE_SIZE * g->scale) >> 8);
+        if (tile_h < 1)
+            tile_h = 1;
+
+        s16 y0 = g->screen_y;
+        s16 y1 = (s16)(y0 + (s16)g->num_rows * tile_h);
+        if (y1 <= 0 || y0 >= (s16)SCREEN_HEIGHT)
+            continue;
+        if (y0 < 0)
+            y0 = 0;
+        if (y1 > (s16)SCREEN_HEIGHT)
+            y1 = (s16)SCREEN_HEIGHT;
+
+        delta[y0] = (s16)(delta[y0] + g->hw_sprite_count);
+        delta[y1] = (s16)(delta[y1] - g->hw_sprite_count);
+    }
+
+    u16 peak = 0;
+    u16 peak_line = 0;
+    s16 run = 0;
+    for (u16 y = 0; y < SCREEN_HEIGHT; y++) {
+        run = (s16)(run + delta[y]);
+        if (run > (s16)peak) {
+            peak = (u16)run;
+            peak_line = y;
+        }
+    }
+
+    *out_peak = peak;
+    *out_line = peak_line;
+}
+
 /* ============================================================
  * Rendering
  * ============================================================ */

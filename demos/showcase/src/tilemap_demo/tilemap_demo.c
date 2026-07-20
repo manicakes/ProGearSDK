@@ -20,6 +20,7 @@
 #include <engine.h>
 #include <ng_audio.h>
 #include <hitbox.h>
+#include <debug.h>
 #include <progear_assets.h>
 
 #define PLAYER_HALF_W FIX(6)
@@ -434,6 +435,9 @@ void TilemapDemoInit(void) {
 
     draw_hud();
 
+    NGDebugSetEnabled(1);
+    NGDebugResetPeaks();
+
     /* Sequenced FM stage theme - note data in M1 ROM, not streamed samples */
     NGSongPlay(NGSONG_DOWNTOWN);
 }
@@ -569,6 +573,8 @@ u8 TilemapDemoUpdate(void) {
         }
 
         NGActorSetPos(state->player, state->player_x - FIX(16), state->player_y - FIX(16));
+
+        NGDebugDrawHUD(26);
 
         update_bullets();
         update_walkers();

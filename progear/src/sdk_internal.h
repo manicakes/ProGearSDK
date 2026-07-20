@@ -55,6 +55,13 @@ void NGGraphicSystemDraw(void);
 /** Reset graphics system, destroying all graphics (called on scene reset) */
 void NGGraphicSystemReset(void);
 
+/** Peak sprites on any scanline, and which scanline (for NGDebug) */
+void _NGGraphicPeakSpriteLoad(u16 *out_peak, u16 *out_line);
+
+/** Frame-budget sampling hooks, called by the engine each frame */
+void _NGDebugFrameStart(void);
+void _NGDebugFrameEnd(void);
+
 /** Hide (paused=1) or restore (paused=0) graphics marked NG_PAUSE_HIDE */
 void _NGGraphicApplyPause(u8 paused);
 

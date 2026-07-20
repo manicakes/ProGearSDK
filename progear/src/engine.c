@@ -77,6 +77,7 @@ u8 NGEngineIsPaused(void) {
 
 void NGEngineFrameStart(void) {
     NGWaitVBlank();
+    _NGDebugFrameStart();
     NGWatchdogKick();
 
     // VBlank is the only safe window to touch VRAM: the LSPC is not scanning
@@ -98,6 +99,8 @@ void NGEngineFrameEnd(void) {
     // tear-free output.
     NGLightingUpdate();
     NGSceneUpdate();
+
+    _NGDebugFrameEnd();
 }
 
 void NGEngineSetActiveMenu(NGMenuHandle menu) {
