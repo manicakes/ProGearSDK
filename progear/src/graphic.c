@@ -670,21 +670,31 @@ static void update_scroll_positions_limited(NGGraphic *g, s16 pixel_diff, s16 ti
     /* Update scroll offset by pixel delta */
     g->scroll_offset = (s16)(g->scroll_offset - SCROLL_FIX(pixel_diff));
 
-    /* Wrap leftmost pointer when crossing tile boundaries */
-    while (g->scroll_offset <= 0) {
-        g->scroll_leftmost++;
-        if (g->scroll_leftmost >= visible_cols) {
-            g->scroll_leftmost = 0;
+    /* Wrap the leftmost pointer when crossing tile boundaries.
+     *
+     * These walk one tile per iteration, so the cost is proportional to how
+     * far the layer moved. That is fine while scrolling (a pixel or two a
+     * frame) but not when the camera jumps: a parallax layer can shift
+     * hundreds of pixels in one frame, and with several layers the loops can
+     * run long enough to miss the watchdog and reset the machine. The offset
+     * only matters modulo the tile width, so fold large jumps arithmetically
+     * and let the loops handle the remainder. */
+    if (tile_width_fixed > 0) {
+        if (g->scroll_offset <= 0) {
+            s16 tiles = (s16)((-g->scroll_offset) / tile_width_fixed + 1);
+            g->scroll_offset = (s16)(g->scroll_offset + tiles * tile_width_fixed);
+            if (visible_cols > 0) {
+                g->scroll_leftmost = (u8)((g->scroll_leftmost + tiles) % visible_cols);
+            }
+        } else if (g->scroll_offset > tile_width_fixed * 2) {
+            s16 tiles = (s16)((g->scroll_offset - tile_width_fixed * 2) / tile_width_fixed + 1);
+            g->scroll_offset = (s16)(g->scroll_offset - tiles * tile_width_fixed);
+            if (visible_cols > 0) {
+                s16 back = (s16)(tiles % (s16)visible_cols);
+                g->scroll_leftmost =
+                    (u8)((g->scroll_leftmost + (s16)visible_cols - back) % visible_cols);
+            }
         }
-        g->scroll_offset = (s16)(g->scroll_offset + tile_width_fixed);
-    }
-
-    while (g->scroll_offset > tile_width_fixed * 2) {
-        if (g->scroll_leftmost == 0) {
-            g->scroll_leftmost = visible_cols;
-        }
-        g->scroll_leftmost--;
-        g->scroll_offset = (s16)(g->scroll_offset - tile_width_fixed);
     }
 
     /* Calculate X positions mathematically from scroll state */
@@ -1039,6 +1049,33 @@ static void flush_tilemap_scroll(NGGraphic *g) {
         g->scroll_last_scb3 = 0xFFFF;
         need_x = 1;
         g->cache.last_scale = g->scale;
+    }
+
+    /* A jump larger than the cycling buffer cannot be expressed as a shift of
+     * that buffer. The incremental paths below derive the incoming rows and
+     * columns from the *previous* position, and they clamp their loop counts
+     * to the buffer size - so a larger delta fills the buffer with the strip
+     * of map next to where the camera was, not where it now is, and every
+     * later frame cycles on from that wrong state. Reload from the new
+     * position instead. Costs one full tile write on the frame a camera jumps
+     * or snaps, which is exactly when there is nothing to reuse anyway. */
+    {
+        s16 row_jump = cur_tile_row - g->scroll_last_row;
+        s16 col_jump = cur_tile_col - g->scroll_last_px;
+        if (row_jump >= (s16)g->num_rows || row_jump <= -(s16)g->num_rows ||
+            col_jump >= (s16)g->num_cols || col_jump <= -(s16)g->num_cols) {
+            g->scroll_topmost = 0;
+            g->scroll_leftmost = 0;
+            for (u8 col = 0; col < g->num_cols; col++) {
+                load_tilemap8_column(g, g->hw_sprite_first + col, (s16)(cur_tile_col + col), 0);
+            }
+            g->scroll_last_px = cur_tile_col;
+            g->scroll_last_row = cur_tile_row;
+            g->scroll_last_scb3 = 0xFFFF;
+            need_x = 1;
+            g->cache.last_src_offset_x = g->src_offset_x;
+            g->cache.last_src_offset_y = g->src_offset_y;
+        }
     }
 
     /* Handle vertical scrolling with Y cycling buffer */
